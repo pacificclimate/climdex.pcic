@@ -1,27 +1,97 @@
-# Input vector of booleans
-# Returns a vector of integers representing the _length_ of each consequtive sequence of True values
+
+## FD, ID
+number.days.below.threshold <- function(temp, date.factor, threshold) {
+
+## SU, TR
+number.days.over.threshold <- function(temp, date.factor, threshold) {
+}
+
+## GSL
+growing.season.length <- function(daily.mean.temp, date.factor) {
+}
+
+## TNx, TXx
+max.daily.temp <- function(daily.min.temp, date.factor) {
+}
+
+## TNn, TXn
+min.daily.temp <- function(daily.max.temp, date.factor) {
+}
+
+## TN10p, TX10p
+## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
+percent.days.lt.pctile <- function(temp, date.factor, pctile.6190) {
+}
+
+## TN90p, TX90p
+## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
+percent.days.gt.pctile <- function(temp, date.factor, pctile) {
+}
+## WSDI
+warm.spell.duration.index <- function(daily.max.temp, date.factor, warm.threshold) {
+}
+
+## CSDI
+cold.spell.duration.index <- function(daily.min.temp, date.factor, cold.threshold) {
+}
+
+## DTR
+## Max and min temps are assumed to be same length
+mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
+}
+
+## Rx1day, Rx5day
+max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
+}
+
+## SDII
+## Period for computatino of number of wet days shall be the entire range of the data supplied.
+simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
+}
+
+## R10mm, R20mm, Rnnmm
+count.days.prec.ge.threshold <- function(daily.prec, date.factor, threshold) {
+}
+
+## CDD
+max.length.dry.spell <- function(daily.prec, date.factor) {
+}
+
+## CWD
+max.length.wet.spell <- function(daily.prec, date.factor) {
+}
+
+## R95pTOT, R99pTOT
+total.precip.above.threshold <- function(daily.prec, date.factor, threshold) {
+}
+## PRCPTOT
+total.prec <- function(daily.prec, date.factor) {
+}
+
+## Input vector of booleans
+## Returns a vector of integers representing the _length_ of each consecutive sequence of True values
 sequential <- function(v) {
   if (! any(v, na.rm=T)) return(0)
   vect <- which(v)
   diff(which(c(T, diff(vect) != 1, T)))
 }
 
-# Input vector of booleans
-# Returns the indicies for sequences of True which are greater than or equal to length "len"
+## Input vector of booleans
+## Returns the indicies for sequences of True which are greater than or equal to length "len"
 sequential.return.indicies <- function(v, len=7) {
   i <- which(v)
-  # Represents the length-1 of each sequence of repeat meausurements
+  ## Represents the length-1 of each sequence of repeat meausurements
   s <- sequential(v)
-  # Which sequenses match our length critereon
+  ## Which sequenses match our length critereon
   matches <- which(s >= len)
 
   if (length(matches) == 0) {
     return(NULL)
   }
-  # Use this as an index into our indices of repeat measurements
+  ## Use this as an index into our indices of repeat measurements
   match.i <- sapply(matches, function (m) {sum(s[1:m-1]) + 1})
   lengths <- s[matches]
-  # And finally return the indicies which correspond to the sequenses
+  ## And finally return the indicies which correspond to the sequenses
   unlist(mapply(seq, i[match.i], i[match.i] + lengths - 1, SIMPLIFY=F ))
 }
 
@@ -72,7 +142,7 @@ deep.freeze <- function(min.obs, freeze.temp=0.0, duration=47.0) {
   return(c(num.events=length(sequenses), mean.magnitude=mean(sequenses)))
 }
 
-# Set duration to NA if you just want to know how many obs are greater than the threshold (i.e. no sequenses)
+## Set duration to NA if you just want to know how many obs are greater than the threshold (i.e. no sequenses)
 big.rain <- function(pcp, duration=5.0, pcp.thresh=25.0, freeze.temp=0.0) {
   rainy.days <- pcp > pcp.thresh
   if (is.na(duration)) {
@@ -114,7 +184,7 @@ pinapple.express <- function(u, v, pcp, temp, wind.speed, pcp.thresh = 25.0, tem
     wind.speed <- wind.speed[1:n]
   }
   
-  # The pineapple express is defined as being from the southwest.  u and v must both be in the positive quadrant
+  ## The pineapple express is defined as being from the southwest.  u and v must both be in the positive quadrant
   pina.is.coming <- u > 0 & v > 0 & temp > temp.thresh & pcp > pcp.thresh & wind.speed > wind.speed.thresh
 
   sequences <- sequential(pina.is.coming)
@@ -158,7 +228,7 @@ high.wind.new.dir <- function(w, dirs, wind.thresh=65, old.dir="N") {
   return(length(which(hits)))
 }
 
-# If tas (air temperature) is provided, check to make sure that it is above freezing... i.e. the precip is rain and not snow/sleet/hail
+## If tas (air temperature) is provided, check to make sure that it is above freezing... i.e. the precip is rain and not snow/sleet/hail
 rain.on.snow <- function(pcp, snd, tas=NULL, pcp.thresh=29.8, snd.thresh=10, freeze.temp=0, return.indicies=F) {
   if (is.null(tas))
     hits <- pcp > pcp.thresh & snd > snd.thresh
@@ -173,9 +243,9 @@ rain.on.snow <- function(pcp, snd, tas=NULL, pcp.thresh=29.8, snd.thresh=10, fre
   }
 }
 
-# FIXME: percentiles is not really a necessary argument anymore
-# but it does have the same dimensionality which we want for the return value (minus the variable dimension)
-# Maybe just pass in the dimnames?
+## FIXME: percentiles is not really a necessary argument anymore
+## but it does have the same dimensionality which we want for the return value (minus the variable dimension)
+## Maybe just pass in the dimnames?
 apply.pina <- function(percentiles, data.list) {
 
   i <- which(names(dimnames(percentiles)) == "var")
@@ -189,7 +259,7 @@ apply.pina <- function(percentiles, data.list) {
       for (season in dimnames(percentiles)$season) {
         for (gcm in dimnames(percentiles)$gcm) {
           if (rcm %in% names(data.list[[c(gcm, "uas")]])) {
-            # Select only the values that are within the given season
+            ## Select only the values that are within the given season
             i <- data.list[[c(gcm, "uas", rcm, "seasonal.indicies", season)]]
 
             uas <- data.list[[c(gcm, "uas", rcm, "data")]][i]
@@ -198,7 +268,7 @@ apply.pina <- function(percentiles, data.list) {
             temp <- data.list[[c(gcm, "tas", rcm, "data")]][i]
             wind.speed <- data.list[[c(gcm, "wind.speed", rcm, "data")]][i]
 
-            # Calculate the seasonal thresholds
+            ## Calculate the seasonal thresholds
             temp.thresh <- median(temp)
             pcp.thresh <- quantile(pcp, probs=as.numeric(p))
             wind.speed.thresh <- quantile(wind.speed, probs=as.numeric(p))
@@ -228,14 +298,14 @@ apply.blizzard <- function(percentiles, data.list) {
       for (season in dimnames(percentiles)$season) {
         for (gcm in dimnames(percentiles)$gcm) {
           if (rcm %in% names(data.list[[c(gcm, "pr")]])) {
-            # Select only the values that are within the given season
+            ## Select only the values that are within the given season
             i <- data.list[[c(gcm, "pr", rcm, "seasonal.indicies", season)]]
 
             pcp <- data.list[[c(gcm, "pr", rcm, "data")]][i]
             temp <- data.list[[c(gcm, "tas", rcm, "data")]][i]
             wind.speed <- data.list[[c(gcm, "wind.speed", rcm, "data")]][i]
 
-            # Calculate the seasonal thresholds
+            ## Calculate the seasonal thresholds
             pcp.thresh <- quantile(pcp, probs=as.numeric(p))
             wind.speed.thresh <- quantile(wind.speed, probs=as.numeric(p))
 
