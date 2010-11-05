@@ -1,6 +1,7 @@
 
 ## FD, ID
 number.days.below.threshold <- function(temp, date.factor, threshold) {
+}
 
 ## SU, TR
 number.days.over.threshold <- function(temp, date.factor, threshold) {
@@ -45,7 +46,7 @@ max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
 }
 
 ## SDII
-## Period for computatino of number of wet days shall be the entire range of the data supplied.
+## Period for computation of number of wet days shall be the entire range of the data supplied.
 simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 }
 
