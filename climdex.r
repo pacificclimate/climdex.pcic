@@ -88,6 +88,7 @@ max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
 }
 
 ## SDII
+## Period for computation of number of wet days shall be the entire range of the data supplied.
 simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
   return(tapply(daily.prec, date.factor, function(prec) { idx <- prec >= 1; return(sum(prec[idx]) / sum(idx)) } ))
 }
@@ -115,18 +116,6 @@ total.precip.above.threshold <- function(daily.prec, date.factor, threshold) {
 ## PRCPTOT
 total.prec <- function(daily.prec, date.factor) {
   return(tapply(daily.prec, date.factor, sum))
-}
-
-## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
-select.blocks.gt.length <- function(d, n) {
-  if(n == 0)
-    return(d)
-
-  if(n >= length(d))
-    return(rep(FALSE, length(d)))
-
-  d2 <- Reduce(function(x, y) { return(c(rep(0, y), d[1:(length(d) - y)]) & x) }, 1:n, d)
-  return(Reduce(function(x, y) { return(c(d2[(y + 1):length(d2)], rep(0, y)) | x) }, 1:n, d2))
 }
 
 ## Input vector of booleans
@@ -304,104 +293,18 @@ rain.on.snow <- function(pcp, snd, tas=NULL, pcp.thresh=29.8, snd.thresh=10, fre
   }
 }
 
-## FIXME: percentiles is not really a necessary argument anymore
-## but it does have the same dimensionality which we want for the return value (minus the variable dimension)
-## Maybe just pass in the dimnames?
-apply.pina <- function(percentiles, data.list) {
+select.blocks.gt.length <- function(d, n) {
+  if(n == 0)
+    return(d)
 
-  i <- which(names(dimnames(percentiles)) == "var")
-  d <- dim(percentiles)[-i]
-  results <- rep(NA, prod(d))
-  dim(results) <- d
-  dimnames(results) <- dimnames(percentiles)[-i]
+  if(n >= length(d))
+    return(rep(FALSE, length(d)))
 
-  for (p in dimnames(percentiles)$percentiles) {
-    for (rcm in dimnames(percentiles)$rcm) {
-      for (season in dimnames(percentiles)$season) {
-        for (gcm in dimnames(percentiles)$gcm) {
-          if (rcm %in% names(data.list[[c(gcm, "uas")]])) {
-            ## Select only the values that are within the given season
-            i <- data.list[[c(gcm, "uas", rcm, "seasonal.indicies", season)]]
-
-            uas <- data.list[[c(gcm, "uas", rcm, "data")]][i]
-            vas <- data.list[[c(gcm, "vas", rcm, "data")]][i]
-            pcp <- data.list[[c(gcm, "pr", rcm, "data")]][i]
-            temp <- data.list[[c(gcm, "tas", rcm, "data")]][i]
-            wind.speed <- data.list[[c(gcm, "wind.speed", rcm, "data")]][i]
-
-            ## Calculate the seasonal thresholds
-            temp.thresh <- median(temp)
-            pcp.thresh <- quantile(pcp, probs=as.numeric(p))
-            wind.speed.thresh <- quantile(wind.speed, probs=as.numeric(p))
-
-            results[p, rcm, season, gcm] <- pinapple.express(uas, vas, pcp, temp, wind.speed, pcp.thresh=pcp.thresh, temp.thresh=temp.thresh, wind.speed.thresh=wind.speed.thresh)["num.events"]
-          } else {
-            results[p, rcm, season, gcm] <- NA
-            warning(paste("Couldn't find rcm ", rcm))
-          }
-        }
-      }
-    }
-  }
-  results
+  d2 <- Reduce(function(x, y) { return(c(rep(0, y), d[1:(length(d) - y)]) & x) }, 1:n, d)
+  return(Reduce(function(x, y) { return(c(d2[(y + 1):length(d2)], rep(0, y)) | x) }, 1:n, d2))
 }
-
-apply.blizzard <- function(percentiles, data.list) {
-
-  i <- which(names(dimnames(percentiles)) == "var")
-  d <- dim(percentiles)[-i]
-  results <- rep(NA, prod(d))
-  dim(results) <- d
-  dimnames(results) <- dimnames(percentiles)[-i]
-
-  for (p in dimnames(percentiles)$percentiles) {
-    for (rcm in dimnames(percentiles)$rcm) {
-      for (season in dimnames(percentiles)$season) {
-        for (gcm in dimnames(percentiles)$gcm) {
-          if (rcm %in% names(data.list[[c(gcm, "pr")]])) {
-            ## Select only the values that are within the given season
-            i <- data.list[[c(gcm, "pr", rcm, "seasonal.indicies", season)]]
-
-            pcp <- data.list[[c(gcm, "pr", rcm, "data")]][i]
-            temp <- data.list[[c(gcm, "tas", rcm, "data")]][i]
-            wind.speed <- data.list[[c(gcm, "wind.speed", rcm, "data")]][i]
-
-            ## Calculate the seasonal thresholds
-            pcp.thresh <- quantile(pcp, probs=as.numeric(p))
-            wind.speed.thresh <- quantile(wind.speed, probs=as.numeric(p))
-
-            results[p, rcm, season, gcm] <- blizzard(pcp, temp, wind.speed, pcp.thresh=pcp.thresh, wind.thresh=wind.speed.thresh)["num.events"]
-          } else {
-            results[p, rcm, season, gcm] <- NA
-            warning(paste("Couldn't find rcm ", rcm))
-          }
-        }
-      }
-    }
-  }
-  results
-}
-
-library(RUnit)
 
 CSDI <- function(n, v, years) {
   blocks <- select.blocks.gt.length(d=v, n=n)
   tapply(blocks, years, sum)
-}
-
-test.CSDI <- function() {
-  f <- CSDI
-  cases <- list(list(args=list(n=3, v=c(F, T, T, T, T, F), years=as.factor(rep('2008', 6))),
-                     expected=array(4, dimnames=list(c('2008')))),
-                list(args=list(n=3, v=c(F, T, T, T, T, F), years=as.factor(c(rep('2008', 2), rep('2009', 4)))),
-                     expected=array(c(1, 3), dimnames=list(c('2008', '2009')))),
-                list(args=list(n=3, v=c(F, rep(T, 4), rep(F, 2), rep(T, 4)), years=as.factor(c(rep('2008', 6), rep('2009', 5)))),
-                     expected=array(c(4, 4), dimnames=list(c('2008', '2009')))),
-                list(args=list(n=0, v=c(T, F, T, F, T, F), years=as.factor(rep('2008', 6))),
-                     expected=array(3, dimnames=list(c('2008'))))
-                )
-  for (case in cases) {
-    checkEquals(do.call(f, case$args), case$expected)
-  }
-  checkException(f(n=-1, v=rep(T, 10)))
 }
