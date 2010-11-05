@@ -1,71 +1,132 @@
+library(caTools)
+
+## Temperature units: degrees C
+## Precipitation units: mm per unit time
 
 ## FD, ID
 number.days.below.threshold <- function(temp, date.factor, threshold) {
+  return(tapply(temp < threshold, date.factor, sum))
+}
 
 ## SU, TR
 number.days.over.threshold <- function(temp, date.factor, threshold) {
+  return(tapply(temp > threshold, date.factor, sum))
 }
 
 ## GSL
-growing.season.length <- function(daily.mean.temp, date.factor) {
+## Meaningless if not annual
+growing.season.length <- function(daily.mean.temp, date.factor, min.length=6) {
+  return(tapply(daily.mean.temp, date.factor, function(ts) {
+    ts.len<- length(ts)
+    ts.mid <- floor(ts.len / 2)
+    gs.begin <- which(select.blocks.gt.length(ts > 5, min.length - 1))
+    gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < 5, min.length - 1))
+    #browser()
+    if(length(gs.begin) == 0) {
+      return(0)
+    } else if(length(gs.end) == 0) {
+      return(ts.len - gs.begin[1] + 1)
+    } else {
+      return(gs.end[1] - gs.begin[1] + 1 + ts.mid)
+    }
+  } ))
 }
 
 ## TNx, TXx
-max.daily.temp <- function(daily.min.temp, date.factor) {
+max.daily.temp <- function(daily.temp, date.factor) {
+  return(tapply(daily.temp, date.factor, max))
 }
 
 ## TNn, TXn
-min.daily.temp <- function(daily.max.temp, date.factor) {
+min.daily.temp <- function(daily.temp, date.factor) {
+  return(tapply(daily.temp, date.factor, min))
 }
 
 ## TN10p, TX10p
 ## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
-percent.days.lt.pctile <- function(temp, date.factor, pctile.6190) {
+percent.days.lt.threshold <- function(temp, date.factor, threshold) {
+  return(tapply(temp < threshold, date.factor, function(x) { return(sum(x) / length(x) * 100) } ))
 }
 
 ## TN90p, TX90p
 ## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
-percent.days.gt.pctile <- function(temp, date.factor, pctile) {
+percent.days.gt.threshold <- function(temp, date.factor, threshold) {
+  return(tapply(temp > threshold, date.factor, function(x) { return(sum(x) / length(x) * 100) } ))
 }
+
 ## WSDI
-warm.spell.duration.index <- function(daily.max.temp, date.factor, warm.threshold) {
+## Thresholds appear to be for each block of 5 days of a year...
+warm.spell.duration.index <- function(daily.max.temp, dates, date.factor, warm.thresholds, min.length=6) {
+  jday <- as.POSIXlt(dates)$yday + 1
+  warm.periods <- select.blocks.gt.length(daily.max.temp > warm.thresholds[jday], min.length - 1)
+  return(tapply(warm.periods, date.factor, sum))
 }
 
 ## CSDI
-cold.spell.duration.index <- function(daily.min.temp, date.factor, cold.threshold) {
+## Thresholds appear to be for each block of 5 days of a year...
+cold.spell.duration.index <- function(daily.min.temp, dates, date.factor, cold.thresholds) {
+  jday <- as.POSIXlt(dates)$yday + 1
+  cold.periods <- select.blocks.gt.length(daily.max.temp < cold.thresholds[jday], min.length - 1)
+  return(tapply(cold.periods, date.factor, sum))
 }
 
 ## DTR
 ## Max and min temps are assumed to be same length
 mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
+  return(tapply(daily.max.temp - daily.min.temp, date.factor, mean))
 }
 
 ## Rx1day, Rx5day
 max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
+  if(ndays == 1) {
+    return(tapply(daily.prec, date.factor, max))
+  } else {
+    ## Ends of the data will be de-emphasized (padded with zero precip data)
+    prec.runsum <- runmean(c(rep(0, floor(ndays / 2)), daily.prec, rep(0, floor(ndays / 2))), k=ndays, endrule="trim") * ndays
+    return(tapply(prec.runsum, date.factor, max))
+  }
 }
 
 ## SDII
-## Period for computatino of number of wet days shall be the entire range of the data supplied.
 simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
+  return(tapply(daily.prec, date.factor, function(prec) { idx <- prec >= 1; return(sum(prec[idx]) / sum(idx)) } ))
 }
 
 ## R10mm, R20mm, Rnnmm
-count.days.prec.ge.threshold <- function(daily.prec, date.factor, threshold) {
+count.days.ge.threshold <- function(daily.prec, date.factor, threshold) {
+  return(tapply(daily.prec >= threshold, date.factor, sum))
 }
 
 ## CDD
 max.length.dry.spell <- function(daily.prec, date.factor) {
+  return(tapply(daily.prec < 1, date.factor, function(x) { return(max(sequential(x))) } ))
 }
 
 ## CWD
 max.length.wet.spell <- function(daily.prec, date.factor) {
+  return(tapply(daily.prec >= 1, date.factor, function(x) { return(max(sequential(x))) } ))
 }
 
 ## R95pTOT, R99pTOT
 total.precip.above.threshold <- function(daily.prec, date.factor, threshold) {
+  return(tapply(daily.prec, date.factor, function(x) { return(sum(daily.prec[daily.prec > threshold])) } ))
 }
+
 ## PRCPTOT
 total.prec <- function(daily.prec, date.factor) {
+  return(tapply(daily.prec, date.factor, sum))
+}
+
+## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
+select.blocks.gt.length <- function(d, n) {
+  if(n == 0)
+    return(d)
+
+  if(n >= length(d))
+    return(rep(FALSE, length(d)))
+
+  d2 <- Reduce(function(x, y) { return(c(rep(0, y), d[1:(length(d) - y)]) & x) }, 1:n, d)
+  return(Reduce(function(x, y) { return(c(d2[(y + 1):length(d2)], rep(0, y)) | x) }, 1:n, d2))
 }
 
 ## Input vector of booleans
