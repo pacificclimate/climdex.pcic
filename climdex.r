@@ -5,11 +5,13 @@ library(caTools)
 
 ## FD, ID
 number.days.below.threshold <- function(temp, date.factor, threshold) {
+  stopifnot(is.numeric(temp))
   return(tapply(temp < threshold, date.factor, sum))
 }
 
 ## SU, TR
 number.days.over.threshold <- function(temp, date.factor, threshold) {
+  stopifnot(is.numeric(temp))
   return(tapply(temp > threshold, date.factor, sum))
 }
 
