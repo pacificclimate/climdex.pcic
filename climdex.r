@@ -17,12 +17,14 @@ number.days.over.threshold <- function(temp, date.factor, threshold) {
 
 ## GSL
 ## Meaningless if not annual
-growing.season.length <- function(daily.mean.temp, date.factor, min.length=6) {
+## Time series must be contiguous
+growing.season.length <- function(daily.mean.temp, date.factor,
+                                  min.length=6, t.thresh=5) {
   return(tapply(daily.mean.temp, date.factor, function(ts) {
     ts.len<- length(ts)
     ts.mid <- floor(ts.len / 2)
-    gs.begin <- which(select.blocks.gt.length(ts > 5, min.length - 1))
-    gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < 5, min.length - 1))
+    gs.begin <- which(select.blocks.gt.length(ts > t.thresh, min.length - 1))
+    gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < t.thresh, min.length - 1))
     #browser()
     if(length(gs.begin) == 0) {
       return(0)
