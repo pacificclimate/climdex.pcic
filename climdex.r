@@ -1,7 +1,111 @@
 library(caTools)
 
+setClass("climdexInput",
+         representation(tmax = "numeric",
+                        tmin = "numeric",
+                        tavg = "numeric",
+                        prec = "numeric",
+                        date = "POSIXct",
+                        annual.factor = "factor",
+                        monthly.factor = "factor"),
+         contains = "data.frame"
+         )
+
+
+## Returns POSIXct field or dies
+get.date.field <- function(input.data) {
+  date.types <- list(list(fields=c("year", "jday"), format="%Y %j"),
+                     list(fields=c("year", "month", "day"), format="%Y %m %d"))
+  valid.date.types <- sapply(date.types, function(x) { return(!inherits(try(input.data[,x$fields], silent=TRUE), "try-error")) })
+
+  if(sum(valid.date.types) == 0) {
+    stop("Could not find a workable set of date fields")
+  }
+
+  date.type <- date.types[[which(valid.date.types)[1]]]
+  date.strings <- do.call(paste, input.data[,date.type$fields])
+  return(as.POSIXct(date.strings, format=date.type$format, tz="GMT"))
+}
+
+create.filled.series <- function(data, data.dates, new.date.sequence) {
+  new.data <- rep(NA, length(new.date.sequence))
+  data.in.new.data <- data.dates >= new.date.sequence[1] & data.dates <= new.date.sequence[length(new.date.sequence)]
+  indices <- round(as.numeric(data.dates[data.in.new.data] - new.date.sequence[1], units="days")) + 1
+  new.data[indices] <- data[data.in.new.data]
+  return(new.data)
+}
+
+climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec")) {
+  tmin.dat <- read.csv(tmin.file)
+  tmax.dat <- read.csv(tmax.file)
+  prec.dat <- read.csv(prec.file)
+
+  if(!(data.columns$tmin %in% names(tmin.dat) & data.columns$tmax %in% names(tmax.dat) & data.columns$prec %in% names(prec.dat))) {
+    stop("Data columns not found in data.")
+  }
+  
+  tmin.dates <- get.date.field(tmin.dat)
+  tmax.dates <- get.date.field(tmax.dat)
+  prec.dates <- get.date.field(prec.dat)
+
+  date.range <- range(c(tmin.dates, tmax.dates, prec.dates))
+  date.series <- seq(date.range[1], date.range[2], by="day")
+
+  annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
+  monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
+
+  filled.tmax <- create.filled.series(tmax.dat[,data.columns$tmax], tmax.dates, date.series)
+  filled.tmin <- create.filled.series(tmin.dat[,data.columns$tmin], tmin.dates, date.series)
+  filled.prec <- create.filled.series(prec.dat[,data.columns$prec], prec.dates, date.series)
+
+  filled.tavg <- (filled.tmax + filled.tmin) / 2
+  
+  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, date=date.series, annual.factor=annual.factor, monthly.factor=monthly.factor))
+}
+
 ## Temperature units: degrees C
 ## Precipitation units: mm per unit time
+
+## Status:
+## FD: Done
+climdex.fd <- function(min.temp, annual.date.factor) { return(number.days.below.threshold(min.temp, date.factor, 0)) }
+
+## SU: Done
+climdex.su <- function(max.temp, annual.date.factor) { return(number.days.above.threshold(max.temp, date.factor, 25)) }
+
+## ID: Done
+climdex.id <- function(max.temp, date.factor) { return(number.days.below.threshold(max.temp, date.factor, 0)) }
+
+## TR: Done
+climdex.tr <- function(min.temp, date.factor) { return(number.days.above.threshold(min.temp, date.factor, 20)) }
+
+## GSL: Should work, needs more testing; is imprecise around date of Jul 1
+##climdex.gsl <- function(mean.temp, date.factor) { return(
+
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
+## 
 
 ## FD, ID
 number.days.below.threshold <- function(temp, date.factor, threshold) {
@@ -115,6 +219,58 @@ total.precip.above.threshold <- function(daily.prec, date.factor, threshold) {
 ## PRCPTOT
 total.prec <- function(daily.prec, date.factor) {
   return(tapply(daily.prec, date.factor, sum))
+}
+
+## Gotta test this
+running.quantile <- function(data, f, n, q) {
+  indices.list <- lapply((1:n) - ceiling(n / 2), function(x, indices) { return(indices[max(1, x + 1):min(length(indices), length(indices) + x)]) }, 1:length(data))
+  return(tapply(data[unlist(indices.list)], factor(as.vector(f)[unlist(rev(indices.list))]), quantile, q))
+}
+
+bootstrap.zhang <- function(data, years, thresholds) {
+  nyears <- length(unique(years))
+  sapply(unique(years), function(x) {
+    
+  })
+##  yearset <- 
+}
+
+## Assume data is a data frame containing prec, tmin, tmax, tavg, year, month, day, jday
+run.climdex <- function(data, period, base.period) {
+  years.factor <- factor(data$year)
+  yearmonth.factor <- factor(paste(data$year, data$month))
+  months.factor <- factor(data$month)
+  jday.factor <- factor(data$jday)
+
+
+  ## Will need to replace these with bootstrap procedure
+  tmax.daily.10.pctile <- running.quantile(data$tmax[base.period], data$jday[base.period], 5, 0.1)
+  tmax.daily.90.pctile <- running.quantile(data$tmax[base.period], data$jday[base.period], 5, 0.9)
+  tmin.daily.10.pctile <- running.quantile(data$tmin[base.period], data$jday[base.period], 5, 0.1)
+  tmin.daily.90.pctile <- running.quantile(data$tmin[base.period], data$jday[base.period], 5, 0.9)
+  tavg.daily.10.pctile <- running.quantile(data$tavg[base.period], data$jday[base.period], 5, 0.1)
+  tavg.daily.90.pctile <- running.quantile(data$tavg[base.period], data$jday[base.period], 5, 0.9)
+  prec.daily.10.pctile <- running.quantile(data$prec[base.period], data$jday[base.period], 5, 0.1)
+  prec.daily.90.pctile <- running.quantile(data$prec[base.period], data$jday[base.period], 5, 0.9)
+  prec.daily.95.pctile <- running.quantile(data$prec[base.period], data$jday[base.period], 5, 0.95)
+  prec.daily.99.pctile <- running.quantile(data$prec[base.period], data$jday[base.period], 5, 0.99)
+
+  FD <- number.days.below.threshold(data$tmin, year.factor, 0)
+  ID <- number.days.below.threshold(data$tmax, year.factor, 0)
+
+  SU <- number.days.over.threshold(data$tmax, year.factor, 25)
+  TR <- number.days.over.threshold(data$tmin, year.factor, 20)
+
+  GSL <- growing.season.length(data$tavg, year.factor, 6)
+
+  TNx <- max.daily.temp(data$tmin, month.factor)
+  TXx <- max.daily.temp(data$tmax, month.factor)
+
+  TNn <- min.daily.temp(data$tmin, month.factor)
+  TXn <- min.daily.temp(data$tmax, month.factor)
+
+  ## Potentially invalid
+  ##TX10p <- percent.days.lt.threshold(data$tmax, 
 }
 
 ## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
@@ -302,84 +458,6 @@ rain.on.snow <- function(pcp, snd, tas=NULL, pcp.thresh=29.8, snd.thresh=10, fre
   else {
     return(length(which(hits)))
   }
-}
-
-## FIXME: percentiles is not really a necessary argument anymore
-## but it does have the same dimensionality which we want for the return value (minus the variable dimension)
-## Maybe just pass in the dimnames?
-apply.pina <- function(percentiles, data.list) {
-
-  i <- which(names(dimnames(percentiles)) == "var")
-  d <- dim(percentiles)[-i]
-  results <- rep(NA, prod(d))
-  dim(results) <- d
-  dimnames(results) <- dimnames(percentiles)[-i]
-
-  for (p in dimnames(percentiles)$percentiles) {
-    for (rcm in dimnames(percentiles)$rcm) {
-      for (season in dimnames(percentiles)$season) {
-        for (gcm in dimnames(percentiles)$gcm) {
-          if (rcm %in% names(data.list[[c(gcm, "uas")]])) {
-            ## Select only the values that are within the given season
-            i <- data.list[[c(gcm, "uas", rcm, "seasonal.indicies", season)]]
-
-            uas <- data.list[[c(gcm, "uas", rcm, "data")]][i]
-            vas <- data.list[[c(gcm, "vas", rcm, "data")]][i]
-            pcp <- data.list[[c(gcm, "pr", rcm, "data")]][i]
-            temp <- data.list[[c(gcm, "tas", rcm, "data")]][i]
-            wind.speed <- data.list[[c(gcm, "wind.speed", rcm, "data")]][i]
-
-            ## Calculate the seasonal thresholds
-            temp.thresh <- median(temp)
-            pcp.thresh <- quantile(pcp, probs=as.numeric(p))
-            wind.speed.thresh <- quantile(wind.speed, probs=as.numeric(p))
-
-            results[p, rcm, season, gcm] <- pinapple.express(uas, vas, pcp, temp, wind.speed, pcp.thresh=pcp.thresh, temp.thresh=temp.thresh, wind.speed.thresh=wind.speed.thresh)["num.events"]
-          } else {
-            results[p, rcm, season, gcm] <- NA
-            warning(paste("Couldn't find rcm ", rcm))
-          }
-        }
-      }
-    }
-  }
-  results
-}
-
-apply.blizzard <- function(percentiles, data.list) {
-
-  i <- which(names(dimnames(percentiles)) == "var")
-  d <- dim(percentiles)[-i]
-  results <- rep(NA, prod(d))
-  dim(results) <- d
-  dimnames(results) <- dimnames(percentiles)[-i]
-
-  for (p in dimnames(percentiles)$percentiles) {
-    for (rcm in dimnames(percentiles)$rcm) {
-      for (season in dimnames(percentiles)$season) {
-        for (gcm in dimnames(percentiles)$gcm) {
-          if (rcm %in% names(data.list[[c(gcm, "pr")]])) {
-            ## Select only the values that are within the given season
-            i <- data.list[[c(gcm, "pr", rcm, "seasonal.indicies", season)]]
-
-            pcp <- data.list[[c(gcm, "pr", rcm, "data")]][i]
-            temp <- data.list[[c(gcm, "tas", rcm, "data")]][i]
-            wind.speed <- data.list[[c(gcm, "wind.speed", rcm, "data")]][i]
-
-            ## Calculate the seasonal thresholds
-            pcp.thresh <- quantile(pcp, probs=as.numeric(p))
-            wind.speed.thresh <- quantile(wind.speed, probs=as.numeric(p))
-
-            results[p, rcm, season, gcm] <- blizzard(pcp, temp, wind.speed, pcp.thresh=pcp.thresh, wind.thresh=wind.speed.thresh)["num.events"]
-          } else {
-            results[p, rcm, season, gcm] <- NA
-            warning(paste("Couldn't find rcm ", rcm))
-          }
-        }
-      }
-    }
-  }
-  results
 }
 
 library(RUnit)
