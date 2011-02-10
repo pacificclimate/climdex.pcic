@@ -6,9 +6,9 @@ setClass("climdexInput",
                         tavg = "numeric",
                         prec = "numeric",
                         date = "POSIXct",
+                        bs.pctile = "list",
                         annual.factor = "factor",
-                        monthly.factor = "factor"),
-         contains = "data.frame"
+                        monthly.factor = "factor")
          )
 
 
@@ -35,7 +35,7 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
   return(new.data)
 }
 
-climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec")) {
+climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90)) {
   tmin.dat <- read.csv(tmin.file)
   tmax.dat <- read.csv(tmax.file)
   prec.dat <- read.csv(prec.file)
@@ -59,6 +59,8 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   filled.prec <- create.filled.series(prec.dat[,data.columns$prec], prec.dates, date.series)
 
   filled.tavg <- (filled.tmax + filled.tmin) / 2
+
+  ## Must compute thresholds for percentiles in here (bs.pctile)
   
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, date=date.series, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
