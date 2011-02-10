@@ -70,44 +70,91 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
 
 ## Status:
 ## FD: Done
-climdex.fd <- function(min.temp, annual.date.factor) { return(number.days.below.threshold(min.temp, date.factor, 0)) }
+climdex.fd <- function(ci) { return(number.days.below.threshold(ci@tmin, ci@annual.factor, 0)) }
 
 ## SU: Done
-climdex.su <- function(max.temp, annual.date.factor) { return(number.days.above.threshold(max.temp, date.factor, 25)) }
+climdex.su <- function(ci) { return(number.days.above.threshold(ci@tmax, ci@annual.factor, 25)) }
 
 ## ID: Done
-climdex.id <- function(max.temp, date.factor) { return(number.days.below.threshold(max.temp, date.factor, 0)) }
+climdex.id <- function(ci) { return(number.days.below.threshold(ci@tmax, ci@annual.factor, 0)) }
 
 ## TR: Done
-climdex.tr <- function(min.temp, date.factor) { return(number.days.above.threshold(min.temp, date.factor, 20)) }
+climdex.tr <- function(ci) { return(number.days.above.threshold(ci@tmin, ci@annual.factor, 20)) }
 
 ## GSL: Should work, needs more testing; is imprecise around date of Jul 1
-##climdex.gsl <- function(mean.temp, date.factor) { return(
+climdex.gsl <- function(ci) { return(growing.season.length(ci@tavg, ci@annual.factor)) }
 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
-## 
+## TXx: Done
+climdex.txx <- function(ci) { return(max.daily.temp(ci@tmax, ci@monthly.factor)) }
+
+## TNx: Done
+climdex.tnx <- function(ci) { return(max.daily.temp(ci@tmin, ci@monthly.factor)) }
+
+## TXn: Done
+climdex.txn <- function(ci) { return(min.daily.temp(ci@tmax, ci@monthly.factor)) }
+
+## TNn: Done
+climdex.tnn <- function(ci) { return(min.daily.temp(ci@tmin, ci@monthly.factor)) }
+
+## TN10p: Incomplete (lacks bootstrap); assuming monthly. Assuming naming convention for bs.pctile.
+climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10)) }
+
+## TX10p: Incomplete (lacks bootstrap); assuming monthly. Assuming naming convention for bs.pctile.
+climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax10)) }
+
+## TN90p: Incomplete (lacks bootstrap); assuming monthly. Assuming naming convention for bs.pctile.
+climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin90)) }
+
+## TX90p: Incomplete (lacks bootstrap); assuming monthly. Assuming naming convention for bs.pctile.
+climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90)) }
+
+## WSDI: Incomplete (lacks bootstrap); assuming annual. Assuming naming convention for bs.pctile.
+climdex.wsdi <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90)) }
+
+## CSDI: Incomplete (lacks bootstrap); assuming annual. Assuming naming convention for bs.pctile.
+climdex.csdi <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10)) }
+
+## DTR: Done
+climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor)) }
+
+## Rx1day: Should work. Testing?
+climdex.rx1day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 1)) }
+
+## Rx5day: Should work. Testing?
+climdex.rx5day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5)) }
+
+## SDII: Should work; assuming monthly. Testing?
+climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@monthly.factor)) }
+
+## R10mm: Should work.
+climdex.r10mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 10)) }
+
+## R20mm: Should work.
+climdex.r20mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 20)) }
+
+## Rnnmm: Should work.
+climdex.rnnmm <- function(ci, threshold) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, threshold)) }
+
+## CDD: Assuming annual. Should work.
+climdex.cdd <- function(ci) { return(max.length.dry.spell(ci@prec, ci@annual.factor)) }
+
+## CWD: Assuming annual. Should work.
+climdex.cwd <- function(ci) { return(max.length.wet.spell(ci@prec, ci@annual.factor)) }
+
+## R95pTOT: Incomplete (lacks boostrap).
+climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$prec95)) }
+
+## R99pTOT: Incomplete (lacks boostrap).
+climdex.r99ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$prec99)) }
+
+## PRCPTOT: Should work.
+climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor)) }
+
+
+##
+## HELPERS FINISHED. IMPLEMENTATIION BELOW.
+##
+
 
 ## FD, ID
 number.days.below.threshold <- function(temp, date.factor, threshold) {
