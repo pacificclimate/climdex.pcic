@@ -158,22 +158,26 @@ climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor)) 
 
 ## FD, ID
 number.days.below.threshold <- function(temp, date.factor, threshold) {
+  stopifnot(is.numeric(temp))
   return(tapply(temp < threshold, date.factor, sum))
 }
 
 ## SU, TR
 number.days.over.threshold <- function(temp, date.factor, threshold) {
+  stopifnot(is.numeric(temp))
   return(tapply(temp > threshold, date.factor, sum))
 }
 
 ## GSL
 ## Meaningless if not annual
-growing.season.length <- function(daily.mean.temp, date.factor, min.length=6) {
+## Time series must be contiguous
+growing.season.length <- function(daily.mean.temp, date.factor,
+                                  min.length=6, t.thresh=5) {
   return(tapply(daily.mean.temp, date.factor, function(ts) {
     ts.len<- length(ts)
     ts.mid <- floor(ts.len / 2)
-    gs.begin <- which(select.blocks.gt.length(ts > 5, min.length - 1))
-    gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < 5, min.length - 1))
+    gs.begin <- which(select.blocks.gt.length(ts > t.thresh, min.length - 1))
+    gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < t.thresh, min.length - 1))
     #browser()
     if(length(gs.begin) == 0) {
       return(0)
@@ -241,6 +245,7 @@ max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
 }
 
 ## SDII
+## Period for computation of number of wet days shall be the entire range of the data supplied.
 simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
   return(tapply(daily.prec, date.factor, function(prec) { idx <- prec >= 1; return(sum(prec[idx]) / sum(idx)) } ))
 }
@@ -509,26 +514,7 @@ rain.on.snow <- function(pcp, snd, tas=NULL, pcp.thresh=29.8, snd.thresh=10, fre
   }
 }
 
-library(RUnit)
-
 CSDI <- function(n, v, years) {
   blocks <- select.blocks.gt.length(d=v, n=n)
   tapply(blocks, years, sum)
-}
-
-test.CSDI <- function() {
-  f <- CSDI
-  cases <- list(list(args=list(n=3, v=c(F, T, T, T, T, F), years=as.factor(rep('2008', 6))),
-                     expected=array(4, dimnames=list(c('2008')))),
-                list(args=list(n=3, v=c(F, T, T, T, T, F), years=as.factor(c(rep('2008', 2), rep('2009', 4)))),
-                     expected=array(c(1, 3), dimnames=list(c('2008', '2009')))),
-                list(args=list(n=3, v=c(F, rep(T, 4), rep(F, 2), rep(T, 4)), years=as.factor(c(rep('2008', 6), rep('2009', 5)))),
-                     expected=array(c(4, 4), dimnames=list(c('2008', '2009')))),
-                list(args=list(n=0, v=c(T, F, T, F, T, F), years=as.factor(rep('2008', 6))),
-                     expected=array(3, dimnames=list(c('2008'))))
-                )
-  for (case in cases) {
-    checkEquals(do.call(f, case$args), case$expected)
-  }
-  checkException(f(n=-1, v=rep(T, 10)))
 }
