@@ -86,85 +86,85 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
 ## Precipitation units: mm per unit time
 
 ## Status:
-## FD: Done
+## FD: Annual. Done
 climdex.fd <- function(ci) { return(number.days.below.threshold(ci@tmin, ci@annual.factor, 0)) }
 
-## SU: Done
+## SU: Annual. Done
 climdex.su <- function(ci) { return(number.days.above.threshold(ci@tmax, ci@annual.factor, 25)) }
 
-## ID: Done
+## ID: Annual. Done
 climdex.id <- function(ci) { return(number.days.below.threshold(ci@tmax, ci@annual.factor, 0)) }
 
-## TR: Done
+## TR: Annual. Done
 climdex.tr <- function(ci) { return(number.days.above.threshold(ci@tmin, ci@annual.factor, 20)) }
 
-## GSL: Should work, needs more testing; is imprecise around date of Jul 1
+## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1
 climdex.gsl <- function(ci) { return(growing.season.length(ci@tavg, ci@annual.factor)) }
 
-## TXx: Done
+## TXx: Monthly. Done
 climdex.txx <- function(ci) { return(max.daily.temp(ci@tmax, ci@monthly.factor)) }
 
-## TNx: Done
+## TNx: Monthly. Done
 climdex.tnx <- function(ci) { return(max.daily.temp(ci@tmin, ci@monthly.factor)) }
 
-## TXn: Done
+## TXn: Monthly. Done
 climdex.txn <- function(ci) { return(min.daily.temp(ci@tmax, ci@monthly.factor)) }
 
-## TNn: Done
+## TNn: Monthly. Done
 climdex.tnn <- function(ci) { return(min.daily.temp(ci@tmin, ci@monthly.factor)) }
 
-## TN10p: Incomplete (lacks bootstrap); assuming monthly. Assuming naming convention for bs.pctile.
+## TN10p: Monthly. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
 climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10)) }
 
-## TX10p: Incomplete (lacks bootstrap); assuming monthly. Assuming naming convention for bs.pctile.
+## TX10p: Monthly. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
 climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax10)) }
 
-## TN90p: Incomplete (lacks bootstrap); assuming monthly. Assuming naming convention for bs.pctile.
+## TN90p: Monthly. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
 climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin90)) }
 
-## TX90p: Incomplete (lacks bootstrap); assuming monthly. Assuming naming convention for bs.pctile.
+## TX90p: Monthly. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
 climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90)) }
 
-## WSDI: Incomplete (lacks bootstrap); assuming annual. Assuming naming convention for bs.pctile.
+## WSDI: Annual. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
 climdex.wsdi <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90)) }
 
-## CSDI: Incomplete (lacks bootstrap); assuming annual. Assuming naming convention for bs.pctile.
+## CSDI: Annual. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
 climdex.csdi <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10)) }
 
-## DTR: Done
+## DTR: Monthly. Done
 climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor)) }
 
-## Rx1day: Should work. Testing?
+## Rx1day: Monthly. Should work. Testing?
 climdex.rx1day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 1)) }
 
-## Rx5day: Should work. Testing?
+## Rx5day: Monthly. Should work. Testing?
 climdex.rx5day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5)) }
 
-## SDII: Should work; assuming monthly. Testing?
-climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@monthly.factor)) }
+## SDII: Annual. Should work.
+climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@annual.factor)) }
 
-## R10mm: Should work.
+## R10mm: Annual. Should work.
 climdex.r10mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 10)) }
 
-## R20mm: Should work.
+## R20mm: Annual. Should work.
 climdex.r20mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 20)) }
 
-## Rnnmm: Should work.
+## Rnnmm: Annual. Should work.
 climdex.rnnmm <- function(ci, threshold) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, threshold)) }
 
-## CDD: Assuming annual. Should work.
+## CDD: Annual. Should work.
 climdex.cdd <- function(ci) { return(max.length.dry.spell(ci@prec, ci@annual.factor)) }
 
-## CWD: Assuming annual. Should work.
+## CWD: Annual. Should work.
 climdex.cwd <- function(ci) { return(max.length.wet.spell(ci@prec, ci@annual.factor)) }
 
-## R95pTOT: Incomplete (lacks boostrap).
+## R95pTOT: Annual. Incomplete (lacks boostrap).
 climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$prec95)) }
 
-## R99pTOT: Incomplete (lacks boostrap).
+## R99pTOT: Annual. Incomplete (lacks boostrap).
 climdex.r99ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$prec99)) }
 
-## PRCPTOT: Should work.
+## PRCPTOT: Annual. Should work.
 climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor)) }
 
 
