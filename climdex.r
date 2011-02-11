@@ -35,6 +35,23 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
   return(new.data)
 }
 
+## Expects POSIXct for all dates
+## Do the Zhang boostrapping method described in Xuebin Zhang et al's 2005 paper, "Avoiding Inhomogeneity in Percentile-Based Indices of Temperature Extremes" J.Clim vol 18 pp.1647-1648, "Removing the 'jump'".
+zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range) {
+  inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2]
+
+  years <- strptime(dates[inset], format="%Y", tz="GMT")
+  storage.mode(years) <- "integer"
+  bs.data <- x[inset]
+
+  year.list <- unique(years)
+
+  return(apply(do.call(rbind, lapply(year.list[1:(length(year.list) - 1)], function(year.to.omit) {
+    year.to.repeat <- year.to.omit + 1
+    return(quantile(c(bs.data[!(years == year.to.omit)], bs.data[years == year.to.repeat]), qtiles))
+  } )), 2, mean))
+}
+
 climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90)) {
   tmin.dat <- read.csv(tmin.file)
   tmax.dat <- read.csv(tmax.file)
