@@ -5,8 +5,10 @@ setClass("climdexInput",
                         tmin = "numeric",
                         tavg = "numeric",
                         prec = "numeric",
+                        namask.ann = "data.frame",
+                        namask.mon = "data.frame",
                         date = "POSIXct",
-                        bs.pctile = "list",
+                        bs.pctile = "numeric",
                         annual.factor = "factor",
                         monthly.factor = "factor")
          )
@@ -38,10 +40,11 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
 ## Expects POSIXct for all dates
 ## Do the Zhang boostrapping method described in Xuebin Zhang et al's 2005 paper, "Avoiding Inhomogeneity in Percentile-Based Indices of Temperature Extremes" J.Clim vol 18 pp.1647-1648, "Removing the 'jump'".
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range) {
-  inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2]
+  inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2] & !is.na(x)
 
-  years <- strptime(dates[inset], format="%Y", tz="GMT")
-  storage.mode(years) <- "integer"
+  years <- as.numeric(strftime(dates[inset], format="%Y", tz="GMT"))
+  #browser()
+  #storage.mode(years) <- "integer"
   bs.data <- x[inset]
 
   year.list <- unique(years)
@@ -50,6 +53,10 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range) {
     year.to.repeat <- year.to.omit + 1
     return(quantile(c(bs.data[!(years == year.to.omit)], bs.data[years == year.to.repeat]), qtiles))
   } )), 2, mean))
+}
+
+get.na.mask <- function(x, f, threshold) {
+  return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
 climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90)) {
@@ -66,20 +73,34 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   prec.dates <- get.date.field(prec.dat)
 
   date.range <- range(c(tmin.dates, tmax.dates, prec.dates))
-  date.series <- seq(date.range[1], date.range[2], by="day")
+  year.range <- as.numeric(strftime(date.range, "%Y"))
+  new.date.range <- as.POSIXct(paste(year.range, c("01-01", "12-31"), sep="-"), tz="GMT")
+  date.series <- seq(new.date.range[1], new.date.range[2], by="day")
 
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
   monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
 
   filled.tmax <- create.filled.series(tmax.dat[,data.columns$tmax], tmax.dates, date.series)
   filled.tmin <- create.filled.series(tmin.dat[,data.columns$tmin], tmin.dates, date.series)
+  filled.tavg <- (filled.tmax + filled.tmin) / 2
   filled.prec <- create.filled.series(prec.dat[,data.columns$prec], prec.dates, date.series)
 
-  filled.tavg <- (filled.tmax + filled.tmin) / 2
-
-  ## Must compute thresholds for percentiles in here (bs.pctile)
+  namask.ann <- do.call(data.frame, lapply(list(filled.tmax, filled.tmin, filled.tavg, filled.prec), get.na.mask, annual.factor, 15))
+  colnames(namask.ann) <- c("tmax", "tmin", "tavg", "prec")
   
-  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, date=date.series, annual.factor=annual.factor, monthly.factor=monthly.factor))
+  namask.mon <- do.call(data.frame, lapply(list(filled.tmax, filled.tmin, filled.tavg, filled.prec), get.na.mask, monthly.factor, 3))
+  colnames(namask.mon) <- c("tmax", "tmin", "tavg", "prec")
+  
+  ## Compute boostrap percentiles (prec for wet days only)
+  ## DeMorgan's laws FTW
+  wet.days <- !(is.na(filled.prec) | filled.prec < 1)
+
+  bs.pctile <- c(zhang.bootstrap.qtile(filled.tmax, date.series, c(0.1, 0.9), c(as.POSIXct(paste(base.range[1], "01-01", sep="-"), tz="GMT"), as.POSIXct(paste(base.range[2], "12-31", sep="-"), tz="GMT"))),
+                 zhang.bootstrap.qtile(filled.tmin, date.series, c(0.1, 0.9), c(as.POSIXct(paste(base.range[1], "01-01", sep="-"), tz="GMT"), as.POSIXct(paste(base.range[2], "12-31", sep="-"), tz="GMT"))),
+                 zhang.bootstrap.qtile(filled.prec[wet.days], date.series[wet.days], c(0.95, 0.99), c(as.POSIXct(paste(base.range[1], "01-01", sep="-"), tz="GMT"), as.POSIXct(paste(base.range[2], "12-31", sep="-"), tz="GMT"))))
+  names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90", "precwet95", "precwet99")
+
+  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, date=date.series, bs.pctile=bs.pctile, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
 ## Temperature units: degrees C
@@ -87,85 +108,85 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
 
 ## Status:
 ## FD: Annual. Done
-climdex.fd <- function(ci) { return(number.days.below.threshold(ci@tmin, ci@annual.factor, 0)) }
+climdex.fd <- function(ci) { return(number.days.below.threshold(ci@tmin, ci@annual.factor, 0) * ci@namask.ann$tmin) }
 
 ## SU: Annual. Done
-climdex.su <- function(ci) { return(number.days.above.threshold(ci@tmax, ci@annual.factor, 25)) }
+climdex.su <- function(ci) { return(number.days.above.threshold(ci@tmax, ci@annual.factor, 25) * ci@namask.ann$tmax) }
 
 ## ID: Annual. Done
-climdex.id <- function(ci) { return(number.days.below.threshold(ci@tmax, ci@annual.factor, 0)) }
+climdex.id <- function(ci) { return(number.days.below.threshold(ci@tmax, ci@annual.factor, 0) * ci@namask.ann$tmax) }
 
 ## TR: Annual. Done
-climdex.tr <- function(ci) { return(number.days.above.threshold(ci@tmin, ci@annual.factor, 20)) }
+climdex.tr <- function(ci) { return(number.days.above.threshold(ci@tmin, ci@annual.factor, 20) * ci@namask.ann$tmin) }
 
 ## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1
-climdex.gsl <- function(ci) { return(growing.season.length(ci@tavg, ci@annual.factor)) }
+climdex.gsl <- function(ci) { return(growing.season.length(ci@tavg, ci@annual.factor) * ci@namask.ann$tavg) }
 
 ## TXx: Monthly. Done
-climdex.txx <- function(ci) { return(max.daily.temp(ci@tmax, ci@monthly.factor)) }
+climdex.txx <- function(ci) { return(max.daily.temp(ci@tmax, ci@monthly.factor) * ci@namask.mon$tmax) }
 
 ## TNx: Monthly. Done
-climdex.tnx <- function(ci) { return(max.daily.temp(ci@tmin, ci@monthly.factor)) }
+climdex.tnx <- function(ci) { return(max.daily.temp(ci@tmin, ci@monthly.factor) * ci@namask.mon$tmin) }
 
 ## TXn: Monthly. Done
-climdex.txn <- function(ci) { return(min.daily.temp(ci@tmax, ci@monthly.factor)) }
+climdex.txn <- function(ci) { return(min.daily.temp(ci@tmax, ci@monthly.factor) * ci@namask.mon$tmax) }
 
 ## TNn: Monthly. Done
-climdex.tnn <- function(ci) { return(min.daily.temp(ci@tmin, ci@monthly.factor)) }
+climdex.tnn <- function(ci) { return(min.daily.temp(ci@tmin, ci@monthly.factor) * ci@namask.mon$tmin) }
 
-## TN10p: Monthly. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
-climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10)) }
+## TN10p: Monthly.
+climdex.tn10p <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile['tmin10']) * ci@namask.mon$tmin) }
 
-## TX10p: Monthly. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
-climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax10)) }
+## TX10p: Monthly.
+climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile['tmax10']) * ci@namask.mon$tmax) }
 
-## TN90p: Monthly. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
-climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin90)) }
+## TN90p: Monthly.
+climdex.tn90p <- function(ci) { return(percent.days.gt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile['tmin90']) * ci@namask.mon$tmin) }
 
-## TX90p: Monthly. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
-climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90)) }
+## TX90p: Monthly.
+climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile['tmax90']) * ci@namask.mon$tmax) }
 
-## WSDI: Annual. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
-climdex.wsdi <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90)) }
+## WSDI: Annual.
+climdex.wsdi <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@annual.factor, ci@bs.pctile['tmax90']) * ci@namask.mon$tmax) }
 
-## CSDI: Annual. Incomplete (lacks bootstrap). Assuming naming convention for bs.pctile.
-climdex.csdi <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10)) }
+## CSDI: Annual.
+climdex.csdi <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@annual.factor, ci@bs.pctile['tmin10']) * ci@namask.mon$tmax) }
 
 ## DTR: Monthly. Done
-climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor)) }
+climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor) * ci@namask.mon$tavg) }
 
 ## Rx1day: Monthly. Should work. Testing?
-climdex.rx1day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 1)) }
+climdex.rx1day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 1) * ci@namask.mon$prec) }
 
 ## Rx5day: Monthly. Should work. Testing?
-climdex.rx5day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5)) }
+climdex.rx5day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5) * ci@namask.mon$prec) }
 
 ## SDII: Annual. Should work.
-climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@annual.factor)) }
+climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
 
 ## R10mm: Annual. Should work.
-climdex.r10mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 10)) }
+climdex.r10mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 10) * ci@namask.ann$prec) }
 
 ## R20mm: Annual. Should work.
-climdex.r20mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 20)) }
+climdex.r20mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 20) * ci@namask.ann$prec) }
 
 ## Rnnmm: Annual. Should work.
-climdex.rnnmm <- function(ci, threshold) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, threshold)) }
+climdex.rnnmm <- function(ci, threshold) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, threshold) * ci@namask.ann$prec) }
 
 ## CDD: Annual. Should work.
-climdex.cdd <- function(ci) { return(max.length.dry.spell(ci@prec, ci@annual.factor)) }
+climdex.cdd <- function(ci) { return(max.length.dry.spell(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
 
 ## CWD: Annual. Should work.
-climdex.cwd <- function(ci) { return(max.length.wet.spell(ci@prec, ci@annual.factor)) }
+climdex.cwd <- function(ci) { return(max.length.wet.spell(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
 
-## R95pTOT: Annual. Incomplete (lacks boostrap).
-climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$prec95)) }
+## R95pTOT: Annual.
+climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile['precwet95']) * ci@namask.ann$prec) }
 
-## R99pTOT: Annual. Incomplete (lacks boostrap).
-climdex.r99ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$prec99)) }
+## R99pTOT: Annual.
+climdex.r99ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile['precwet99']) * ci@namask.ann$prec) }
 
 ## PRCPTOT: Annual. Should work.
-climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor)) }
+climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
 
 
 ##
@@ -176,26 +197,29 @@ climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor)) 
 ## FD, ID
 number.days.below.threshold <- function(temp, date.factor, threshold) {
   stopifnot(is.numeric(temp))
-  return(tapply(temp < threshold, date.factor, sum))
+  return(tapply(temp < threshold, date.factor, sum, na.rm=TRUE))
 }
 
 ## SU, TR
-number.days.over.threshold <- function(temp, date.factor, threshold) {
+number.days.above.threshold <- function(temp, date.factor, threshold) {
   stopifnot(is.numeric(temp))
-  return(tapply(temp > threshold, date.factor, sum))
+  return(tapply(temp > threshold, date.factor, sum, na.rm=TRUE))
 }
 
 ## GSL
 ## Meaningless if not annual
 ## Time series must be contiguous
+## NOTE: There is a difference of 1 between our output and fclimdex. See line 637; consider case where start and end day are same. Correct answer is 1 day GSL; their answer is 0 day.
 growing.season.length <- function(daily.mean.temp, date.factor,
                                   min.length=6, t.thresh=5) {
   return(tapply(daily.mean.temp, date.factor, function(ts) {
     ts.len<- length(ts)
     ts.mid <- floor(ts.len / 2)
     gs.begin <- which(select.blocks.gt.length(ts > t.thresh, min.length - 1))
-    gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < t.thresh, min.length - 1))
-    #browser()
+
+    ## Growing season actually ends the day -before- the sequence of sketchy days
+    gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < t.thresh, min.length - 1)) - 1
+
     if(length(gs.begin) == 0) {
       return(0)
     } else if(length(gs.end) == 0) {
