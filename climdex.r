@@ -119,49 +119,49 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
 
 ## Status:
 ## FD: Annual. Done
-climdex.fd <- function(ci) { return(number.days.below.threshold(ci@tmin, ci@annual.factor, 0) * ci@namask.ann$tmin) }
+climdex.fd <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.factor, 0, "<") * ci@namask.ann$tmin) }
 
 ## SU: Annual. Done
-climdex.su <- function(ci) { return(number.days.above.threshold(ci@tmax, ci@annual.factor, 25) * ci@namask.ann$tmax) }
+climdex.su <- function(ci) { return(number.days.op.threshold(ci@tmax, ci@annual.factor, 25, ">") * ci@namask.ann$tmax) }
 
 ## ID: Annual. Done
-climdex.id <- function(ci) { return(number.days.below.threshold(ci@tmax, ci@annual.factor, 0) * ci@namask.ann$tmax) }
+climdex.id <- function(ci) { return(number.days.op.threshold(ci@tmax, ci@annual.factor, 0, "<") * ci@namask.ann$tmax) }
 
 ## TR: Annual. Done
-climdex.tr <- function(ci) { return(number.days.above.threshold(ci@tmin, ci@annual.factor, 20) * ci@namask.ann$tmin) }
+climdex.tr <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.factor, 20, ">") * ci@namask.ann$tmin) }
 
 ## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1
 climdex.gsl <- function(ci) { return(growing.season.length(ci@tavg, ci@annual.factor) * ci@namask.ann$tavg) }
 
 ## TXx: Monthly. Done
-climdex.txx <- function(ci) { return(max.daily.temp(ci@tmax, ci@monthly.factor) * ci@namask.mon$tmax) }
+climdex.txx <- function(ci) { return(tapply(ci@tmax, ci@monthly.factor, max) * ci@namask.mon$tmax) }
 
 ## TNx: Monthly. Done
-climdex.tnx <- function(ci) { return(max.daily.temp(ci@tmin, ci@monthly.factor) * ci@namask.mon$tmin) }
+climdex.tnx <- function(ci) { return(tapply(ci@tmin, ci@monthly.factor, max) * ci@namask.mon$tmin) }
 
 ## TXn: Monthly. Done
-climdex.txn <- function(ci) { return(min.daily.temp(ci@tmax, ci@monthly.factor) * ci@namask.mon$tmax) }
+climdex.txn <- function(ci) { return(tapply(ci@tmax, ci@monthly.factor, min) * ci@namask.mon$tmax) }
 
 ## TNn: Monthly. Done
-climdex.tnn <- function(ci) { return(min.daily.temp(ci@tmin, ci@monthly.factor) * ci@namask.mon$tmin) }
+climdex.tnn <- function(ci) { return(tapply(ci@tmin, ci@monthly.factor, min) * ci@namask.mon$tmin) }
 
 ## TN10p: Monthly.
-climdex.tn10p <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10) * ci@namask.mon$tmin) }
+climdex.tn10p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10, "<") * ci@namask.mon$tmin) }
 
 ## TX10p: Monthly.
-climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax10) * ci@namask.mon$tmax) }
+climdex.tx10p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax10, "<") * ci@namask.mon$tmax) }
 
 ## TN90p: Monthly.
-climdex.tn90p <- function(ci) { return(percent.days.gt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin90) * ci@namask.mon$tmin) }
+climdex.tn90p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin90, ">") * ci@namask.mon$tmin) }
 
 ## TX90p: Monthly.
-climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90) * ci@namask.mon$tmax) }
+climdex.tx90p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90, ">") * ci@namask.mon$tmax) }
 
 ## WSDI: Annual.
-climdex.wsdi <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90) * ci@namask.mon$tmax) }
+climdex.wsdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90, ">") * ci@namask.mon$tmax) }
 
 ## CSDI: Annual.
-climdex.csdi <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10) * ci@namask.mon$tmax) }
+climdex.csdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10, "<") * ci@namask.mon$tmax) }
 
 ## DTR: Monthly. Done
 climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor) * ci@namask.mon$tavg) }
@@ -176,19 +176,19 @@ climdex.rx5day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly
 climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
 
 ## R10mm: Annual. Should work.
-climdex.r10mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 10) * ci@namask.ann$prec) }
+climdex.r10mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annual.factor, 10, ">=") * ci@namask.ann$prec) }
 
 ## R20mm: Annual. Should work.
-climdex.r20mm <- function(ci) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, 20) * ci@namask.ann$prec) }
+climdex.r20mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annual.factor, 20, ">=") * ci@namask.ann$prec) }
 
 ## Rnnmm: Annual. Should work.
-climdex.rnnmm <- function(ci, threshold) { return(count.days.ge.threshold(ci@prec, ci@annual.factor, threshold) * ci@namask.ann$prec) }
+climdex.rnnmm <- function(ci, threshold) { return(number.days.op.threshold(ci@prec, ci@annual.factor, threshold, ">=") * ci@namask.ann$prec) }
 
 ## CDD: Annual. Should work.
-climdex.cdd <- function(ci) { return(max.length.dry.spell(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
+climdex.cdd <- function(ci) { return(max.length.spell(ci@prec, ci@annual.factor, 1, "<") * ci@namask.ann$prec) }
 
 ## CWD: Annual. Should work.
-climdex.cwd <- function(ci) { return(max.length.wet.spell(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
+climdex.cwd <- function(ci) { return(max.length.spell(ci@prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
 
 ## R95pTOT: Annual.
 climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$precwet95) * ci@namask.ann$prec) }
@@ -197,7 +197,7 @@ climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, c
 climdex.r99ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$precwet99) * ci@namask.ann$prec) }
 
 ## PRCPTOT: Annual. Should work.
-climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
+climdex.prcptot <- function(ci) { return(tapply(ci@prec, ci@annual.factor, sum) * ci@namask.ann$prec) }
 
 
 ##
@@ -205,16 +205,10 @@ climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor) *
 ##
 
 
-## FD, ID
-number.days.below.threshold <- function(temp, date.factor, threshold) {
+## FD, ID, SU, TR, R10mm, R20mm, Rnnmm
+number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
   stopifnot(is.numeric(temp))
-  return(tapply(temp < threshold, date.factor, sum, na.rm=TRUE))
-}
-
-## SU, TR
-number.days.above.threshold <- function(temp, date.factor, threshold) {
-  stopifnot(is.numeric(temp))
-  return(tapply(temp > threshold, date.factor, sum, na.rm=TRUE))
+  return(tapply(op(temp, threshold), date.factor, sum, na.rm=TRUE))
 }
 
 ## GSL
@@ -241,43 +235,18 @@ growing.season.length <- function(daily.mean.temp, date.factor,
   } ))
 }
 
-## TNx, TXx
-max.daily.temp <- function(daily.temp, date.factor) {
-  return(tapply(daily.temp, date.factor, max))
-}
-
-## TNn, TXn
-min.daily.temp <- function(daily.temp, date.factor) {
-  return(tapply(daily.temp, date.factor, min))
-}
-
-## TN10p, TX10p
+## TN10p, TX10p, TN90p, TX90p
 ## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
-percent.days.lt.threshold <- function(temp, date.factor, threshold) {
+percent.days.op.threshold <- function(temp, date.factor, threshold, op='<') {
   namask <- !is.na(temp)
-  return(tapply(temp < threshold, date.factor, function(x) { x.nona <- x[!is.na(x)]; return(sum(x.nona) / length(x.nona) * 100) } ))
+  return(tapply(op(temp, threshold), date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
 }
 
-## TN90p, TX90p
-## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
-percent.days.gt.threshold <- function(temp, date.factor, threshold) {
-  return(tapply(temp > threshold, date.factor, function(x) { x.nona <- x[!is.na(x)]; return(sum(x.nona) / length(x.nona) * 100) } ))
-}
-
-## WSDI
+## WSDI, CSDI
 ## Thresholds appear to be for each block of 5 days of a year...
-warm.spell.duration.index <- function(daily.max.temp, dates, date.factor, warm.thresholds, min.length=6) {
-  jday <- as.POSIXlt(dates)$yday + 1
-  warm.periods <- select.blocks.gt.length(daily.max.temp > warm.thresholds[jday], min.length - 1)
-  return(tapply(warm.periods, date.factor, sum))
-}
-
-## CSDI
-## Thresholds appear to be for each block of 5 days of a year...
-cold.spell.duration.index <- function(daily.min.temp, dates, date.factor, cold.thresholds) {
-  jday <- as.POSIXlt(dates)$yday + 1
-  cold.periods <- select.blocks.gt.length(daily.max.temp < cold.thresholds[jday], min.length - 1)
-  return(tapply(cold.periods, date.factor, sum))
+threshold.exceedance.duration.index <- function(daily.max.temp, date.factor, warm.thresholds, op=">", min.length=6) {
+  periods <- select.blocks.gt.length(op(daily.max.temp, warm.thresholds), min.length - 1)
+  return(tapply(periods, date.factor, sum))
 }
 
 ## DTR
@@ -303,29 +272,14 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
   return(tapply(daily.prec, date.factor, function(prec) { idx <- prec >= 1; return(sum(prec[idx]) / sum(idx)) } ))
 }
 
-## R10mm, R20mm, Rnnmm
-count.days.ge.threshold <- function(daily.prec, date.factor, threshold) {
-  return(tapply(daily.prec >= threshold, date.factor, sum))
-}
-
-## CDD
-max.length.dry.spell <- function(daily.prec, date.factor) {
-  return(tapply(daily.prec < 1, date.factor, function(x) { return(max(sequential(x))) } ))
-}
-
-## CWD
-max.length.wet.spell <- function(daily.prec, date.factor) {
-  return(tapply(daily.prec >= 1, date.factor, function(x) { return(max(sequential(x))) } ))
+## CDD, CWD
+max.length.spell <- function(daily.prec, date.factor, threshold, op) {
+  return(tapply(op(daily.prec, threshold), date.factor, function(x) { return(max(sequential(x))) } ))
 }
 
 ## R95pTOT, R99pTOT
 total.precip.above.threshold <- function(daily.prec, date.factor, threshold) {
   return(tapply(daily.prec[daily.prec > threshold], date.factor, function(x) { return(sum(x, na.rm=TRUE)) } ))
-}
-
-## PRCPTOT
-total.prec <- function(daily.prec, date.factor) {
-  return(tapply(daily.prec, date.factor, sum))
 }
 
 ##running.quantile <- function(data, f, n, q) {
