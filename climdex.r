@@ -95,12 +95,13 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   filled.prec <- create.filled.series(prec.dat[,data.columns$prec], prec.dates, date.series)
 
   filled.list <- list(filled.tmax, filled.tmin, filled.tavg, filled.prec)
+  filled.list.names <- c("tmax", "tmin", "tavg", "prec")
   
   namask.ann <- do.call(data.frame, lapply(filled.list, get.na.mask, annual.factor, 15))
-  colnames(namask.ann) <- c("tmax", "tmin", "tavg", "prec")
+  colnames(namask.ann) <- filled.list.names
   
   namask.mon <- do.call(data.frame, lapply(filled.list, get.na.mask, monthly.factor, 3))
-  colnames(namask.mon) <- c("tmax", "tmin", "tavg", "prec")
+  colnames(namask.mon) <- filled.list.names
 
   ## DeMorgan's laws FTW
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
