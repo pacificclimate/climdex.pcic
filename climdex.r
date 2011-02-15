@@ -1,4 +1,5 @@
 library(caTools)
+library(abind)
 
 setClass("climdexInput",
          representation(tmax = "numeric",
@@ -8,7 +9,7 @@ setClass("climdexInput",
                         namask.ann = "data.frame",
                         namask.mon = "data.frame",
                         date = "POSIXct",
-                        bs.pctile = "numeric",
+                        bs.pctile = "data.frame",
                         annual.factor = "factor",
                         monthly.factor = "factor")
          )
@@ -39,20 +40,29 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
 
 ## Expects POSIXct for all dates
 ## Do the Zhang boostrapping method described in Xuebin Zhang et al's 2005 paper, "Avoiding Inhomogeneity in Percentile-Based Indices of Temperature Extremes" J.Clim vol 18 pp.1647-1648, "Removing the 'jump'".
-zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range) {
+## Except don't, because that's not what the Fortran code does.
+zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL) {
+  jdays.all <- as.numeric(strftime(dates, "%j", tz="GMT"))
   inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2] & !is.na(x)
-
   years <- as.numeric(strftime(dates[inset], format="%Y", tz="GMT"))
-  #browser()
-  #storage.mode(years) <- "integer"
   bs.data <- x[inset]
-
+  jdays <- jdays.all[inset]
   year.list <- unique(years)
 
-  return(apply(do.call(rbind, lapply(year.list[1:(length(year.list) - 1)], function(year.to.omit) {
-    year.to.repeat <- year.to.omit + 1
-    return(quantile(c(bs.data[!(years == year.to.omit)], bs.data[years == year.to.repeat]), qtiles))
-  } )), 2, mean))
+  if(!is.null(include.mask))
+    include.mask <- include.mask[inset]
+  
+  ## This routine is written as described in Zhang et al, 2005 as referenced above. However, the Fortran code simply doesn't use this method.
+  ##omit.year.data <- do.call(abind, c(lapply(year.list[1:(length(year.list) - 1)], function(year.to.omit) {
+  ##  year.to.repeat <- year.to.omit + 1
+  ##  my.set <- c(which(!(years == year.to.omit)), which(years == year.to.repeat))
+  ##  return(running.quantile(bs.data[my.set], jdays[my.set], 5, qtiles))
+  ##} ), along=3))
+  ##return(apply(omit.year.data, c(1, 2), mean))
+
+  d <- apply(running.quantile(bs.data, jdays, 5, qtiles, include.mask), 2, function(x) { return(x[jdays.all]) } )
+  row.names(d) <- NULL
+  return(d)
 }
 
 get.na.mask <- function(x, f, threshold) {
@@ -84,20 +94,20 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   filled.tmin <- create.filled.series(tmin.dat[,data.columns$tmin], tmin.dates, date.series)
   filled.tavg <- (filled.tmax + filled.tmin) / 2
   filled.prec <- create.filled.series(prec.dat[,data.columns$prec], prec.dates, date.series)
-
-  namask.ann <- do.call(data.frame, lapply(list(filled.tmax, filled.tmin, filled.tavg, filled.prec), get.na.mask, annual.factor, 15))
+  filled.list <- list(filled.tmax, filled.tmin, filled.tavg, filled.prec)
+  
+  namask.ann <- do.call(data.frame, lapply(filled.list, get.na.mask, annual.factor, 15))
   colnames(namask.ann) <- c("tmax", "tmin", "tavg", "prec")
   
-  namask.mon <- do.call(data.frame, lapply(list(filled.tmax, filled.tmin, filled.tavg, filled.prec), get.na.mask, monthly.factor, 3))
+  namask.mon <- do.call(data.frame, lapply(filled.list, get.na.mask, monthly.factor, 3))
   colnames(namask.mon) <- c("tmax", "tmin", "tavg", "prec")
-  
-  ## Compute boostrap percentiles (prec for wet days only)
+
   ## DeMorgan's laws FTW
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
 
-  bs.pctile <- c(zhang.bootstrap.qtile(filled.tmax, date.series, c(0.1, 0.9), c(as.POSIXct(paste(base.range[1], "01-01", sep="-"), tz="GMT"), as.POSIXct(paste(base.range[2], "12-31", sep="-"), tz="GMT"))),
-                 zhang.bootstrap.qtile(filled.tmin, date.series, c(0.1, 0.9), c(as.POSIXct(paste(base.range[1], "01-01", sep="-"), tz="GMT"), as.POSIXct(paste(base.range[2], "12-31", sep="-"), tz="GMT"))),
-                 zhang.bootstrap.qtile(filled.prec[wet.days], date.series[wet.days], c(0.95, 0.99), c(as.POSIXct(paste(base.range[1], "01-01", sep="-"), tz="GMT"), as.POSIXct(paste(base.range[2], "12-31", sep="-"), tz="GMT"))))
+  bs.pctile <- do.call(data.frame, c(lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), new.date.range), list(zhang.bootstrap.qtile(filled.prec, date.series, c(0.95, 0.99), new.date.range, wet.days))))
+  ##browser()
+  
   names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90", "precwet95", "precwet99")
 
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, date=date.series, bs.pctile=bs.pctile, annual.factor=annual.factor, monthly.factor=monthly.factor))
@@ -135,22 +145,22 @@ climdex.txn <- function(ci) { return(min.daily.temp(ci@tmax, ci@monthly.factor) 
 climdex.tnn <- function(ci) { return(min.daily.temp(ci@tmin, ci@monthly.factor) * ci@namask.mon$tmin) }
 
 ## TN10p: Monthly.
-climdex.tn10p <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile['tmin10']) * ci@namask.mon$tmin) }
+climdex.tn10p <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10) * ci@namask.mon$tmin) }
 
 ## TX10p: Monthly.
-climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile['tmax10']) * ci@namask.mon$tmax) }
+climdex.tx10p <- function(ci) { return(percent.days.lt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax10) * ci@namask.mon$tmax) }
 
 ## TN90p: Monthly.
-climdex.tn90p <- function(ci) { return(percent.days.gt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile['tmin90']) * ci@namask.mon$tmin) }
+climdex.tn90p <- function(ci) { return(percent.days.gt.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin90) * ci@namask.mon$tmin) }
 
 ## TX90p: Monthly.
-climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile['tmax90']) * ci@namask.mon$tmax) }
+climdex.tx90p <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90) * ci@namask.mon$tmax) }
 
 ## WSDI: Annual.
-climdex.wsdi <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@annual.factor, ci@bs.pctile['tmax90']) * ci@namask.mon$tmax) }
+climdex.wsdi <- function(ci) { return(percent.days.gt.threshold(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90) * ci@namask.mon$tmax) }
 
 ## CSDI: Annual.
-climdex.csdi <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@annual.factor, ci@bs.pctile['tmin10']) * ci@namask.mon$tmax) }
+climdex.csdi <- function(ci) { return(percent.days.lt.threshold(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10) * ci@namask.mon$tmax) }
 
 ## DTR: Monthly. Done
 climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor) * ci@namask.mon$tavg) }
@@ -180,10 +190,10 @@ climdex.cdd <- function(ci) { return(max.length.dry.spell(ci@prec, ci@annual.fac
 climdex.cwd <- function(ci) { return(max.length.wet.spell(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
 
 ## R95pTOT: Annual.
-climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile['precwet95']) * ci@namask.ann$prec) }
+climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$precwet95) * ci@namask.ann$prec) }
 
 ## R99pTOT: Annual.
-climdex.r99ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile['precwet99']) * ci@namask.ann$prec) }
+climdex.r99ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$precwet99) * ci@namask.ann$prec) }
 
 ## PRCPTOT: Annual. Should work.
 climdex.prcptot <- function(ci) { return(total.prec(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
@@ -243,13 +253,14 @@ min.daily.temp <- function(daily.temp, date.factor) {
 ## TN10p, TX10p
 ## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
 percent.days.lt.threshold <- function(temp, date.factor, threshold) {
-  return(tapply(temp < threshold, date.factor, function(x) { return(sum(x) / length(x) * 100) } ))
+  namask <- !is.na(temp)
+  return(tapply(temp < threshold, date.factor, function(x) { x.nona <- x[!is.na(x)]; return(sum(x.nona) / length(x.nona) * 100) } ))
 }
 
 ## TN90p, TX90p
 ## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
 percent.days.gt.threshold <- function(temp, date.factor, threshold) {
-  return(tapply(temp > threshold, date.factor, function(x) { return(sum(x) / length(x) * 100) } ))
+  return(tapply(temp > threshold, date.factor, function(x) { x.nona <- x[!is.na(x)]; return(sum(x.nona) / length(x.nona) * 100) } ))
 }
 
 ## WSDI
@@ -308,7 +319,7 @@ max.length.wet.spell <- function(daily.prec, date.factor) {
 
 ## R95pTOT, R99pTOT
 total.precip.above.threshold <- function(daily.prec, date.factor, threshold) {
-  return(tapply(daily.prec, date.factor, function(x) { return(sum(daily.prec[daily.prec > threshold])) } ))
+  return(tapply(daily.prec[daily.prec > threshold], date.factor, function(x) { return(sum(x, na.rm=TRUE)) } ))
 }
 
 ## PRCPTOT
@@ -316,18 +327,26 @@ total.prec <- function(daily.prec, date.factor) {
   return(tapply(daily.prec, date.factor, sum))
 }
 
-## Gotta test this
-running.quantile <- function(data, f, n, q) {
-  indices.list <- lapply((1:n) - ceiling(n / 2), function(x, indices) { return(indices[max(1, x + 1):min(length(indices), length(indices) + x)]) }, 1:length(data))
-  return(tapply(data[unlist(indices.list)], factor(as.vector(f)[unlist(rev(indices.list))]), quantile, q))
-}
+##running.quantile <- function(data, f, n, q) {
+##  indices.list <- lapply((1:n) - ceiling(n / 2), function(x, indices) { return(indices[max(1, x + 1):min(length(indices), length(indices) + x)]) }, 1:length(data))
+##  return(tapply(data[unlist(indices.list)], factor(as.vector(f)[unlist(rev(indices.list))]), quantile, q))
+##}
 
-bootstrap.zhang <- function(data, years, thresholds) {
-  nyears <- length(unique(years))
-  sapply(unique(years), function(x) {
-    
-  })
-##  yearset <- 
+## Gotta test this
+running.quantile <- function(data, f, n, q, include.mask=NULL) {
+  ## Create n lists of indices
+  indices.list <- lapply((1:n) - ceiling(n / 2), function(x, indices) { return(indices[max(1, x + 1):min(length(indices), length(indices) + x)]) }, 1:length(data))
+  repeated.data <- data[unlist(indices.list)]
+
+  ## Create mask
+  bad.mask <- !is.na(repeated.data)
+  if(!is.null(include.mask))
+    bad.mask <- bad.mask & include.mask[unlist(indices.list)]
+
+  ## Reversing the indices creates the shifted window.
+  repeated.f <- f[unlist(rev(indices.list))]
+  
+  return(t(do.call(data.frame, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q, type=8))))
 }
 
 ## Assume data is a data frame containing prec, tmin, tmax, tavg, year, month, day, jday
