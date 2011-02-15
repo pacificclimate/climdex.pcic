@@ -8,7 +8,6 @@ setClass("climdexInput",
                         prec = "numeric",
                         namask.ann = "data.frame",
                         namask.mon = "data.frame",
-                        date = "POSIXct",
                         bs.pctile = "data.frame",
                         annual.factor = "factor",
                         monthly.factor = "factor")
@@ -94,6 +93,7 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   filled.tmin <- create.filled.series(tmin.dat[,data.columns$tmin], tmin.dates, date.series)
   filled.tavg <- (filled.tmax + filled.tmin) / 2
   filled.prec <- create.filled.series(prec.dat[,data.columns$prec], prec.dates, date.series)
+
   filled.list <- list(filled.tmax, filled.tmin, filled.tavg, filled.prec)
   
   namask.ann <- do.call(data.frame, lapply(filled.list, get.na.mask, annual.factor, 15))
@@ -110,7 +110,7 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   
   names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90", "precwet95", "precwet99")
 
-  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, date=date.series, bs.pctile=bs.pctile, annual.factor=annual.factor, monthly.factor=monthly.factor))
+  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, bs.pctile=bs.pctile, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
 ## Temperature units: degrees C
