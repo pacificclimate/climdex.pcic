@@ -282,11 +282,6 @@ total.precip.above.threshold <- function(daily.prec, date.factor, threshold) {
   return(tapply(daily.prec[daily.prec > threshold], date.factor, function(x) { return(sum(x, na.rm=TRUE)) } ))
 }
 
-##running.quantile <- function(data, f, n, q) {
-##  indices.list <- lapply((1:n) - ceiling(n / 2), function(x, indices) { return(indices[max(1, x + 1):min(length(indices), length(indices) + x)]) }, 1:length(data))
-##  return(tapply(data[unlist(indices.list)], factor(as.vector(f)[unlist(rev(indices.list))]), quantile, q))
-##}
-
 ## Gotta test this
 running.quantile <- function(data, f, n, q, include.mask=NULL) {
   ## Create n lists of indices
@@ -302,44 +297,6 @@ running.quantile <- function(data, f, n, q, include.mask=NULL) {
   repeated.f <- f[unlist(rev(indices.list))]
   
   return(t(do.call(data.frame, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q, type=8))))
-}
-
-## Assume data is a data frame containing prec, tmin, tmax, tavg, year, month, day, jday
-run.climdex <- function(data, period, base.period) {
-  years.factor <- factor(data$year)
-  yearmonth.factor <- factor(paste(data$year, data$month))
-  months.factor <- factor(data$month)
-  jday.factor <- factor(data$jday)
-
-
-  ## Will need to replace these with bootstrap procedure
-  tmax.daily.10.pctile <- running.quantile(data$tmax[base.period], data$jday[base.period], 5, 0.1)
-  tmax.daily.90.pctile <- running.quantile(data$tmax[base.period], data$jday[base.period], 5, 0.9)
-  tmin.daily.10.pctile <- running.quantile(data$tmin[base.period], data$jday[base.period], 5, 0.1)
-  tmin.daily.90.pctile <- running.quantile(data$tmin[base.period], data$jday[base.period], 5, 0.9)
-  tavg.daily.10.pctile <- running.quantile(data$tavg[base.period], data$jday[base.period], 5, 0.1)
-  tavg.daily.90.pctile <- running.quantile(data$tavg[base.period], data$jday[base.period], 5, 0.9)
-  prec.daily.10.pctile <- running.quantile(data$prec[base.period], data$jday[base.period], 5, 0.1)
-  prec.daily.90.pctile <- running.quantile(data$prec[base.period], data$jday[base.period], 5, 0.9)
-  prec.daily.95.pctile <- running.quantile(data$prec[base.period], data$jday[base.period], 5, 0.95)
-  prec.daily.99.pctile <- running.quantile(data$prec[base.period], data$jday[base.period], 5, 0.99)
-
-  FD <- number.days.below.threshold(data$tmin, year.factor, 0)
-  ID <- number.days.below.threshold(data$tmax, year.factor, 0)
-
-  SU <- number.days.over.threshold(data$tmax, year.factor, 25)
-  TR <- number.days.over.threshold(data$tmin, year.factor, 20)
-
-  GSL <- growing.season.length(data$tavg, year.factor, 6)
-
-  TNx <- max.daily.temp(data$tmin, month.factor)
-  TXx <- max.daily.temp(data$tmax, month.factor)
-
-  TNn <- min.daily.temp(data$tmin, month.factor)
-  TXn <- min.daily.temp(data$tmax, month.factor)
-
-  ## Potentially invalid
-  ##TX10p <- percent.days.lt.threshold(data$tmax, 
 }
 
 ## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
