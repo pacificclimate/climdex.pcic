@@ -9,6 +9,7 @@ setClass("climdexInput",
                         namask.ann = "data.frame",
                         namask.mon = "data.frame",
                         bs.pctile = "data.frame",
+                        pctile = "numeric",
                         annual.factor = "factor",
                         monthly.factor = "factor")
          )
@@ -106,12 +107,15 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   ## DeMorgan's laws FTW
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
 
-  bs.pctile <- do.call(data.frame, c(lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), new.date.range), list(zhang.bootstrap.qtile(filled.prec, date.series, c(0.95, 0.99), new.date.range, wet.days))))
-  ##browser()
-  
-  names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90", "precwet95", "precwet99")
+  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), new.date.range))
 
-  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, bs.pctile=bs.pctile, annual.factor=annual.factor, monthly.factor=monthly.factor))
+  inset <- date.series >= new.date.range[1] & date.series <= new.date.range[2] & !is.na(filled.prec) & wet.days
+  pctile <- quantile(filled.prec[inset], c(0.95, 0.99))
+  
+  names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90")
+  names(pctile) <- c("precwet95", "precwet99")
+  
+  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, bs.pctile=bs.pctile, pctile=pctile, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
 ## Temperature units: degrees C
@@ -190,14 +194,14 @@ climdex.cdd <- function(ci) { return(max.length.spell(ci@prec, ci@annual.factor,
 ## CWD: Annual. Should work.
 climdex.cwd <- function(ci) { return(max.length.spell(ci@prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
 
-## R95pTOT: Annual.
-climdex.r95ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$precwet95) * ci@namask.ann$prec) }
+## R95pTOT: Annual. Exact match.
+climdex.r95ptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@annual.factor, ci@pctile['precwet95'], ">") * ci@namask.ann$prec) }
 
-## R99pTOT: Annual.
-climdex.r99ptot <- function(ci) { return(total.precip.above.threshold(ci@prec, ci@annual.factor, ci@bs.pctile$precwet99) * ci@namask.ann$prec) }
+## R99pTOT: Annual. Exact match.
+climdex.r99ptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@annual.factor, ci@pctile['precwet99'], ">") * ci@namask.ann$prec) }
 
-## PRCPTOT: Annual. Should work.
-climdex.prcptot <- function(ci) { return(tapply(ci@prec, ci@annual.factor, sum) * ci@namask.ann$prec) }
+## PRCPTOT: Annual. Exact match.
+climdex.prcptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
 
 
 ##
@@ -278,8 +282,9 @@ max.length.spell <- function(daily.prec, date.factor, threshold, op) {
 }
 
 ## R95pTOT, R99pTOT
-total.precip.above.threshold <- function(daily.prec, date.factor, threshold) {
-  return(tapply(daily.prec[daily.prec > threshold], date.factor, function(x) { return(sum(x, na.rm=TRUE)) } ))
+total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
+  f <- match.fun(op)
+  return(tapply(1:length(daily.prec), date.factor, function(x) { return(sum(daily.prec[x[f(daily.prec[x], threshold)]], na.rm=TRUE)) } ))
 }
 
 ## Gotta test this
