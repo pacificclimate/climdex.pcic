@@ -188,10 +188,11 @@ climdex.r20mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annu
 ## Rnnmm: Annual. Exact match.
 climdex.rnnmm <- function(ci, threshold) { return(number.days.op.threshold(ci@prec, ci@annual.factor, threshold, ">=") * ci@namask.ann$prec) }
 
-## CDD: Annual. Differences in one sample.
+## Both CDD and CWD in fclimdex do not record the length of consecutive days on transition to a missing value
+## CDD: Annual. Exact match.
 climdex.cdd <- function(ci) { return(max.length.spell(ci@prec, ci@annual.factor, 1, "<") * ci@namask.ann$prec) }
 
-## CWD: Annual. No differences, but uses same routine as CDD.
+## CWD: Annual. Exact match.
 climdex.cwd <- function(ci) { return(max.length.spell(ci@prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
 
 ## R95pTOT: Annual. Exact match.
@@ -208,6 +209,18 @@ climdex.prcptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@a
 ## HELPERS FINISHED. IMPLEMENTATIION BELOW.
 ##
 
+
+get.series.lengths.at.ends <- function(x) {
+  res <- rep(0, length(x))
+  x[is.na(x)] <- FALSE
+  n <- length(x)
+  
+  ## Compare series to lag-1 and lag+1 series; false added to trigger state transition from TRUE at ends of series
+  start <- which(x & !(c(FALSE, x[1:(n - 1)])))
+  end <- which(x & !(c(x[2:n], FALSE)))
+  res[end] <- end - start + 1
+  return(res)
+}
 
 ## FD, ID, SU, TR, R10mm, R20mm, Rnnmm
 number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
@@ -278,7 +291,8 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 
 ## CDD, CWD
 max.length.spell <- function(daily.prec, date.factor, threshold, op) {
-  return(tapply(match.fun(op)(daily.prec, threshold), date.factor, function(x) { return(max(sequential(x))) } ))
+  bools <- match.fun(op)(daily.prec, threshold)
+  return(tapply(get.series.lengths.at.ends(bools), date.factor, function(x) { return(max(x)) } ))
 }
 
 ## R95pTOT, R99pTOT
@@ -314,12 +328,4 @@ select.blocks.gt.length <- function(d, n) {
 
   d2 <- Reduce(function(x, y) { return(c(rep(0, y), d[1:(length(d) - y)]) & x) }, 1:n, d)
   return(Reduce(function(x, y) { return(c(d2[(y + 1):length(d2)], rep(0, y)) | x) }, 1:n, d2))
-}
-
-## Input vector of booleans
-## Returns a vector of integers representing the _length_ of each consecutive sequence of True values
-sequential <- function(v) {
-  if (! any(v, na.rm=T)) return(0)
-  vect <- which(v)
-  diff(which(c(T, diff(vect) != 1, T)))
 }
