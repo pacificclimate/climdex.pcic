@@ -122,76 +122,76 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
 ## Precipitation units: mm per unit time
 
 ## Status:
-## FD: Annual. Done
+## FD: Annual. Differences of 1-4 days in some years.
 climdex.fd <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.factor, 0, "<") * ci@namask.ann$tmin) }
 
-## SU: Annual. Done
+## SU: Annual. Differences of 1-4 days in some years.
 climdex.su <- function(ci) { return(number.days.op.threshold(ci@tmax, ci@annual.factor, 25, ">") * ci@namask.ann$tmax) }
 
-## ID: Annual. Done
+## ID: Annual. Differences of 1-4 days in some years.
 climdex.id <- function(ci) { return(number.days.op.threshold(ci@tmax, ci@annual.factor, 0, "<") * ci@namask.ann$tmax) }
 
-## TR: Annual. Done
+## TR: Annual. Differences of 1-4 days in some years.
 climdex.tr <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.factor, 20, ">") * ci@namask.ann$tmin) }
 
-## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1
+## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1. Creates GSL 1 day longer than fclimdex due to off-by-one in fclimdex.
 climdex.gsl <- function(ci) { return(growing.season.length(ci@tavg, ci@annual.factor) * ci@namask.ann$tavg) }
 
-## TXx: Monthly. Done
+## TXx: Monthly. Exact match.
 climdex.txx <- function(ci) { return(tapply(ci@tmax, ci@monthly.factor, max) * ci@namask.mon$tmax) }
 
-## TNx: Monthly. Done
+## TNx: Monthly. Exact match.
 climdex.tnx <- function(ci) { return(tapply(ci@tmin, ci@monthly.factor, max) * ci@namask.mon$tmin) }
 
-## TXn: Monthly. Done
+## TXn: Monthly. Exact match.
 climdex.txn <- function(ci) { return(tapply(ci@tmax, ci@monthly.factor, min) * ci@namask.mon$tmax) }
 
-## TNn: Monthly. Done
+## TNn: Monthly. Exact match.
 climdex.tnn <- function(ci) { return(tapply(ci@tmin, ci@monthly.factor, min) * ci@namask.mon$tmin) }
 
-## TN10p: Monthly.
+## TN10p: Monthly. Pattern matches, but still significant differences.
 climdex.tn10p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10, "<") * ci@namask.mon$tmin) }
 
-## TX10p: Monthly.
+## TX10p: Monthly. Pattern matches, but still significant differences.
 climdex.tx10p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax10, "<") * ci@namask.mon$tmax) }
 
-## TN90p: Monthly.
+## TN90p: Monthly. Pattern matches, but still significant differences.
 climdex.tn90p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin90, ">") * ci@namask.mon$tmin) }
 
-## TX90p: Monthly.
+## TX90p: Monthly. Pattern matches, but still significant differences.
 climdex.tx90p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90, ">") * ci@namask.mon$tmax) }
 
-## WSDI: Annual.
-climdex.wsdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90, ">") * ci@namask.mon$tmax) }
+## WSDI: Annual. Significant differences.
+climdex.wsdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90, ">") * ci@namask.ann$tmax) }
 
-## CSDI: Annual.
-climdex.csdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10, "<") * ci@namask.mon$tmax) }
+## CSDI: Annual. Pattern matches but significant differences exist.
+climdex.csdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10, "<") * ci@namask.ann$tmax) }
 
-## DTR: Monthly. Done
+## DTR: Monthly. Differences in some samples at the 3rd decimal place.
 climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor) * ci@namask.mon$tavg) }
 
-## Rx1day: Monthly. Should work. Testing?
+## Rx1day: Monthly. Exact match.
 climdex.rx1day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 1) * ci@namask.mon$prec) }
 
-## Rx5day: Monthly. Should work. Testing?
+## Rx5day: Monthly. Small differences in certain circumstances. (max 3mm)
 climdex.rx5day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5) * ci@namask.mon$prec) }
 
-## SDII: Annual. Should work.
+## SDII: Annual. Small differences due to fclimdex's rounding to 1 decimal place.
 climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
 
-## R10mm: Annual. Should work.
+## R10mm: Annual. Exact match.
 climdex.r10mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annual.factor, 10, ">=") * ci@namask.ann$prec) }
 
-## R20mm: Annual. Should work.
+## R20mm: Annual. Exact match.
 climdex.r20mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annual.factor, 20, ">=") * ci@namask.ann$prec) }
 
-## Rnnmm: Annual. Should work.
+## Rnnmm: Annual. Exact match.
 climdex.rnnmm <- function(ci, threshold) { return(number.days.op.threshold(ci@prec, ci@annual.factor, threshold, ">=") * ci@namask.ann$prec) }
 
-## CDD: Annual. Should work.
+## CDD: Annual. Differences in one sample.
 climdex.cdd <- function(ci) { return(max.length.spell(ci@prec, ci@annual.factor, 1, "<") * ci@namask.ann$prec) }
 
-## CWD: Annual. Should work.
+## CWD: Annual. No differences, but uses same routine as CDD.
 climdex.cwd <- function(ci) { return(max.length.spell(ci@prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
 
 ## R95pTOT: Annual. Exact match.
@@ -212,7 +212,7 @@ climdex.prcptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@a
 ## FD, ID, SU, TR, R10mm, R20mm, Rnnmm
 number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
   stopifnot(is.numeric(temp))
-  return(tapply(op(temp, threshold), date.factor, sum, na.rm=TRUE))
+  return(tapply(match.fun(op)(temp, threshold), date.factor, sum, na.rm=TRUE))
 }
 
 ## GSL
@@ -243,13 +243,13 @@ growing.season.length <- function(daily.mean.temp, date.factor,
 ## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
 percent.days.op.threshold <- function(temp, date.factor, threshold, op='<') {
   namask <- !is.na(temp)
-  return(tapply(op(temp, threshold), date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
+  return(tapply(match.fun(op)(temp, threshold), date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
 }
 
 ## WSDI, CSDI
 ## Thresholds appear to be for each block of 5 days of a year...
 threshold.exceedance.duration.index <- function(daily.max.temp, date.factor, warm.thresholds, op=">", min.length=6) {
-  periods <- select.blocks.gt.length(op(daily.max.temp, warm.thresholds), min.length - 1)
+  periods <- select.blocks.gt.length(match.fun(op)(daily.max.temp, warm.thresholds), min.length - 1)
   return(tapply(periods, date.factor, sum))
 }
 
@@ -278,7 +278,7 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 
 ## CDD, CWD
 max.length.spell <- function(daily.prec, date.factor, threshold, op) {
-  return(tapply(op(daily.prec, threshold), date.factor, function(x) { return(max(sequential(x))) } ))
+  return(tapply(match.fun(op)(daily.prec, threshold), date.factor, function(x) { return(max(sequential(x))) } ))
 }
 
 ## R95pTOT, R99pTOT
