@@ -74,11 +74,16 @@ get.na.mask <- function(x, f, threshold) {
   return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
-climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90)) {
-  tmin.dat <- read.csv(tmin.file)
-  tmax.dat <- read.csv(tmax.file)
-  prec.dat <- read.csv(prec.file)
+climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90), na.strings=NULL) {
+  tmin.dat <- read.csv(tmin.file, na.strings=na.strings)
+  tmax.dat <- read.csv(tmax.file, na.strings=na.strings)
+  prec.dat <- read.csv(prec.file, na.strings=na.strings)
 
+  ## This is to deal with fclimdex's broken input data, which includes February 31st, amongst other joyous things
+  tmin.dat <- tmin.dat[!is.na(tmin.dat[,4]),]
+  tmax.dat <- tmax.dat[!is.na(tmax.dat[,4]),]
+  prec.dat <- prec.dat[!is.na(prec.dat[,4]),]
+  
   if(!(data.columns$tmin %in% names(tmin.dat) & data.columns$tmax %in% names(tmax.dat) & data.columns$prec %in% names(prec.dat))) {
     stop("Data columns not found in data.")
   }
