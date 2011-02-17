@@ -43,11 +43,16 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
 ## Except don't, because that's not what the Fortran code does.
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL) {
   jdays.all <- as.numeric(strftime(dates, "%j", tz="GMT"))
-  inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2] & !is.na(x)
-  years <- as.numeric(strftime(dates[inset], format="%Y", tz="GMT"))
+  inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2] & strftime(dates, format="%m-%d", tz="GMT") != "02-29"
+
+  years.all <- as.numeric(strftime(dates, format="%Y", tz="GMT"))
+  years <- years.all[inset]
+  year.list <- unique(years)
+
+  jdays.idx <- unlist(tapply(jdays.all, years.all, function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } }))
+
   bs.data <- x[inset]
   jdays <- jdays.all[inset]
-  year.list <- unique(years)
 
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
@@ -60,7 +65,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   ##} ), along=3))
   ##return(apply(omit.year.data, c(1, 2), mean))
 
-  d <- apply(running.quantile(bs.data, jdays, 5, qtiles, include.mask), 2, function(x) { return(x[jdays.all]) } )
+  d <- apply(running.quantile(bs.data, jdays, 5, qtiles, include.mask) , 2, function(x) { return(x[jdays.idx]) } )
   row.names(d) <- NULL
   return(d)
 }
@@ -83,7 +88,7 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   prec.dates <- get.date.field(prec.dat)
 
   date.range <- range(c(tmin.dates, tmax.dates, prec.dates))
-  year.range <- as.numeric(strftime(date.range, "%Y"))
+  year.range <- as.numeric(strftime(date.range, "%Y", tz="GMT"))
   new.date.range <- as.POSIXct(paste(year.range, c("01-01", "12-31"), sep="-"), tz="GMT")
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
 
@@ -107,7 +112,8 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   ## DeMorgan's laws FTW
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
 
-  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), new.date.range))
+  bs.date.range <- as.POSIXct(paste(base.range, c("01-01", "12-31"), sep="-"), tz="GMT")
+  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range))
 
   inset <- date.series >= new.date.range[1] & date.series <= new.date.range[2] & !is.na(filled.prec) & wet.days
   pctile <- quantile(filled.prec[inset], c(0.95, 0.99))
@@ -315,7 +321,7 @@ running.quantile <- function(data, f, n, q, include.mask=NULL) {
   ## Reversing the indices creates the shifted window.
   repeated.f <- f[unlist(rev(indices.list))]
   
-  return(t(do.call(data.frame, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q, type=8))))
+  return(t(do.call(data.frame, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q))))
 }
 
 ## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
