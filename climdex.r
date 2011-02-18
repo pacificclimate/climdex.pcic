@@ -43,8 +43,10 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
 ## Except don't, because that's not what fclimdex does.
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL) {
   jdays.all <- as.numeric(strftime(dates, "%j", tz="GMT"))
-  inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2] & strftime(dates, format="%m-%d", tz="GMT") != "02-29"
-
+  n <- 5
+  window <- floor(n / 2)
+  inset <- dates >= (bootstrap.range[1] - 86400 * window) & dates <= (bootstrap.range[2] + 86400 * window) & strftime(dates, format="%m-%d", tz="GMT") != "02-29"
+  
   years.all <- as.numeric(strftime(dates, format="%Y", tz="GMT"))
 
   jdays.idx <- unlist(tapply(jdays.all, years.all, function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } }))
@@ -321,14 +323,13 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 
 ## Gotta test this
 running.quantile <- function(data, f, n, q, include.mask=NULL) {
-  true.data.length <- length(data)
-  na.pad <- rep(NA, floor(n / 2))
-  data <- c(na.pad, data, na.pad)
+  window <- floor(n / 2)
+  true.data.length <- length(data) - 2 * window
   
   ## Create n lists of indices
   indices <- unlist(lapply(1:n, function(x, indices) { return(indices[x:(true.data.length + x - 1)]) }, 1:true.data.length))
   repeated.data <- data[indices]
-  repeated.f <- rep(f, n)
+  repeated.f <- rep(f[(window + 1):(length(f) - window)], n)
 
   ## Create mask
   bad.mask <- !is.na(repeated.data)
