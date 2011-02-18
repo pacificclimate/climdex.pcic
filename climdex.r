@@ -46,18 +46,18 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2] & strftime(dates, format="%m-%d", tz="GMT") != "02-29"
 
   years.all <- as.numeric(strftime(dates, format="%Y", tz="GMT"))
-  years <- years.all[inset]
-  year.list <- unique(years)
 
   jdays.idx <- unlist(tapply(jdays.all, years.all, function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } }))
 
   bs.data <- x[inset]
-  jdays <- jdays.all[inset]
+  jdays <- jdays.idx[inset]
 
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
   
   ## This routine is written as described in Zhang et al, 2005 as referenced above. However, the Fortran code simply doesn't use this method.
+  ##year.list <- unique(years)
+  ##years <- years.all[inset]
   ##omit.year.data <- do.call(abind, c(lapply(year.list[1:(length(year.list) - 1)], function(year.to.omit) {
   ##  year.to.repeat <- year.to.omit + 1
   ##  my.set <- c(which(!(years == year.to.omit)), which(years == year.to.repeat))
@@ -65,7 +65,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   ##} ), along=3))
   ##return(apply(omit.year.data, c(1, 2), mean))
 
-  d <- apply(running.quantile(bs.data, jdays, 5, qtiles, include.mask) , 2, function(x) { return(x[jdays.idx]) } )
+  d <- apply(running.quantile(bs.data, jdays, 5, qtiles, include.mask), 2, function(x) { return(x[jdays.idx]) } )
   row.names(d) <- NULL
   return(d)
 }
@@ -333,7 +333,7 @@ running.quantile <- function(data, f, n, q, include.mask=NULL) {
   ## Reversing the indices creates the shifted window.
   repeated.f <- f[unlist(rev(indices.list))]
   
-  return(t(do.call(data.frame, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q))))
+  return(do.call(rbind, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q)))
 }
 
 ## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
