@@ -40,7 +40,7 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
 
 ## Expects POSIXct for all dates
 ## Do the Zhang boostrapping method described in Xuebin Zhang et al's 2005 paper, "Avoiding Inhomogeneity in Percentile-Based Indices of Temperature Extremes" J.Clim vol 18 pp.1647-1648, "Removing the 'jump'".
-## Except don't, because that's not what the Fortran code does.
+## Except don't, because that's not what fclimdex does.
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL) {
   jdays.all <- as.numeric(strftime(dates, "%j", tz="GMT"))
   inset <- dates >= bootstrap.range[1] & dates <= bootstrap.range[2] & strftime(dates, format="%m-%d", tz="GMT") != "02-29"
@@ -161,6 +161,7 @@ climdex.txn <- function(ci) { return(tapply(ci@tmax, ci@monthly.factor, min) * c
 climdex.tnn <- function(ci) { return(tapply(ci@tmin, ci@monthly.factor, min) * ci@namask.mon$tmin) }
 
 ## TN10p: Monthly. Pattern matches, but still significant differences.
+## Our implementation currently follows the example set by fclimdex for dealing with missing values, which is wrong; it biases results upwards when missing values are present.
 climdex.tn10p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10, "<") * ci@namask.mon$tmin) }
 
 ## TX10p: Monthly. Pattern matches, but still significant differences.
@@ -173,10 +174,11 @@ climdex.tn90p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@mon
 climdex.tx90p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90, ">") * ci@namask.mon$tmax) }
 
 ## WSDI: Annual. Significant differences.
-climdex.wsdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90, ">") * ci@namask.ann$tmax) }
+## fclimdex implements CSDI and WSDI incorrectly; it adds the entire spell to the year in which the spell ended. This code sums up the days which were part of the spell.
+climdex.wsdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90, ">") * ci@namask.ann$tavg) }
 
 ## CSDI: Annual. Pattern matches but significant differences exist.
-climdex.csdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10, "<") * ci@namask.ann$tmax) }
+climdex.csdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10, "<") * ci@namask.ann$tavg) }
 
 ## DTR: Monthly. Differences in some samples at the 3rd decimal place.
 climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor) * ci@namask.mon$tavg) }
@@ -184,7 +186,8 @@ climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@
 ## Rx1day: Monthly. Exact match.
 climdex.rx1day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 1) * ci@namask.mon$prec) }
 
-## Rx5day: Monthly. Small differences in certain circumstances. (max 3mm)
+## Rx5day: Monthly. Code should be correct.
+## fclimdex implements Rx5day incorrectly; the running sum series is off by 2 days, and the first day a running sum can be computed for is left out entirely. This results in wet days near a month boundary going into a different month.
 climdex.rx5day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5) * ci@namask.mon$prec) }
 
 ## SDII: Annual. Small differences due to fclimdex's rounding to 1 decimal place.
@@ -264,7 +267,7 @@ growing.season.length <- function(daily.mean.temp, date.factor,
 }
 
 ## TN10p, TX10p, TN90p, TX90p
-## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004
+## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004 (except fclimdex does not use this).
 percent.days.op.threshold <- function(temp, date.factor, threshold, op='<') {
   namask <- !is.na(temp)
   return(tapply(match.fun(op)(temp, threshold), date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
@@ -288,8 +291,12 @@ max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
   if(ndays == 1) {
     return(tapply(daily.prec, date.factor, max))
   } else {
-    ## Ends of the data will be de-emphasized (padded with zero precip data)
-    prec.runsum <- runmean(c(rep(0, floor(ndays / 2)), daily.prec, rep(0, floor(ndays / 2))), k=ndays, endrule="trim") * ndays
+    ## Ends of the data will be de-emphasized (padded with zero precip data); NAs replaced with 0
+    new.series <- c(rep(0, floor(ndays / 2)), daily.prec, rep(0, floor(ndays / 2)))
+    new.series[is.na(new.series)] <- 0
+    prec.runsum <- runmean(new.series, k=ndays, endrule="trim") * ndays
+    ## Uncommenting this introduces the bug in RX5day in fclimdex, making the results identical
+    ##prec.runsum <- c(0, 0, prec.runsum[1:(length(prec.runsum) - floor(ndays / 2))])
     return(tapply(prec.runsum, date.factor, max))
   }
 }
@@ -331,12 +338,14 @@ running.quantile <- function(data, f, n, q, include.mask=NULL) {
 
 ## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
 select.blocks.gt.length <- function(d, n) {
-  if(n == 0)
+  if(n <= 1)
     return(d)
 
   if(n >= length(d))
     return(rep(FALSE, length(d)))
 
-  d2 <- Reduce(function(x, y) { return(c(rep(0, y), d[1:(length(d) - y)]) & x) }, 1:n, d)
-  return(Reduce(function(x, y) { return(c(d2[(y + 1):length(d2)], rep(0, y)) | x) }, 1:n, d2))
+  d[is.na(d)] <- FALSE
+  
+  d2 <- Reduce(function(x, y) { return(c(rep(FALSE, y), d[1:(length(d) - y)]) & x) }, 1:n, d)
+  return(Reduce(function(x, y) { return(c(d2[(y + 1):length(d2)], rep(FALSE, y)) | x) }, 1:n, d2))
 }
