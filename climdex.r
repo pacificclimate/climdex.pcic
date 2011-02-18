@@ -327,7 +327,7 @@ running.quantile <- function(data, f, n, q, include.mask=NULL) {
   true.data.length <- length(data) - 2 * window
   
   ## Create n lists of indices
-  indices <- unlist(lapply(1:n, function(x, indices) { return(indices[x:(true.data.length + x - 1)]) }, 1:true.data.length))
+  indices <- unlist(lapply(1:n, function(x) { return(x:(true.data.length + x - 1)) }))
   repeated.data <- data[indices]
   repeated.f <- rep(f[(window + 1):(length(f) - window)], n)
 
@@ -335,7 +335,7 @@ running.quantile <- function(data, f, n, q, include.mask=NULL) {
   bad.mask <- !is.na(repeated.data)
   if(!is.null(include.mask))
     bad.mask <- bad.mask & include.mask[indices]
-                    
+  
   return(do.call(rbind, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q)))
 }
 
