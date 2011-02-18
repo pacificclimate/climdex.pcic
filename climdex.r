@@ -67,7 +67,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   ##} ), along=3))
   ##return(apply(omit.year.data, c(1, 2), mean))
   
-  d <- apply(running.quantile(bs.data, jdays, 5, qtiles, include.mask), 2, function(x) { return(x[jdays.idx]) } )
+  d <- apply(running.quantile(bs.data, jdays, n, qtiles, include.mask), 2, function(x) { return(x[jdays.idx]) } )
   row.names(d) <- NULL
   return(d)
 }
