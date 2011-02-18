@@ -64,7 +64,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   ##  return(running.quantile(bs.data[my.set], jdays[my.set], 5, qtiles))
   ##} ), along=3))
   ##return(apply(omit.year.data, c(1, 2), mean))
-
+  
   d <- apply(running.quantile(bs.data, jdays, 5, qtiles, include.mask), 2, function(x) { return(x[jdays.idx]) } )
   row.names(d) <- NULL
   return(d)
@@ -321,18 +321,20 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 
 ## Gotta test this
 running.quantile <- function(data, f, n, q, include.mask=NULL) {
+  true.data.length <- length(data)
+  na.pad <- rep(NA, floor(n / 2))
+  data <- c(na.pad, data, na.pad)
+  
   ## Create n lists of indices
-  indices.list <- lapply((1:n) - ceiling(n / 2), function(x, indices) { return(indices[max(1, x + 1):min(length(indices), length(indices) + x)]) }, 1:length(data))
-  repeated.data <- data[unlist(indices.list)]
+  indices <- unlist(lapply(1:n, function(x, indices) { return(indices[x:(true.data.length + x - 1)]) }, 1:true.data.length))
+  repeated.data <- data[indices]
+  repeated.f <- rep(f, n)
 
   ## Create mask
   bad.mask <- !is.na(repeated.data)
   if(!is.null(include.mask))
-    bad.mask <- bad.mask & include.mask[unlist(indices.list)]
-
-  ## Reversing the indices creates the shifted window.
-  repeated.f <- f[unlist(rev(indices.list))]
-  
+    bad.mask <- bad.mask & include.mask[indices]
+                    
   return(do.call(rbind, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q)))
 }
 
