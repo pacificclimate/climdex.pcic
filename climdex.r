@@ -40,7 +40,6 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
 
 ## Expects POSIXct for all dates
 ## Do the Zhang boostrapping method described in Xuebin Zhang et al's 2005 paper, "Avoiding Inhomogeneity in Percentile-Based Indices of Temperature Extremes" J.Clim vol 18 pp.1647-1648, "Removing the 'jump'".
-## Except don't, because that's not what fclimdex does.
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL) {
   jdays.all <- as.numeric(strftime(dates, "%j", tz="GMT"))
   n <- 5
@@ -57,7 +56,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
   
-  ## This routine is written as described in Zhang et al, 2005 as referenced above. However, the Fortran code simply doesn't use this method.
+  ## This routine is written as described in Zhang et al, 2005 as referenced above.
   ##year.list <- unique(years)
   ##years <- years.all[inset]
   ##omit.year.data <- do.call(abind, c(lapply(year.list[1:(length(year.list) - 1)], function(year.to.omit) {
@@ -322,21 +321,21 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 }
 
 ## Gotta test this
-running.quantile <- function(data, f, n, q, include.mask=NULL) {
+running.quantile <- function(data, n, q, include.mask=NULL) {
   window <- floor(n / 2)
   true.data.length <- length(data) - 2 * window
   
-  ## Create n lists of indices
-  indices <- unlist(lapply(1:n, function(x) { return(x:(true.data.length + x - 1)) }))
-  repeated.data <- data[indices]
-  repeated.f <- rep(f[(window + 1):(length(f) - window)], n)
-
-  ## Create mask
-  bad.mask <- !is.na(repeated.data)
+  ## Apply include mask
   if(!is.null(include.mask))
-    bad.mask <- bad.mask & include.mask[indices]
-  
-  return(do.call(rbind, tapply(repeated.data[bad.mask], repeated.f[bad.mask], quantile, q)))
+    data[include.mask] <- NA
+
+  ## Create n lists of indices 
+  data.perm <- unlist(lapply(1:n, function(x) { return(data[x:(true.data.length + x - 1)]) }))
+  dim(data.perm) <- c(365, length(data.perm) / 365)
+  data.perm <- t(data.perm)
+
+  d <- t(apply(data.perm, 2, quantile, q, na.rm=TRUE))
+  return(d)
 }
 
 ## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
