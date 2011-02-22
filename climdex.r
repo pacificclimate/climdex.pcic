@@ -320,9 +320,9 @@ percent.days.op.threshold <- function(temp, dates, date.factor, threshold.outsid
   year.base.list <- years.base.range[1]:years.base.range[2]
   
   dat <- f(temp, threshold.outside.base)
-  d <- sapply(1:byrs, function(x) { yset <-  years.base == year.base.list[x]; sapply(1:(byrs - 1), function(y) { as.numeric(f(temp.base[yset], (base.thresholds[,x,y])[jdays.base[yset]])) } ) })
+  d <- sapply(1:byrs, function(x) { yset <-  years.base == year.base.list[x]; sapply(1:(byrs - 1), function(y) { f(temp.base[yset], (base.thresholds[,x,y])[jdays.base[yset]]) } ) })
   ##browser()
-  dat[inset] <- unlist(lapply(d, apply, 1, function(x) { mean(as.numeric(x), na.rm=TRUE) } ) )
+  dat[inset] <- unlist(lapply(d, apply, 1, function(x) { sum(as.numeric(x), na.rm=TRUE) } ) ) /  (byrs - 1)
   namask <- !is.na(temp)
   
   return(tapply(dat, date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
