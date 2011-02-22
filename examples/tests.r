@@ -4,12 +4,12 @@ source('../climdex.r', chdir=T)
 
 make.temperature.fixture <- function() {
   list(
-       list(temp=-5:5,         as.factor(rep('2010', 11))),
-       list(temp=c(-5:5,5:-5), as.factor(c(rep('2010', 11), rep('2011', 11)))),
+       list(-5:5,         as.factor(rep('2010', 11))),
+       list(c(-5:5,5:-5), as.factor(c(rep('2010', 11), rep('2011', 11)))),
        ## All are negative
-       list(temp=rep(-10, 20), as.factor(c(rep('2010', 10), rep('2011', 10)))),
+       list(rep(-10, 20), as.factor(c(rep('2010', 10), rep('2011', 10)))),
        ## All are positive
-       list(temp=rep(10, 20), as.factor(c(rep('2010', 10), rep('2011', 10))))
+       list(rep(10, 20), as.factor(c(rep('2010', 10), rep('2011', 10))))
        )
 }
 
@@ -68,7 +68,7 @@ test.CSDI <- function() {
 }
 
 test.number.days.below.threshold <- function() {
-  f <- number.days.below.threshold
+  f <- number.days.op.threshold
   fix <- make.temperature.fixture()
   thresh <- 0
   expected <- list(mk.rv(5, '2010'),
@@ -77,7 +77,7 @@ test.number.days.below.threshold <- function() {
                    mk.rv(c(0, 0), c('2010', '2011'))
                    )
   do.check <- function(args, y) {
-    args <- append(append(args, f, after=0), thresh)
+    args <- append(append(args, f, after=0), list(threshold=thresh, op="<"))
     cl <- as.call(args)
     checkEquals(eval(cl), y)
   }
@@ -95,7 +95,7 @@ test.number.days.below.threshold <- function() {
 }
 
 test.number.days.over.threshold <- function() {
-  f <- number.days.over.threshold
+  f <- number.days.op.threshold
   fix <- make.temperature.fixture()
   thresh <- 0
   expected <- list(mk.rv(5, '2010'),
@@ -104,7 +104,7 @@ test.number.days.over.threshold <- function() {
                    mk.rv(c(10, 10), c('2010', '2011'))
                    )
   do.check <- function(args, y) {
-    args <- append(append(args, f, after=0), thresh)
+    args <- append(append(args, f, after=0), list(threshold=thresh, op=">"))
     cl <- as.call(args)
     checkEquals(eval(cl), y)
   }
