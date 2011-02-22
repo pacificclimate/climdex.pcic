@@ -16,6 +16,16 @@ make.temperature.fixture <- function() {
 mk.rv <- function(a, names)
   array(a, dimnames=list(names))
 
+test.can.load.data <- function() {
+  station <- '1098D90'
+  data.dir <- '/home/data/projects/data_cleanup/CDCD_2007/new_data/'
+  vars <- c(tmax='MAX_TEMP', tmin='MIN_TEMP', prec='ONE_DAY_PRECIPITATION')
+  data.files <- file.path(data.dir, vars, paste(station, '_', vars, '.csv', sep=''))
+  args <- append(data.files, list(data.column=as.list(vars)))
+  clim.in <- do.call(climdexInput, args)
+  checkTrue(inherits(clim.in, 'climdexInput'))
+}
+
 test.CSDI <- function() {
   f <- CSDI
   cases <- list(list(args=list(n=3, v=c(F, T, T, T, T, F), years=as.factor(rep('2008', 6))),
