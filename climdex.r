@@ -54,8 +54,13 @@ get.jdays.replaced.feb29 <- function(dates) {
 }
 
 get.bootstrap.set <- function(dates, bootstrap.range, win.size) {
+  bootstrap.win.range <- get.bootstrap.windowed.range(bootstrap.range, win.size)
+  return(dates >= bootstrap.win.range[1] & dates <= bootstrap.win.range[2] & strftime(dates, format="%m-%d", tz="GMT") != "02-29")
+}
+
+get.bootstrap.windowed.range <- function(bootstrap.range, win.size) {
   window <- floor(win.size / 2)
-  return(dates >= (bootstrap.range[1] - 86400 * window) & dates <= (bootstrap.range[2] + 86400 * window) & strftime(dates, format="%m-%d", tz="GMT") != "02-29")
+  return(c(bootstrap.range[1] - 86400 * window, bootstrap.range[2] + 86400 * window))
 }
 
 ## Expects POSIXct for all dates
@@ -74,7 +79,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   
   ## This routine is written as described in Zhang et al, 2005 as referenced above.
   years <- years.all[inset]
-  year.list <- unique(years[(window + 1):(sum(inset) - window)])
+  year.list <- unique(years[(window + 1):(length(inset) - window)])
   d <- sapply(year.list, function(year.to.omit) {
     bs.data.temp <- bs.data
     omit.index <- years == year.to.omit
@@ -98,7 +103,7 @@ zhang.running.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=
   jdays <- jdays.idx[inset]
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
-  
+
   d <- apply(running.quantile(bs.data, n, qtiles, include.mask), 2, function(x) { return(x[jdays.idx]) } )
   row.names(d) <- NULL
   return(d)
@@ -109,6 +114,7 @@ get.na.mask <- function(x, f, threshold) {
 }
 
 climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90), na.strings=NULL) {
+  n <- 5
   tmin.dat <- read.csv(tmin.file, na.strings=na.strings)
   tmax.dat <- read.csv(tmax.file, na.strings=na.strings)
   prec.dat <- read.csv(prec.file, na.strings=na.strings)
@@ -126,7 +132,9 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   tmax.dates <- get.date.field(tmax.dat)
   prec.dates <- get.date.field(prec.dat)
 
-  date.range <- range(c(tmin.dates, tmax.dates, prec.dates))
+  bs.date.range <- as.POSIXct(paste(base.range, c("01-01", "12-31"), sep="-"), tz="GMT")
+  bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
+  date.range <- range(c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range))
   year.range <- as.numeric(strftime(date.range, "%Y", tz="GMT"))
   new.date.range <- as.POSIXct(paste(year.range, c("01-01", "12-31"), sep="-"), tz="GMT")
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
@@ -151,9 +159,8 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   ## DeMorgan's laws FTW
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
 
-  bs.date.range <- as.POSIXct(paste(base.range, c("01-01", "12-31"), sep="-"), tz="GMT")
-  bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range))
-  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.running.qtile, date.series, c(0.1, 0.9), bs.date.range))
+  bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
+  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.running.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
 
   browser()
   
@@ -385,7 +392,7 @@ running.quantile <- function(data, n, q, include.mask=NULL) {
 
   ## Create n lists of indices 
   data.perm <- unlist(lapply(1:n, function(x) { return(data[x:(true.data.length + x - 1)]) }))
-  dim(data.perm) <- c(365, length(data.perm) / 365)
+  dim(data.perm) <- c(365, ceiling(length(data.perm) / 365))
   data.perm <- t(data.perm)
 
   d <- t(apply(data.perm, 2, quantile, q, na.rm=TRUE))
