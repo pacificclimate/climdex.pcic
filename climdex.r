@@ -79,7 +79,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   
   ## This routine is written as described in Zhang et al, 2005 as referenced above.
   years <- years.all[inset]
-  year.list <- unique(years[(window + 1):(length(inset) - window)])
+  year.list <- unique(years[(window + 1):(length(years) - window)])
   d <- sapply(year.list, function(year.to.omit) {
     bs.data.temp <- bs.data
     omit.index <- years == year.to.omit
@@ -88,9 +88,10 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
       return(running.quantile(bs.data.temp, n, qtiles, include.mask))
     }))
   } )
-  dim(d) <- c(365, 2, 19, 20)
+  byrs <- length(year.list)
+  dim(d) <- c(365, length(qtiles), byrs - 1, byrs)
   d <- aperm(d, perm=c(1, 4, 3, 2))
-  ## new dims: 365, 20, 19, 2
+  ## new dims: 365, byrs, byrs-1, length(quantiles)
 
   return(lapply(1:length(qtiles), function(x) { d[,,,x] }))
 }
@@ -162,8 +163,6 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
   bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.running.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
 
-  browser()
-  
   inset <- date.series >= new.date.range[1] & date.series <= new.date.range[2] & !is.na(filled.prec) & wet.days
   pctile <- quantile(filled.prec[inset], c(0.95, 0.99))
   
