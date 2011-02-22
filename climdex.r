@@ -8,8 +8,11 @@ setClass("climdexInput",
                         prec = "numeric",
                         namask.ann = "data.frame",
                         namask.mon = "data.frame",
-                        bs.pctile = "data.frame",
+                        running.pctile.base = "list",
+                        running.pctile.notbase = "data.frame",
                         pctile = "numeric",
+                        dates = "POSIXct",
+                        base.range = "POSIXct",
                         annual.factor = "factor",
                         monthly.factor = "factor")
          )
@@ -38,35 +41,65 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
   return(new.data)
 }
 
+get.jdays <- function(dates) {
+  return(as.numeric(strftime(dates, "%j", tz="GMT")))
+}
+
+get.years <- function(dates) {
+  as.numeric(strftime(dates, format="%Y", tz="GMT"))
+}
+
+get.jdays.replaced.feb29 <- function(dates) {
+  jdays.idx <- unlist(tapply(get.jdays(dates), get.years(dates), function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } }))
+}
+
+get.bootstrap.set <- function(dates, bootstrap.range, win.size) {
+  window <- floor(win.size / 2)
+  return(dates >= (bootstrap.range[1] - 86400 * window) & dates <= (bootstrap.range[2] + 86400 * window) & strftime(dates, format="%m-%d", tz="GMT") != "02-29")
+}
+
 ## Expects POSIXct for all dates
 ## Do the Zhang boostrapping method described in Xuebin Zhang et al's 2005 paper, "Avoiding Inhomogeneity in Percentile-Based Indices of Temperature Extremes" J.Clim vol 18 pp.1647-1648, "Removing the 'jump'".
-zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL) {
-  jdays.all <- as.numeric(strftime(dates, "%j", tz="GMT"))
-  n <- 5
+zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL, n=5) {
   window <- floor(n / 2)
-  inset <- dates >= (bootstrap.range[1] - 86400 * window) & dates <= (bootstrap.range[2] + 86400 * window) & strftime(dates, format="%m-%d", tz="GMT") != "02-29"
   
-  years.all <- as.numeric(strftime(dates, format="%Y", tz="GMT"))
-
-  jdays.idx <- unlist(tapply(jdays.all, years.all, function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } }))
+  years.all <- get.years(dates)
+  jdays.idx <- get.jdays.replaced.feb29(dates)
+  inset <- get.bootstrap.set(dates, bootstrap.range, n)
 
   bs.data <- x[inset]
   jdays <- jdays.idx[inset]
-
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
   
   ## This routine is written as described in Zhang et al, 2005 as referenced above.
-  ##year.list <- unique(years)
-  ##years <- years.all[inset]
-  ##omit.year.data <- do.call(abind, c(lapply(year.list[1:(length(year.list) - 1)], function(year.to.omit) {
-  ##  year.to.repeat <- year.to.omit + 1
-  ##  my.set <- c(which(!(years == year.to.omit)), which(years == year.to.repeat))
-  ##  return(running.quantile(bs.data[my.set], jdays[my.set], 5, qtiles))
-  ##} ), along=3))
-  ##return(apply(omit.year.data, c(1, 2), mean))
+  years <- years.all[inset]
+  year.list <- unique(years[(window + 1):(sum(inset) - window)])
+  d <- sapply(year.list, function(year.to.omit) {
+    bs.data.temp <- bs.data
+    omit.index <- years == year.to.omit
+    return(sapply(year.list[year.list != year.to.omit], function(year.to.replace.with) {
+      bs.data.temp[omit.index] <- bs.data.temp[years == year.to.replace.with]
+      return(running.quantile(bs.data.temp, n, qtiles, include.mask))
+    }))
+  } )
+  dim(d) <- c(365, 2, 19, 20)
+  d <- aperm(d, perm=c(1, 4, 3, 2))
+  ## new dims: 365, 20, 19, 2
+
+  return(lapply(1:length(qtiles), function(x) { d[,,,x] }))
+}
+
+zhang.running.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL, n=5) {
+  jdays.idx <- get.jdays.replaced.feb29(dates)
+  inset <- get.bootstrap.set(dates, bootstrap.range, n)
+
+  bs.data <- x[inset]
+  jdays <- jdays.idx[inset]
+  if(!is.null(include.mask))
+    include.mask <- include.mask[inset]
   
-  d <- apply(running.quantile(bs.data, jdays, n, qtiles, include.mask), 2, function(x) { return(x[jdays.idx]) } )
+  d <- apply(running.quantile(bs.data, n, qtiles, include.mask), 2, function(x) { return(x[jdays.idx]) } )
   row.names(d) <- NULL
   return(d)
 }
@@ -119,15 +152,19 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
 
   bs.date.range <- as.POSIXct(paste(base.range, c("01-01", "12-31"), sep="-"), tz="GMT")
-  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range))
+  bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range))
+  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.running.qtile, date.series, c(0.1, 0.9), bs.date.range))
 
+  browser()
+  
   inset <- date.series >= new.date.range[1] & date.series <= new.date.range[2] & !is.na(filled.prec) & wet.days
   pctile <- quantile(filled.prec[inset], c(0.95, 0.99))
   
+  names(bs.pctile.base) <- c("tmax10", "tmax90", "tmin10", "tmin90")
   names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90")
   names(pctile) <- c("precwet95", "precwet99")
   
-  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, bs.pctile=bs.pctile, pctile=pctile, annual.factor=annual.factor, monthly.factor=monthly.factor))
+  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=bs.pctile.base, running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
 ## Temperature units: degrees C
@@ -163,23 +200,25 @@ climdex.tnn <- function(ci) { return(tapply(ci@tmin, ci@monthly.factor, min) * c
 
 ## TN10p: Monthly. Pattern matches, but still significant differences.
 ## Our implementation currently follows the example set by fclimdex for dealing with missing values, which is wrong; it biases results upwards when missing values are present.
-climdex.tn10p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin10, "<") * ci@namask.mon$tmin) }
+#percent.days.op.threshold <- function(temp, dates, annual.factor, threshold.outside.base, base.thresholds, base.range, op='<') {
+
+climdex.tn10p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@dates, ci@monthly.factor, ci@running.pctile.notbase$tmin10, ci@running.pctile.base$tmin10, ci@base.range, "<") * ci@namask.mon$tmin) }
 
 ## TX10p: Monthly. Pattern matches, but still significant differences.
-climdex.tx10p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax10, "<") * ci@namask.mon$tmax) }
+climdex.tx10p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@dates, ci@monthly.factor, ci@running.pctile.notbase$tmax10, ci@running.pctile.base$tmax10, ci@base.range, "<") * ci@namask.mon$tmax) }
 
 ## TN90p: Monthly. Pattern matches, but still significant differences.
-climdex.tn90p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@monthly.factor, ci@bs.pctile$tmin90, ">") * ci@namask.mon$tmin) }
+climdex.tn90p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@dates, ci@monthly.factor, ci@running.pctile.notbase$tmin90, ci@running.pctile.base$tmin90, ci@base.range, ">") * ci@namask.mon$tmin) }
 
 ## TX90p: Monthly. Pattern matches, but still significant differences.
-climdex.tx90p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@monthly.factor, ci@bs.pctile$tmax90, ">") * ci@namask.mon$tmax) }
+climdex.tx90p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@dates, ci@monthly.factor, ci@running.pctile.notbase$tmax90, ci@running.pctile.base$tmax90, ci@base.range, ">") * ci@namask.mon$tmax) }
 
 ## WSDI: Annual. Significant differences.
 ## fclimdex implements CSDI and WSDI incorrectly; it adds the entire spell to the year in which the spell ended. This code sums up the days which were part of the spell.
-climdex.wsdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmax, ci@annual.factor, ci@bs.pctile$tmax90, ">") * ci@namask.ann$tavg) }
+climdex.wsdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmax, ci@annual.factor, ci@running.pctile.notbase$tmax90, ">") * ci@namask.ann$tavg) }
 
 ## CSDI: Annual. Pattern matches but significant differences exist.
-climdex.csdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmin, ci@annual.factor, ci@bs.pctile$tmin10, "<") * ci@namask.ann$tavg) }
+climdex.csdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmin, ci@annual.factor, ci@running.pctile.notbase$tmin10, "<") * ci@namask.ann$tavg) }
 
 ## DTR: Monthly. Differences in some samples at the 3rd decimal place.
 climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor) * ci@namask.mon$tavg) }
@@ -269,9 +308,24 @@ growing.season.length <- function(daily.mean.temp, date.factor,
 
 ## TN10p, TX10p, TN90p, TX90p
 ## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004 (except fclimdex does not use this).
-percent.days.op.threshold <- function(temp, date.factor, threshold, op='<') {
+percent.days.op.threshold <- function(temp, dates, date.factor, threshold.outside.base, base.thresholds, base.range, op='<') {
+  f <- match.fun(op)
+  inset <- dates >= base.range[1] & dates <= base.range[2]
+  years.base <- get.years(dates[inset])
+  jdays.base <- get.jdays.replaced.feb29(dates[inset])
+
+  temp.base <- temp[inset]
+  years.base.range <- range(years.base)
+  byrs <- (years.base.range[2] - years.base.range[1] + 1)
+  year.base.list <- years.base.range[1]:years.base.range[2]
+  
+  dat <- f(temp, threshold.outside.base)
+  d <- sapply(1:byrs, function(x) { yset <-  years.base == year.base.list[x]; sapply(1:(byrs - 1), function(y) { as.numeric(f(temp.base[yset], (base.thresholds[,x,y])[jdays.base[yset]])) } ) })
+  ##browser()
+  dat[inset] <- unlist(lapply(d, apply, 1, function(x) { mean(as.numeric(x), na.rm=TRUE) } ) )
   namask <- !is.na(temp)
-  return(tapply(match.fun(op)(temp, threshold), date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
+  
+  return(tapply(dat, date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
 }
 
 ## WSDI, CSDI
