@@ -26,6 +26,30 @@ test.can.load.data <- function() {
   checkTrue(inherits(clim.in, 'climdexInput'))
 }
 
+test.get.date.field <- function() {
+  f <- get.date.field
+  ## A period that goes over 2/29 on a leap year and then a 10 day period over the year boundary
+  fixture <- c(seq(as.POSIXct("2008/02/01", tz="GMT"), length.out=30, by="day"), seq(as.POSIXct("2010/12/27", tz="GMT"), length.out=10, by="day"))
+  ## Format #1: year, jday
+  input <- data.frame(year=as.numeric(strftime(fixture, "%Y", tz="GMT")), jday=as.numeric(strftime(fixture, "%j", tz="GMT")))
+  checkTrue(all(f(input) - fixture == 0))
+  ## Format #2: year, mon, day
+  input <- data.frame(year=as.numeric(strftime(fixture, "%Y", tz="GMT")), month=as.numeric(strftime(fixture, "%m", tz="GMT")), day=as.numeric(strftime(fixture, "%d", tz="GMT")))
+  checkTrue(all(f(input) - fixture == 0))
+
+  ## Check that it errors if it can't find the date
+  input$year <- NULL
+  bad.data <- list(input)
+  invalid.data <- list(data.frame(year=2010, month=2, day=29), # 2/29 on a non leap year
+                       data.frame(year=2010, month=4, day=31)) # out of range day
+  for (bad in bad.data) {
+    checkException(f(bad))
+  }
+  for (invalid in invalid.data) {
+    checkTrue(is.na(f(invalid)))
+  }
+}
+
 test.CSDI <- function() {
   f <- CSDI
   cases <- list(list(args=list(n=3, v=c(F, T, T, T, T, F), years=as.factor(rep('2008', 6))),
