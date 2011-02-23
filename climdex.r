@@ -265,6 +265,8 @@ climdex.r99ptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@a
 ## PRCPTOT: Annual. Exact match.
 climdex.prcptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
 
+all.indicies <- c('fd', 'su', 'id', 'tr', 'gsl', 'txx', 'tnx', 'txn', 'tnn', 'tn10p', 'tx10p', 'tn90p', 'tx90p', 'wsdi', 'csdi',
+                  'dtr', 'rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot')
 
 ##
 ## HELPERS FINISHED. IMPLEMENTATIION BELOW.
@@ -275,7 +277,7 @@ get.series.lengths.at.ends <- function(x) {
   res <- rep(0, length(x))
   x[is.na(x)] <- FALSE
   n <- length(x)
-  
+
   ## Compare series to lag-1 and lag+1 series; false added to trigger state transition from TRUE at ends of series
   start <- which(x & !(c(FALSE, x[1:(n - 1)])))
   end <- which(x & !(c(x[2:n], FALSE)))
