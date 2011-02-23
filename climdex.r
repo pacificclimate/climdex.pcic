@@ -50,7 +50,7 @@ get.years <- function(dates) {
 }
 
 get.jdays.replaced.feb29 <- function(dates) {
-  jdays.idx <- unlist(tapply(get.jdays(dates), get.years(dates), function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } }))
+  return(unlist(tapply(get.jdays(dates), get.years(dates), function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } })))
 }
 
 get.bootstrap.set <- function(dates, bootstrap.range, win.size) {
@@ -58,9 +58,10 @@ get.bootstrap.set <- function(dates, bootstrap.range, win.size) {
   return(dates >= bootstrap.win.range[1] & dates <= bootstrap.win.range[2] & strftime(dates, format="%m-%d", tz="GMT") != "02-29")
 }
 
+## Input is: bootstrap range, vector of 2 POSIXct, win.size is window size in days (single integer)
 get.bootstrap.windowed.range <- function(bootstrap.range, win.size) {
-  window <- floor(win.size / 2)
-  return(c(bootstrap.range[1] - 86400 * window, bootstrap.range[2] + 86400 * window))
+  window <- as.difftime(floor(win.size / 2), units="days")
+  return(c(bootstrap.range[1] - window, bootstrap.range[2] + window))
 }
 
 ## Expects POSIXct for all dates
@@ -381,7 +382,8 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
   return(tapply(1:length(daily.prec), date.factor, function(x) { return(sum(daily.prec[x[f(daily.prec[x], threshold)]], na.rm=TRUE)) } ))
 }
 
-## Gotta test this
+## Returns an n-day running quantile for each day of data
+## Data is assumed to be 365 days per year, data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (365 - floor(n/2) + 1)'th day..
 running.quantile <- function(data, n, q, include.mask=NULL) {
   window <- floor(n / 2)
   true.data.length <- length(data) - 2 * window
@@ -393,9 +395,12 @@ running.quantile <- function(data, n, q, include.mask=NULL) {
   ## Create n lists of indices 
   data.perm <- unlist(lapply(1:n, function(x) { return(data[x:(true.data.length + x - 1)]) }))
   dim(data.perm) <- c(365, ceiling(length(data.perm) / 365))
+
+  ## Transpose so apply goes faster
   data.perm <- t(data.perm)
 
-  d <- t(apply(data.perm, 2, quantile, q, na.rm=TRUE))
+  ## Return transposed data so that major dim is proportional to length of q
+  d <- t(apply(data.perm, 2, quantile, q, na.rm=TRUE, type=8))
   return(d)
 }
 
