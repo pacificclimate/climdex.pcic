@@ -340,7 +340,9 @@ percent.days.op.threshold <- function(temp, dates, date.factor, threshold.outsid
 ## WSDI, CSDI
 ## Thresholds appear to be for each block of 5 days of a year...
 threshold.exceedance.duration.index <- function(daily.max.temp, date.factor, warm.thresholds, op=">", min.length=6) {
-  stopifnot(is.numeric(c(daily.max.temp, warm.thresholds, min.length)), is.factor(date.factor)) #is.function(op)
+  stopifnot(is.numeric(c(daily.max.temp, warm.thresholds, min.length)), is.factor(date.factor),
+            is.function(match.fun(op)),
+            min.length > 0)
   periods <- select.blocks.gt.length(match.fun(op)(daily.max.temp, warm.thresholds), min.length - 1)
   return(tapply(periods, date.factor, sum))
 }

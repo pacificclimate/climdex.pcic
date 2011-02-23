@@ -50,7 +50,7 @@ test.get.date.field <- function() {
   }
 }
 
-test.CSDI <- function() {
+old.test.CSDI <- function() {
   f <- CSDI
   cases <- list(list(args=list(n=3, v=c(F, T, T, T, T, F), years=as.factor(rep('2008', 6))),
                      expected=mk.rv(4, '2008')),
@@ -121,13 +121,21 @@ test.number.days.over.threshold <- function() {
   lapply(rv, checkException)
 }
 
-## Takes
+## 'case' should be list containg all the arguments to be passed to f,
+## plus one element named 'expected' which is the expected result
 check.one.case <- function(case, f) {
   args <- append(case[- which(names(case) == 'expected')], f, after=0)
   cl <- as.call(args)
   print(eval(cl))
   checkEquals(eval(cl), case$expected)
 }
+
+## 'case' should be list containg all the arguments to be passed to f
+check.one.bad.case <- function(case, f) {
+  args <- append(case, f, after=0)
+  cl <- as.call(args)
+  checkException(eval(cl))
+} 
 
 test.growing.season.length <- function() {
   f <- growing.season.length
@@ -140,14 +148,14 @@ test.growing.season.length <- function() {
   twenty.o.nine <- seq(as.POSIXct("2009/01/01", tz="GMT"), by="day", length.out=365)
   x <- my.ts(rep(0, 365), twenty.o.nine)
   x[seq(as.POSIXct("2009/08/01", tz="GMT"), by="day", length.out=6)] <- rep(5.1, 6)
-  expected <- mk.rv(6, '2009')
+  expected <- mk.rv(6, '2009')  ## GSL presently returns -30
   cases <- append(cases, list(list(x, as.factor(rep('2009', 365)), expected=expected)))
 
   ## Season starts at the beginning of the year, ends after July 1
   x <- my.ts(rep(10, 365), twenty.o.nine)
   fac <- as.factor(rep('2009', 365))
   x[seq(as.POSIXct("2009/07/02", tz="GMT"), by="day", length.out=6)] <- rep(0)
-  expected <- mk.rv(as.POSIXlt("2009/07/01", tz="GMT")$yday, '2009')
+  expected <- mk.rv(as.POSIXlt("2009/07/01", tz="GMT")$yday, '2009') ## GSL presently returns -183
   cases <- append(cases, list(list(x, as.factor(rep('2009', 365)), expected=expected)))
 
   ## Simple case: 1,2,3 day seasons starting right after July 1
@@ -157,7 +165,7 @@ test.growing.season.length <- function() {
     x[seq(as.POSIXct(paste(year, "/07/01", sep=""), tz="GMT"), length.out=6, by=as.difftime(-1, units="days"))] <- rep(5.1, 6)
     x[seq(as.POSIXct(paste(year, "/07/02", sep=""), tz="GMT"), length.out=year-2009, by=as.difftime(1, units="days"))] <- rep(10, year-2009)
   }
-  expected <- mk.rv(7:9, c('2010', '2011', '2012'))
+  expected <- mk.rv(7:9, c('2010', '2011', '2012'))  ## GSL presently fails
   cases <- append(cases, list(list(x, fac, expected=expected)))
 
   lapply(cases, check.one.case, f)
@@ -167,7 +175,30 @@ test.growing.season.length <- function() {
 test.max.min.daily.temp <- function() {
 }
 
+test.threshold.exceedance.duration.index <- function() {
+  f <- threshold.exceedance.duration.index
+  cases <- list(# temp, factor, threshold, operation, length, expected
+                list(rep(1, 5), factor(rep(2010, 5)), 0, ">", 4, expected=mk.rv(5, 2010)), # make sure > op works
+                list(rep(0, 5), factor(rep(2010, 5)), 0, ">=", 4, expected=mk.rv(5, 2010)), # check >= op
+                list(rep(0, 5), factor(rep(2010, 5)), 0, "==", 4, expected=mk.rv(5, 2010)), # check == op
+                ## Ensure that it can detect multiple sequences in the same year
+                list(c(0, 0, 1, 1, 0, 0, 1, 1), factor(rep(2010, 8)), 0, ">", 2, expected=mk.rv(4, 2010)),
+                ## Ensure that it can detect sequences in multiple years
+                list(c(0, 0, 1, 1, 0, 0, 1, 1), factor(c(rep(2010, 4), rep(2011, 4))), 0, ">", 2, expected=mk.rv(c(2, 2), c(2010, 2011))),
+                ## sequences over year boundaries should have their days counted in respective years
+                list(c(0, 0, 1, 1, 1, 0, 0, 0), factor(c(rep(2010, 4), rep(2011, 4))), 0, ">", 2, expected=mk.rv(c(2, 1), c(2010, 2011)))
+                )
+  lapply(cases, check.one.case, f)
 
+  error.cases <- list(
+                      list("text", factor(), 0, ">", 2),
+                      list(0:5, "not.a.factor", 0, ">", 2),
+                      list(0:5, factor(), "text", ">", 2),
+                      list(0:5, factor(), 0, "not.a.function", 2),
+                      list(0:5, factor(), 0, ">", 0)
+                      )
+  lapply(error.cases, check.one.bad.case, f)
+}
 
 ## Utility timeseries class
 ## Carries around a POSIXct vector as an attribute that describes the
