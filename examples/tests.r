@@ -200,6 +200,25 @@ test.threshold.exceedance.duration.index <- function() {
   lapply(error.cases, check.one.bad.case, f)
 }
 
+test.select.blocks.gt.length <- function() {
+  f <- select.blocks.gt.length
+  cases <- list( # boolean vector, length,               expected
+                list(c(T, F, T, F), 0,                   expected=c(T, F, T, F)),
+                list(c(T, F, T, F), -1,                  expected=c(T, F, T, F)),
+                list(c(T, F, T, F), 1,                   expected=c(T, F, T, F)),
+                list(c(T, T), 2,                         expected=c(F, F)),
+                list(c(T, T, F, T), 2,                   expected=rep(F, 4)),
+                list(c(T, T, T, F, T, T), 2,             expected=c(T, T, T, F, F ,F)),
+                list(c(F, rep(T, 10), rep(F, 10), T), 4, expected=c(F, rep(T, 10), rep(F, 11)))
+                )
+  lapply(cases, check.one.case, f)
+  error.cases <- list(
+                      list(1:10, 5), # Not logical param 1
+                      list(rep(T, 5), "not numeric")
+                      )
+  lapply(error.cases, check.one.bad.case, f)
+}
+
 ## Utility timeseries class
 ## Carries around a POSIXct vector as an attribute that describes the
 ## timeseries.  Allows subsetting and subset replacement by passing in
