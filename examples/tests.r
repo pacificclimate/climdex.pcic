@@ -219,6 +219,22 @@ test.select.blocks.gt.length <- function() {
   lapply(error.cases, check.one.bad.case, f)
 }
 
+test.get.series.lengths.at.ends <- function() {
+  f <- get.series.lengths.at.ends
+  cases <- list( # boolean vector, expected
+                list(c(F), expected=0),
+                list(c(T), expected=1),  ## This case fails
+                list(c(F, T), expected=c(0, 1)),
+                list(c(F, T, F), expected=c(0, 1, 0)),
+                list(c(T, T, T), expected=c(0, 0, 3)),
+                list(c(F, T, T), expected=c(0, 0, 2)),
+                list(c(T, T, F), expected=c(0, 2, 0)),
+                list(c(F, T, T, F, T, T, F, T, T, T), expected=c(0, 0, 2, 0, 0, 2, 0, 0, 0, 3)),
+                list(c(rep(F, 10), rep(T, 10)), expected=c(rep(0, 19), 10))
+                )
+    lapply(cases, check.one.case, f)
+}
+
 ## Utility timeseries class
 ## Carries around a POSIXct vector as an attribute that describes the
 ## timeseries.  Allows subsetting and subset replacement by passing in
