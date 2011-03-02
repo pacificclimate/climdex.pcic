@@ -274,9 +274,12 @@ all.indicies <- c('fd', 'su', 'id', 'tr', 'gsl', 'txx', 'tnx', 'txn', 'tnn', 'tn
 
 
 get.series.lengths.at.ends <- function(x) {
-  res <- rep(0, length(x))
-  x[is.na(x)] <- FALSE
   n <- length(x)
+  if(n == 1)
+    return(1)
+
+  res <- rep(0, n)
+  x[is.na(x)] <- FALSE
 
   ## Compare series to lag-1 and lag+1 series; false added to trigger state transition from TRUE at ends of series
   start <- which(x & !(c(FALSE, x[1:(n - 1)])))
