@@ -200,6 +200,41 @@ test.threshold.exceedance.duration.index <- function() {
   lapply(error.cases, check.one.bad.case, f)
 }
 
+test.select.blocks.gt.length <- function() {
+  f <- select.blocks.gt.length
+  cases <- list( # boolean vector, length,               expected
+                list(c(T, F, T, F), 0,                   expected=c(T, F, T, F)),
+                list(c(T, F, T, F), -1,                  expected=c(T, F, T, F)),
+                list(c(T, F, T, F), 1,                   expected=c(T, F, T, F)),
+                list(c(T, T), 2,                         expected=c(F, F)),
+                list(c(T, T, F, T), 2,                   expected=rep(F, 4)),
+                list(c(T, T, T, F, T, T), 2,             expected=c(T, T, T, F, F ,F)),
+                list(c(F, rep(T, 10), rep(F, 10), T), 4, expected=c(F, rep(T, 10), rep(F, 11)))
+                )
+  lapply(cases, check.one.case, f)
+  error.cases <- list(
+                      list(1:10, 5), # Not logical param 1
+                      list(rep(T, 5), "not numeric")
+                      )
+  lapply(error.cases, check.one.bad.case, f)
+}
+
+test.get.series.lengths.at.ends <- function() {
+  f <- get.series.lengths.at.ends
+  cases <- list( # boolean vector, expected
+                list(c(F), expected=0),
+                list(c(T), expected=1),  ## This case fails
+                list(c(F, T), expected=c(0, 1)),
+                list(c(F, T, F), expected=c(0, 1, 0)),
+                list(c(T, T, T), expected=c(0, 0, 3)),
+                list(c(F, T, T), expected=c(0, 0, 2)),
+                list(c(T, T, F), expected=c(0, 2, 0)),
+                list(c(F, T, T, F, T, T, F, T, T, T), expected=c(0, 0, 2, 0, 0, 2, 0, 0, 0, 3)),
+                list(c(rep(F, 10), rep(T, 10)), expected=c(rep(0, 19), 10))
+                )
+    lapply(cases, check.one.case, f)
+}
+
 ## Utility timeseries class
 ## Carries around a POSIXct vector as an attribute that describes the
 ## timeseries.  Allows subsetting and subset replacement by passing in

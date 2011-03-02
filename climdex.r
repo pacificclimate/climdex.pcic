@@ -413,8 +413,10 @@ running.quantile <- function(data, n, q, include.mask=NULL) {
   return(d)
 }
 
-## Takes a list of booleans; returns a list of booleans where only blocks of TRUE longer than n are still TRUE
+## Takes an array of booleans; returns an array of booleans where only blocks of TRUE longer than n are still TRUE
 select.blocks.gt.length <- function(d, n) {
+  stopifnot(is.logical(d), is.numeric(n))
+
   if(n <= 1)
     return(d)
 
