@@ -329,10 +329,10 @@ percent.days.op.threshold <- function(temp, dates, date.factor, threshold.outsid
   year.base.list <- years.base.range[1]:years.base.range[2]
   
   dat <- f(temp, threshold.outside.base)
-  d <- sapply(1:byrs, function(x) { yset <-  years.base == year.base.list[x]; sapply(1:(byrs - 1), function(y) { f(temp.base[yset], (base.thresholds[,x,y])[jdays.base[yset]]) } ) })
-  ##browser()
-  dat[inset] <- unlist(lapply(d, apply, 1, function(x) { sum(as.numeric(x), na.rm=TRUE) } ) ) /  (byrs - 1)
-  namask <- !is.na(temp)
+  d <- lapply(1:byrs, function(x) { yset <-  years.base == year.base.list[x]; sapply(1:(byrs - 1), function(y) { f(temp.base[yset], (base.thresholds[,x,y])[jdays.base[yset]]) } ) })
+
+  ## This repeats a bug (or at least, debatable decision) in fclimdex where they always divide by byrs - 1 even when there are NAs (missing values) in the thresholds
+  dat[inset] <- unlist(lapply(d, apply, 1, function(x) { sum(as.numeric(x), na.rm=TRUE) } ) ) / (byrs - 1)
   
   return(tapply(dat, date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
 }
@@ -343,6 +343,7 @@ threshold.exceedance.duration.index <- function(daily.max.temp, date.factor, war
   stopifnot(is.numeric(c(daily.max.temp, warm.thresholds, min.length)), is.factor(date.factor),
             is.function(match.fun(op)),
             min.length > 0)
+
   periods <- select.blocks.gt.length(match.fun(op)(daily.max.temp, warm.thresholds), min.length - 1)
   return(tapply(periods, date.factor, sum))
 }
@@ -391,6 +392,10 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 running.quantile <- function(data, n, q, include.mask=NULL) {
   window <- floor(n / 2)
   true.data.length <- length(data) - 2 * window
+
+  ## Doesn't seem to make a difference (this is behaviour of fclimdex)
+  ##data[1:window] <- data[window + 1]
+  ##data[length(data) - (0:(window - 1))] <- data[length(data) - window]
   
   ## Apply include mask
   if(!is.null(include.mask))
