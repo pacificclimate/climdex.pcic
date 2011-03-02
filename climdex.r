@@ -275,8 +275,8 @@ all.indicies <- c('fd', 'su', 'id', 'tr', 'gsl', 'txx', 'tnx', 'txn', 'tnn', 'tn
 
 get.series.lengths.at.ends <- function(x) {
   n <- length(x)
-  if(n == 1 && x == T)
-    return(1)
+  if(n == 1)
+    return(as.numeric(x))
 
   res <- rep(0, n)
   x[is.na(x)] <- FALSE
