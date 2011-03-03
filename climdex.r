@@ -115,25 +115,7 @@ get.na.mask <- function(x, f, threshold) {
   return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
-climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90), na.strings=NULL) {
-  n <- 5
-  tmin.dat <- read.csv(tmin.file, na.strings=na.strings)
-  tmax.dat <- read.csv(tmax.file, na.strings=na.strings)
-  prec.dat <- read.csv(prec.file, na.strings=na.strings)
-
-  ## This is to deal with fclimdex's broken input data, which includes February 31st, amongst other joyous things
-  tmin.dat <- tmin.dat[!is.na(tmin.dat[,4]),]
-  tmax.dat <- tmax.dat[!is.na(tmax.dat[,4]),]
-  prec.dat <- prec.dat[!is.na(prec.dat[,4]),]
-  
-  if(!(data.columns$tmin %in% names(tmin.dat) & data.columns$tmax %in% names(tmax.dat) & data.columns$prec %in% names(prec.dat))) {
-    stop("Data columns not found in data.")
-  }
-  
-  tmin.dates <- get.date.field(tmin.dat)
-  tmax.dates <- get.date.field(tmax.dat)
-  prec.dates <- get.date.field(prec.dat)
-
+climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
   bs.date.range <- as.POSIXct(paste(base.range, c("01-01", "12-31"), sep="-"), tz="GMT")
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
   date.range <- range(c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range))
@@ -144,10 +126,10 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
   monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
 
-  filled.tmax <- create.filled.series(tmax.dat[,data.columns$tmax], tmax.dates, date.series)
-  filled.tmin <- create.filled.series(tmin.dat[,data.columns$tmin], tmin.dates, date.series)
+  filled.tmax <- create.filled.series(tmax, tmax.dates, date.series)
+  filled.tmin <- create.filled.series(tmin, tmin.dates, date.series)
+  filled.prec <- create.filled.series(prec, prec.dates, date.series)
   filled.tavg <- (filled.tmax + filled.tmin) / 2
-  filled.prec <- create.filled.series(prec.dat[,data.columns$prec], prec.dates, date.series)
 
   filled.list <- list(filled.tmax, filled.tmin, filled.tavg, filled.prec)
   filled.list.names <- c("tmax", "tmin", "tavg", "prec")
@@ -172,6 +154,27 @@ climdexInput <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin
   names(pctile) <- c("precwet95", "precwet99")
   
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=bs.pctile.base, running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
+}
+
+climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90), na.strings=NULL) {
+  tmin.dat <- read.csv(tmin.file, na.strings=na.strings)
+  tmax.dat <- read.csv(tmax.file, na.strings=na.strings)
+  prec.dat <- read.csv(prec.file, na.strings=na.strings)
+
+  ## This is to deal with fclimdex's broken input data, which includes February 31st, amongst other joyous things
+  tmin.dat <- tmin.dat[!is.na(tmin.dat[,4]),]
+  tmax.dat <- tmax.dat[!is.na(tmax.dat[,4]),]
+  prec.dat <- prec.dat[!is.na(prec.dat[,4]),]
+  
+  if(!(data.columns$tmin %in% names(tmin.dat) & data.columns$tmax %in% names(tmax.dat) & data.columns$prec %in% names(prec.dat))) {
+    stop("Data columns not found in data.")
+  }
+  
+  tmin.dates <- get.date.field(tmin.dat)
+  tmax.dates <- get.date.field(tmax.dat)
+  prec.dates <- get.date.field(prec.dat)
+
+  return(climdexInput.raw(tmax.dat[,data.columns$tmax], tmin.dat[,data.columns$tmin], prec.dat[,data.columns$prec], tmax.dates, tmin.dates, prec.dates, base.range, pctile))
 }
 
 ## Temperature units: degrees C
