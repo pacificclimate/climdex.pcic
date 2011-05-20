@@ -97,12 +97,11 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   return(lapply(1:length(qtiles), function(x) { d[,,,x] }))
 }
 
-zhang.running.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL, n=5) {
+zhang.running.qtile <- function(x, dates, dates.base, qtiles, bootstrap.range, include.mask=NULL, n=5) {
   jdays.idx <- get.jdays.replaced.feb29(dates)
-  inset <- get.bootstrap.set(dates, bootstrap.range, n)
+  inset <- get.bootstrap.set(dates.base, bootstrap.range, n)
 
   bs.data <- x[inset]
-  jdays <- jdays.idx[inset]
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
 
@@ -113,6 +112,53 @@ zhang.running.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=
 
 get.na.mask <- function(x, f, threshold) {
   return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
+}
+
+climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
+  bs.date.range <- as.POSIXct(paste(base.range, c("01-01", "12-31"), sep="-"), tz="GMT")
+  bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
+
+  new.date.range <- as.POSIXct(paste(as.numeric(strftime(range(dates), "%Y", tz="GMT")), c("01-01", "12-31"), sep="-"), tz="GMT")
+  date.series <- seq(new.date.range[1], new.date.range[2], by="day")
+
+  new.date.range.base <- as.POSIXct(paste(as.numeric(strftime(range(c(base.dates, bs.win.date.range)), "%Y", tz="GMT")), c("01-01", "12-31"), sep="-"), tz="GMT")
+  date.series.base <- seq(new.date.range.base[1], new.date.range.base[2], by="day")
+
+  annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
+  monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
+
+  filled.tmax <- create.filled.series(tmax, dates, date.series)
+  filled.tmin <- create.filled.series(tmin, dates, date.series)
+  filled.prec <- create.filled.series(prec, dates, date.series)
+  filled.tavg <- (filled.tmax + filled.tmin) / 2
+  filled.list <- list(filled.tmax, filled.tmin, filled.tavg, filled.prec)
+
+  filled.tmax.base <- create.filled.series(tmax.base, base.dates, date.series.base)
+  filled.tmin.base <- create.filled.series(tmin.base, base.dates, date.series.base)
+  filled.prec.base <- create.filled.series(prec.base, base.dates, date.series.base)
+  filled.tavg.base <- (filled.tmax.base + filled.tmin.base) / 2
+  filled.list.base <- list(filled.tmax.base, filled.tmin.base, filled.tavg.base, filled.prec.base)
+
+  filled.list.names <- c("tmax", "tmin", "tavg", "prec")
+
+  namask.ann <- do.call(data.frame, lapply(filled.list, get.na.mask, annual.factor, 15))
+  colnames(namask.ann) <- filled.list.names
+  
+  namask.mon <- do.call(data.frame, lapply(filled.list, get.na.mask, monthly.factor, 3))
+  colnames(namask.mon) <- filled.list.names
+
+  ## DeMorgan's laws FTW
+  wet.days <- !(is.na(filled.prec.base) | filled.prec.base < 1)
+
+  bs.pctile <- do.call(data.frame, lapply(filled.list.base[1:2], zhang.running.qtile, date.series, date.series.base, c(0.1, 0.9), bs.date.range, n=n))
+
+  inset <- date.series.base >= bs.date.range[1] & date.series.base <= bs.date.range[2] & !is.na(filled.prec.base) & wet.days
+  pctile <- quantile(filled.prec.base[inset], c(0.95, 0.99))
+  
+  names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90")
+  names(pctile) <- c("precwet95", "precwet99")
+  
+  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=list(), running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
 climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
@@ -143,8 +189,8 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   ## DeMorgan's laws FTW
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
 
-  bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
-  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.running.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
+  bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, date.series, c(0.1, 0.9), bs.date.range, n=n))
+  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.running.qtile, date.series, date.series, c(0.1, 0.9), bs.date.range, n=n))
 
   inset <- date.series >= new.date.range[1] & date.series <= new.date.range[2] & !is.na(filled.prec) & wet.days
   pctile <- quantile(filled.prec[inset], c(0.95, 0.99))
@@ -325,20 +371,23 @@ growing.season.length <- function(daily.mean.temp, date.factor,
 ## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004 (except fclimdex does not use this).
 percent.days.op.threshold <- function(temp, dates, date.factor, threshold.outside.base, base.thresholds, base.range, op='<') {
   f <- match.fun(op)
-  inset <- dates >= base.range[1] & dates <= base.range[2]
-  years.base <- get.years(dates[inset])
-  jdays.base <- get.jdays.replaced.feb29(dates[inset])
-
-  temp.base <- temp[inset]
-  years.base.range <- range(years.base)
-  byrs <- (years.base.range[2] - years.base.range[1] + 1)
-  year.base.list <- years.base.range[1]:years.base.range[2]
   
   dat <- f(temp, threshold.outside.base)
-  d <- lapply(1:byrs, function(x) { yset <-  years.base == year.base.list[x]; sapply(1:(byrs - 1), function(y) { f(temp.base[yset], (base.thresholds[,x,y])[jdays.base[yset]]) } ) })
+  inset <- dates >= base.range[1] & dates <= base.range[2]
+  
+  if(sum(inset) > 0) {
+    years.base <- get.years(dates[inset])
+    jdays.base <- get.jdays.replaced.feb29(dates[inset])
+    
+    temp.base <- temp[inset]
+    years.base.range <- range(years.base)
+    byrs <- (years.base.range[2] - years.base.range[1] + 1)
+    year.base.list <- years.base.range[1]:years.base.range[2]
 
-  ## This repeats a bug (or at least, debatable decision) in fclimdex where they always divide by byrs - 1 even when there are NAs (missing values) in the thresholds
-  dat[inset] <- unlist(lapply(d, apply, 1, function(x) { sum(as.numeric(x), na.rm=TRUE) } ) ) / (byrs - 1)
+    d <- lapply(1:byrs, function(x) { yset <-  years.base == year.base.list[x]; sapply(1:(byrs - 1), function(y) { f(temp.base[yset], (base.thresholds[,x,y])[jdays.base[yset]]) } ) })
+    ## This repeats a bug (or at least, debatable decision) in fclimdex where they always divide by byrs - 1 even when there are NAs (missing values) in the thresholds
+    dat[inset] <- unlist(lapply(d, apply, 1, function(x) { sum(as.numeric(x), na.rm=TRUE) } ) ) / (byrs - 1)
+  }
   
   return(tapply(dat, date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
 }
