@@ -1,6 +1,8 @@
 library(caTools)
 library(abind)
 
+source("/home/bronaugh/PCICt/PCICt.r")
+
 setClass("climdexInput",
          representation(tmax = "numeric",
                         tmin = "numeric",
@@ -11,15 +13,15 @@ setClass("climdexInput",
                         running.pctile.base = "list",
                         running.pctile.notbase = "data.frame",
                         pctile = "numeric",
-                        dates = "POSIXct",
-                        base.range = "POSIXct",
+                        dates = "PCICt",
+                        base.range = "PCICt",
                         annual.factor = "factor",
                         monthly.factor = "factor")
          )
 
 
 ## Returns POSIXct field or dies
-get.date.field <- function(input.data) {
+get.date.field <- function(input.data, cal) {
   date.types <- list(list(fields=c("year", "jday"), format="%Y %j"),
                      list(fields=c("year", "month", "day"), format="%Y %m %d"))
   valid.date.types <- sapply(date.types, function(x) { return(!inherits(try(input.data[,x$fields], silent=TRUE), "try-error")) })
@@ -30,7 +32,7 @@ get.date.field <- function(input.data) {
 
   date.type <- date.types[[which(valid.date.types)[1]]]
   date.strings <- do.call(paste, input.data[,date.type$fields])
-  return(as.POSIXct(date.strings, format=date.type$format, tz="GMT"))
+  return(as.PCICt(date.strings, format=date.type$format, cal=cal))
 }
 
 create.filled.series <- function(data, data.dates, new.date.sequence) {
@@ -114,14 +116,14 @@ get.na.mask <- function(x, f, threshold) {
   return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
-climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
-  bs.date.range <- as.POSIXct(paste(base.range, c("01-01", "12-31"), sep="-"), tz="GMT")
+climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5, cal="gregorian") {
+  bs.date.range <- as.PCICt(paste(base.range, c("01-01", "12-31"), sep="-"), cal=cal)
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
 
-  new.date.range <- as.POSIXct(paste(as.numeric(strftime(range(dates), "%Y", tz="GMT")), c("01-01", "12-31"), sep="-"), tz="GMT")
+  new.date.range <- as.PCICt(paste(as.numeric(strftime(range(dates), "%Y", tz="GMT")), c("01-01", "12-31"), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
 
-  new.date.range.base <- as.POSIXct(paste(as.numeric(strftime(range(c(base.dates, bs.win.date.range)), "%Y", tz="GMT")), c("01-01", "12-31"), sep="-"), tz="GMT")
+  new.date.range.base <- as.PCICt(paste(as.numeric(strftime(range(c(base.dates, bs.win.date.range)), "%Y", tz="GMT")), c("01-01", "12-31"), sep="-"), cal=cal)
   date.series.base <- seq(new.date.range.base[1], new.date.range.base[2], by="day")
 
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
@@ -161,12 +163,12 @@ climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tm
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=list(), running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
-climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
-  bs.date.range <- as.POSIXct(paste(base.range, c("01-01", "12-31"), sep="-"), tz="GMT")
+climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5, cal="gregorian") {
+  bs.date.range <- as.PCICt(paste(base.range, c("01-01", "12-31"), sep="-"), cal=cal)
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
   date.range <- range(c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range))
   year.range <- as.numeric(strftime(date.range, "%Y", tz="GMT"))
-  new.date.range <- as.POSIXct(paste(year.range, c("01-01", "12-31"), sep="-"), tz="GMT")
+  new.date.range <- as.PCICt(paste(year.range, c("01-01", "12-31"), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
 
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
@@ -202,7 +204,7 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=bs.pctile.base, running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
-climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90), na.strings=NULL) {
+climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90), na.strings=NULL, cal="gregorian") {
   tmin.dat <- read.csv(tmin.file, na.strings=na.strings)
   tmax.dat <- read.csv(tmax.file, na.strings=na.strings)
   prec.dat <- read.csv(prec.file, na.strings=na.strings)
@@ -216,11 +218,11 @@ climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(
     stop("Data columns not found in data.")
   }
   
-  tmin.dates <- get.date.field(tmin.dat)
-  tmax.dates <- get.date.field(tmax.dat)
-  prec.dates <- get.date.field(prec.dat)
+  tmin.dates <- get.date.field(tmin.dat, cal)
+  tmax.dates <- get.date.field(tmax.dat, cal)
+  prec.dates <- get.date.field(prec.dat, cal)
 
-  return(climdexInput.raw(tmax.dat[,data.columns$tmax], tmin.dat[,data.columns$tmin], prec.dat[,data.columns$prec], tmax.dates, tmin.dates, prec.dates, base.range, pctile))
+  return(climdexInput.raw(tmax.dat[,data.columns$tmax], tmin.dat[,data.columns$tmin], prec.dat[,data.columns$prec], tmax.dates, tmin.dates, prec.dates, base.range, pctile, cal=cal))
 }
 
 ## Temperature units: degrees C
