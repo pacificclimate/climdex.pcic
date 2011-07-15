@@ -1,7 +1,7 @@
 library(caTools)
 library(abind)
 
-source("/home/bronaugh/PCICt/PCICt.r")
+source("/home/bronaugh/PCICt/PCICt.R")
 
 setClass("climdexInput",
          representation(tmax = "numeric",
@@ -37,7 +37,7 @@ get.date.field <- function(input.data, cal) {
 
 create.filled.series <- function(data, data.dates, new.date.sequence) {
   new.data <- rep(NA, length(new.date.sequence))
-  data.in.new.data <- data.dates >= new.date.sequence[1] & data.dates <= new.date.sequence[length(new.date.sequence)]
+  data.in.new.data <- (data.dates >= new.date.sequence[1]) & (data.dates <= new.date.sequence[length(new.date.sequence)])
   indices <- round(as.numeric(data.dates[data.in.new.data] - new.date.sequence[1], units="days")) + 1
   new.data[indices] <- data[data.in.new.data]
   return(new.data)
@@ -62,7 +62,9 @@ get.bootstrap.set <- function(dates, bootstrap.range, win.size) {
 
 ## Input is: bootstrap range, vector of 2 POSIXct, win.size is window size in days (single integer)
 get.bootstrap.windowed.range <- function(bootstrap.range, win.size) {
-  window <- as.difftime(floor(win.size / 2), units="days")
+  ## Changed due to a bug in PCICt
+  ##window <- as.difftime(floor(win.size / 2), units="days")
+  window <- floor(win.size / 2) * 86400
   return(c(bootstrap.range[1] - window, bootstrap.range[2] + window))
 }
 
@@ -92,6 +94,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
     }))
   } )
   byrs <- length(year.list)
+  
   dim(d) <- c(365, length(qtiles), byrs - 1, byrs)
   d <- aperm(d, perm=c(1, 4, 3, 2))
   ## new dims: 365, byrs, byrs-1, length(quantiles)
@@ -116,7 +119,8 @@ get.na.mask <- function(x, f, threshold) {
   return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
-climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5, cal="gregorian") {
+climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
+  cal <- attr(tmax.dates, "cal")
   bs.date.range <- as.PCICt(paste(base.range, c("01-01", "12-31"), sep="-"), cal=cal)
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
 
@@ -163,10 +167,15 @@ climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tm
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=list(), running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
-climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5, cal="gregorian") {
+climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
+  cal <- attr(tmax.dates, "cal")
   bs.date.range <- as.PCICt(paste(base.range, c("01-01", "12-31"), sep="-"), cal=cal)
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
-  date.range <- range(c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range))
+  print("bs.win.date.range computed")
+  all.dates <- c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range)
+  print("Concatenated dates...")
+  date.range <- range(all.dates)
+  print("Date.range computed")
   year.range <- as.numeric(strftime(date.range, "%Y", tz="GMT"))
   new.date.range <- as.PCICt(paste(year.range, c("01-01", "12-31"), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
@@ -191,7 +200,7 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   ## DeMorgan's laws FTW
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
 
-  bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, date.series, c(0.1, 0.9), bs.date.range, n=n))
+  bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
   bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.running.qtile, date.series, date.series, c(0.1, 0.9), bs.date.range, n=n))
 
   inset <- date.series >= new.date.range[1] & date.series <= new.date.range[2] & !is.na(filled.prec) & wet.days
@@ -354,7 +363,7 @@ growing.season.length <- function(daily.mean.temp, date.factor,
   return(tapply(daily.mean.temp, date.factor, function(ts) {
     ts.len<- length(ts)
     ts.mid <- floor(ts.len / 2)
-    gs.begin <- which(select.blocks.gt.length(ts > t.thresh, min.length - 1))
+    gs.begin <- which(select.blocks.gt.length(ts[1:(ts.mid-1)] > t.thresh, min.length - 1))
 
     ## Growing season actually ends the day -before- the sequence of sketchy days
     gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < t.thresh, min.length - 1)) - 1
