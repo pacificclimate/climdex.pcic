@@ -1,7 +1,6 @@
 library(caTools)
 library(abind)
-
-source("/home/bronaugh/PCICt/PCICt.R")
+library(PCICt)
 
 setClass("climdexInput",
          representation(tmax = "numeric",
@@ -456,6 +455,21 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 ## Returns an n-day running quantile for each day of data
 ## Data is assumed to be 365 days per year, data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (365 - floor(n/2) + 1)'th day..
 running.quantile <- function(data, n, q, include.mask=NULL) {
+  ## Apply include mask
+  if(!is.null(include.mask))
+    data[include.mask] <- NA
+
+  ret <- rep(NA, 365 * length(q))
+  dim(ret) <- c(2, 365)
+  
+  #void running_quantile_windowed_365day(const double* data, double* quantiles, const int* n, const double* q, const int* data_length, const int* num_quantiles)
+  .C("running_quantile_windowed_365day", data, ret, n, q, length(data), length(q))
+  return(t(ret))
+}
+
+## Returns an n-day running quantile for each day of data
+## Data is assumed to be 365 days per year, data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (365 - floor(n/2) + 1)'th day..
+running.quantile.r <- function(data, n, q, include.mask=NULL) {
   window <- floor(n / 2)
   true.data.length <- length(data) - 2 * window
 
