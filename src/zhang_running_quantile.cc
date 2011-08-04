@@ -107,7 +107,7 @@ extern "C" {
 
   void R_init_mylib(DllInfo* info) {
     R_CallMethodDef callMethods[] = { 
-      {"running_quantile_windowed", (DL_FUNC) &running_quantile_windowed_365day, 4 },
+      {"running_quantile_windowed", (DL_FUNC) &running_quantile_windowed, 4 },
       { NULL, NULL, 0 } 
     };
     R_registerRoutines(info, NULL, callMethods, NULL, NULL);
