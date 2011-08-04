@@ -1,5 +1,4 @@
 library(caTools)
-library(abind)
 library(PCICt)
 
 setClass("climdexInput",
@@ -71,7 +70,8 @@ get.bootstrap.windowed.range <- function(bootstrap.range, win.size) {
 ## Do the Zhang boostrapping method described in Xuebin Zhang et al's 2005 paper, "Avoiding Inhomogeneity in Percentile-Based Indices of Temperature Extremes" J.Clim vol 18 pp.1647-1648, "Removing the 'jump'".
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL, n=5) {
   window <- floor(n / 2)
-  
+
+  dpy <- attr(dates, "dpy")
   years.all <- get.years(dates)
   jdays.idx <- get.jdays.replaced.feb29(dates)
   inset <- get.bootstrap.set(dates, bootstrap.range, n)
@@ -89,14 +89,14 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
     omit.index <- years == year.to.omit
     return(sapply(year.list[year.list != year.to.omit], function(year.to.replace.with) {
       bs.data.temp[omit.index] <- bs.data.temp[years == year.to.replace.with]
-      return(running.quantile(bs.data.temp, n, qtiles, include.mask))
+      return(running.quantile(bs.data.temp, n, qtiles, dpy, include.mask))
     }))
   } )
   byrs <- length(year.list)
   
-  dim(d) <- c(365, length(qtiles), byrs - 1, byrs)
+  dim(d) <- c(dpy, length(qtiles), byrs - 1, byrs)
   d <- aperm(d, perm=c(1, 4, 3, 2))
-  ## new dims: 365, byrs, byrs-1, length(quantiles)
+  ## new dims: dpy, byrs, byrs-1, length(quantiles)
 
   return(lapply(1:length(qtiles), function(x) { d[,,,x] }))
 }
@@ -109,7 +109,7 @@ zhang.running.qtile <- function(x, dates, dates.base, qtiles, bootstrap.range, i
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
 
-  d <- apply(running.quantile(bs.data, n, qtiles, include.mask), 2, function(x) { return(x[jdays.idx]) } )
+  d <- apply(running.quantile(bs.data, n, qtiles, attr(dates, "dpy"), include.mask), 2, function(x) { return(x[jdays.idx]) } )
   row.names(d) <- NULL
   return(d)
 }
@@ -120,13 +120,16 @@ get.na.mask <- function(x, f, threshold) {
 
 climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
   cal <- attr(tmax.dates, "cal")
-  bs.date.range <- as.PCICt(paste(base.range, c("01-01", "12-31"), sep="-"), cal=cal)
+  last.day.of.year <- "12-31"
+  if(!is.null(attr(dates, "months")))
+    last.day.of.year <- paste("12", attr(dates, "months")[12], sep="-")
+  bs.date.range <- as.PCICt(paste(base.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
 
-  new.date.range <- as.PCICt(paste(as.numeric(strftime(range(dates), "%Y", tz="GMT")), c("01-01", "12-31"), sep="-"), cal=cal)
+  new.date.range <- as.PCICt(paste(as.numeric(strftime(range(dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
 
-  new.date.range.base <- as.PCICt(paste(as.numeric(strftime(range(c(base.dates, bs.win.date.range)), "%Y", tz="GMT")), c("01-01", "12-31"), sep="-"), cal=cal)
+  new.date.range.base <- as.PCICt(paste(as.numeric(strftime(range(c(base.dates, bs.win.date.range)), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series.base <- seq(new.date.range.base[1], new.date.range.base[2], by="day")
 
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
@@ -168,7 +171,10 @@ climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tm
 
 climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
   cal <- attr(tmax.dates, "cal")
-  bs.date.range <- as.PCICt(paste(base.range, c("01-01", "12-31"), sep="-"), cal=cal)
+  last.day.of.year <- "12-31"
+  if(!is.null(attr(tmax.dates, "months")))
+    last.day.of.year <- paste("12", attr(tmax.dates, "months")[12], sep="-")
+  bs.date.range <- as.PCICt(paste(base.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
   print("bs.win.date.range computed")
   all.dates <- c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range)
@@ -176,9 +182,9 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   date.range <- range(all.dates)
   print("Date.range computed")
   year.range <- as.numeric(strftime(date.range, "%Y", tz="GMT"))
-  new.date.range <- as.PCICt(paste(year.range, c("01-01", "12-31"), sep="-"), cal=cal)
+  new.date.range <- as.PCICt(paste(year.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
-
+  
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
   monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
 
@@ -453,17 +459,15 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 }
 
 ## Returns an n-day running quantile for each day of data
-## Data is assumed to be 365 days per year, data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (365 - floor(n/2) + 1)'th day..
-running.quantile <- function(data, n, q, include.mask=NULL) {
+## Data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (dpy - floor(n/2) + 1)'th day..
+running.quantile <- function(data, n, q, dpy, include.mask=NULL) {
   ## Apply include mask
   if(!is.null(include.mask))
     data[include.mask] <- NA
 
-  ret <- rep(NA, 365 * length(q))
-  dim(ret) <- c(2, 365)
-  
-  #void running_quantile_windowed_365day(const double* data, double* quantiles, const int* n, const double* q, const int* data_length, const int* num_quantiles)
-  .C("running_quantile_windowed_365day", data, ret, n, q, length(data), length(q))
+  ret <- .Call("running_quantile_windowed", data, n, q, dpy)
+  dim(ret) <- c(2, dpy)
+  ##browser()
   return(t(ret))
 }
 
