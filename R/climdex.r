@@ -71,7 +71,7 @@ get.bootstrap.windowed.range <- function(bootstrap.range, win.size) {
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL, n=5) {
   window <- floor(n / 2)
 
-  dpy <- attr(dates, "dpy")
+  dpy <- ifelse(is.null(attr(x, "dpy")), 365, attr(x, "dpy"))
   years.all <- get.years(dates)
   jdays.idx <- get.jdays.replaced.feb29(dates)
   inset <- get.bootstrap.set(dates, bootstrap.range, n)
@@ -104,12 +104,13 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
 zhang.running.qtile <- function(x, dates, dates.base, qtiles, bootstrap.range, include.mask=NULL, n=5) {
   jdays.idx <- get.jdays.replaced.feb29(dates)
   inset <- get.bootstrap.set(dates.base, bootstrap.range, n)
+  dpy <- ifelse(is.null(attr(x, "dpy")), 365, attr(x, "dpy"))
 
   bs.data <- x[inset]
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
 
-  d <- apply(running.quantile(bs.data, n, qtiles, attr(dates, "dpy"), include.mask), 2, function(x) { return(x[jdays.idx]) } )
+  d <- apply(running.quantile(bs.data, n, qtiles, dpy, include.mask), 2, function(x) { return(x[jdays.idx]) } )
   row.names(d) <- NULL
   return(d)
 }
