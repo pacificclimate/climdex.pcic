@@ -71,7 +71,7 @@ get.bootstrap.windowed.range <- function(bootstrap.range, win.size) {
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL, n=5) {
   window <- floor(n / 2)
 
-  dpy <- ifelse(is.null(attr(x, "dpy")), 365, attr(x, "dpy"))
+  dpy <- ifelse(is.null(attr(dates, "dpy")), 365, attr(dates, "dpy"))
   years.all <- get.years(dates)
   jdays.idx <- get.jdays.replaced.feb29(dates)
   inset <- get.bootstrap.set(dates, bootstrap.range, n)
@@ -104,13 +104,14 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
 zhang.running.qtile <- function(x, dates, dates.base, qtiles, bootstrap.range, include.mask=NULL, n=5) {
   jdays.idx <- get.jdays.replaced.feb29(dates)
   inset <- get.bootstrap.set(dates.base, bootstrap.range, n)
-  dpy <- ifelse(is.null(attr(x, "dpy")), 365, attr(x, "dpy"))
+  dpy <- ifelse(is.null(attr(dates, "dpy")), 365, attr(dates, "dpy"))
 
   bs.data <- x[inset]
   if(!is.null(include.mask))
     include.mask <- include.mask[inset]
 
   d <- apply(running.quantile(bs.data, n, qtiles, dpy, include.mask), 2, function(x) { return(x[jdays.idx]) } )
+
   row.names(d) <- NULL
   return(d)
 }
@@ -188,7 +189,7 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
   monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
-
+  
   filled.tmax <- create.filled.series(tmax, tmax.dates, date.series)
   filled.tmin <- create.filled.series(tmin, tmin.dates, date.series)
   filled.prec <- create.filled.series(prec, prec.dates, date.series)
@@ -444,7 +445,7 @@ max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
 ## SDII
 ## Period for computation of number of wet days shall be the entire range of the data supplied.
 simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
-  return(tapply(daily.prec, date.factor, function(prec) { idx <- prec >= 1; return(sum(prec[idx]) / sum(idx)) } ))
+  return(tapply(daily.prec, date.factor, function(prec) { idx <- prec >= 1 & !is.na(prec); if(sum(idx) == 0) { return(0); } else { return(sum(prec[idx], na.rm=TRUE) / sum(idx)) } } ))
 }
 
 ## CDD, CWD
