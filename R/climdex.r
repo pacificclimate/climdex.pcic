@@ -118,57 +118,6 @@ get.na.mask <- function(x, f, threshold) {
   return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
-climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), n=5) {
-  cal <- attr(dates, "cal")
-  last.day.of.year <- "12-31"
-  if(!is.null(attr(dates, "months")))
-    last.day.of.year <- paste("12", attr(dates, "months")[12], sep="-")
-  bs.date.range <- as.PCICt(paste(base.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
-  bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
-
-  new.date.range <- as.PCICt(paste(as.numeric(strftime(range(dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
-  date.series <- seq(new.date.range[1], new.date.range[2], by="day")
-
-  new.date.range.base <- as.PCICt(paste(as.numeric(strftime(range(c(base.dates, bs.win.date.range)), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
-  date.series.base <- seq(new.date.range.base[1], new.date.range.base[2], by="day")
-
-  annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
-  monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
-
-  filled.tmax <- create.filled.series(tmax, dates, date.series)
-  filled.tmin <- create.filled.series(tmin, dates, date.series)
-  filled.prec <- create.filled.series(prec, dates, date.series)
-  filled.tavg <- (filled.tmax + filled.tmin) / 2
-  filled.list <- list(filled.tmax, filled.tmin, filled.tavg, filled.prec)
-
-  filled.tmax.base <- create.filled.series(tmax.base, base.dates, date.series.base)
-  filled.tmin.base <- create.filled.series(tmin.base, base.dates, date.series.base)
-  filled.prec.base <- create.filled.series(prec.base, base.dates, date.series.base)
-  filled.tavg.base <- (filled.tmax.base + filled.tmin.base) / 2
-  filled.list.base <- list(filled.tmax.base, filled.tmin.base, filled.tavg.base, filled.prec.base)
-
-  filled.list.names <- c("tmax", "tmin", "tavg", "prec")
-
-  namask.ann <- do.call(data.frame, lapply(filled.list, get.na.mask, annual.factor, 15))
-  colnames(namask.ann) <- filled.list.names
-  
-  namask.mon <- do.call(data.frame, lapply(filled.list, get.na.mask, monthly.factor, 3))
-  colnames(namask.mon) <- filled.list.names
-
-  ## DeMorgan's laws FTW
-  wet.days <- !(is.na(filled.prec.base) | filled.prec.base < 1)
-
-  bs.pctile <- do.call(data.frame, lapply(filled.list.base[1:2], zhang.running.qtile, date.series, date.series.base, c(0.1, 0.9), bs.date.range, n=n))
-
-  inset <- date.series.base >= bs.date.range[1] & date.series.base <= bs.date.range[2] & !is.na(filled.prec.base) & wet.days
-  pctile <- quantile(filled.prec.base[inset], c(0.95, 0.99))
-  
-  names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90")
-  names(pctile) <- c("precwet95", "precwet99")
-  
-  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=list(), running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
-}
-
 climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), n=5) {
   cal <- attr(tmax.dates, "cal")
   last.day.of.year <- "12-31"
