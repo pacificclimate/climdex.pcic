@@ -18,10 +18,8 @@ setClass("climdexInput",
          )
 
 
-## Returns POSIXct field or dies
-get.date.field <- function(input.data, cal) {
-  date.types <- list(list(fields=c("year", "jday"), format="%Y %j"),
-                     list(fields=c("year", "month", "day"), format="%Y %m %d"))
+## Returns PCICt field or dies
+get.date.field <- function(input.data, cal, date.types) {
   valid.date.types <- sapply(date.types, function(x) { return(!inherits(try(input.data[,x$fields], silent=TRUE), "try-error")) })
 
   if(sum(valid.date.types) == 0) {
@@ -120,8 +118,8 @@ get.na.mask <- function(x, f, threshold) {
   return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
-climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
-  cal <- attr(tmax.dates, "cal")
+climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tmin, prec, base.dates, dates, base.range=c(1961, 1990), n=5) {
+  cal <- attr(dates, "cal")
   last.day.of.year <- "12-31"
   if(!is.null(attr(dates, "months")))
     last.day.of.year <- paste("12", attr(dates, "months")[12], sep="-")
@@ -171,7 +169,7 @@ climdexInput.separate.base <- function(tmax.base, tmin.base, prec.base, tmax, tm
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=list(), running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
-climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), pctile=c(10, 90), n=5) {
+climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), n=5) {
   cal <- attr(tmax.dates, "cal")
   last.day.of.year <- "12-31"
   if(!is.null(attr(tmax.dates, "months")))
@@ -220,7 +218,11 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=bs.pctile.base, running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
-climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), pctile=c(10, 90), na.strings=NULL, cal="gregorian") {
+climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), na.strings=NULL, cal="gregorian", date.types=NULL) {
+  if(is.missing(date.types))
+    date.types <- list(list(fields=c("year", "jday"), format="%Y %j"),
+                       list(fields=c("year", "month", "day"), format="%Y %m %d"))
+  
   tmin.dat <- read.csv(tmin.file, na.strings=na.strings)
   tmax.dat <- read.csv(tmax.file, na.strings=na.strings)
   prec.dat <- read.csv(prec.file, na.strings=na.strings)
@@ -234,11 +236,11 @@ climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(
     stop("Data columns not found in data.")
   }
   
-  tmin.dates <- get.date.field(tmin.dat, cal)
-  tmax.dates <- get.date.field(tmax.dat, cal)
-  prec.dates <- get.date.field(prec.dat, cal)
+  tmin.dates <- get.date.field(tmin.dat, cal, date.types)
+  tmax.dates <- get.date.field(tmax.dat, cal, date.types)
+  prec.dates <- get.date.field(prec.dat, cal, date.types)
 
-  return(climdexInput.raw(tmax.dat[,data.columns$tmax], tmin.dat[,data.columns$tmin], prec.dat[,data.columns$prec], tmax.dates, tmin.dates, prec.dates, base.range, pctile, cal=cal))
+  return(climdexInput.raw(tmax.dat[,data.columns$tmax], tmin.dat[,data.columns$tmin], prec.dat[,data.columns$prec], tmax.dates, tmin.dates, prec.dates, base.range))
 }
 
 ## Temperature units: degrees C
