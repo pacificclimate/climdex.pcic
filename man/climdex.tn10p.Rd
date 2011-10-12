@@ -22,13 +22,13 @@ climdex.tx90p(ci)
   These functions take a climdexInput object as input and compute the
   climdex indices TN10p, TX10p, TN90p, and TN10p. These are:
   \itemize{
-    \item{TN10p}{Monthly percent of values below the 10th percentile
+    \item{TN10p: }{Monthly percent of values below the 10th percentile
   of baseline daily minimum temperature.}
-    \item{TX10p}{Monthly percent of values below the 10th percentile
+    \item{TX10p: }{Monthly percent of values below the 10th percentile
   of baseline daily maximum temperature.}
-    \item{TN90p}{Monthly percent of values above the 90th percentile
+    \item{TN90p: }{Monthly percent of values above the 90th percentile
   of baseline daily minimum temperature.}
-    \item{TX90p}{Monthly percent of values above the 90th percentile
+    \item{TX90p: }{Monthly percent of values above the 90th percentile
   of baseline daily maximum temperature.}
   }  
   

@@ -17,8 +17,8 @@ climdex.csdi(ci)
   These functions take a climdexInput object as input and compute the
   climdex indices WSDI and CSDI. These are:
   \itemize{
-    \item{WSDI}{Warm Spell Duration Index.}
-    \item{CSDI}{Cold Spell Duration Index.}
+    \item{WSDI: }{Warm Spell Duration Index.}
+    \item{CSDI: }{Cold Spell Duration Index.}
   }  
 
   The warm spell duration index is defined as the number of days each

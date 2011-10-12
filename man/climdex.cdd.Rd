@@ -17,8 +17,8 @@ climdex.cwd(ci)
   These functions take a climdexInput object as input and compute the
   climdex indices CDD and CWD. These are:
   \itemize{
-    \item{CDD}{Annual maximum length of dry spell, in days.}
-    \item{CWD}{Annual maximum length of wet spell, in days.}
+    \item{CDD: }{Annual maximum length of dry spell, in days.}
+    \item{CWD: }{Annual maximum length of wet spell, in days.}
   }  
 
   Wet spells are considered to be sequences of days where daily

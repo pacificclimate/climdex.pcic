@@ -21,13 +21,13 @@ climdex.tr(ci)
   These functions take a climdexInput object as input and compute the
   climdex indices FD, SU, ID, and TR. These are:
   \itemize{
-    \item{FD}{Number of frost days; annual count of days days where
+    \item{FD: }{Number of frost days; annual count of days days where
       daily minimum temperature drops below 0 degrees Celsius.}
-    \item{SU}{Number of summer days; annual count of days where daily
+    \item{SU: }{Number of summer days; annual count of days where daily
       maximum temperature exceeds 25 degrees Celsius.}
-    \item{ID}{Number of icing days; annual count of days where daily
+    \item{ID: }{Number of icing days; annual count of days where daily
       maximum temperature is below 0 degrees Celsius.}
-    \item{TR}{Number of tropical nights; annual count of days where
+    \item{TR: }{Number of tropical nights; annual count of days where
       daily minimum temperature exceeds 20 degrees Celsius.}
   }  
 }

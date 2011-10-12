@@ -20,11 +20,11 @@ climdex.rnnmm(ci, threshold)
   These functions take a climdexInput object as input and compute the
   climdex indices R10mm, R20mm, and Rnnmm. These are:
   \itemize{
-    \item{R10mm}{Annual count of days where daily precipitation is more
+    \item{R10mm: }{Annual count of days where daily precipitation is more
   than 10mm.}
-    \item{R20mm}{Annual count of days where daily precipitation is more
+    \item{R20mm: }{Annual count of days where daily precipitation is more
   than 20mm.}
-    \item{Rnnmm}{Annual count of days where daily precipitation is more
+    \item{Rnnmm: }{Annual count of days where daily precipitation is more
   than the number of millimeters specified by \code{threshold}.}
   }  
 }

@@ -17,8 +17,8 @@ climdex.rx1day(ci)
   These functions take a climdexInput object as input and compute the
   climdex indices Rx5day and Rx1day. These are:
   \itemize{
-    \item{Rx5day}{Monthly maximum 5-day consecutive precipitation.}
-    \item{Rx1day}{Monthly maximum 1-day precipitation.}
+    \item{Rx5day: }{Monthly maximum 5-day consecutive precipitation.}
+    \item{Rx1day: }{Monthly maximum 1-day precipitation.}
   }  
 }
 

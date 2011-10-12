@@ -21,10 +21,10 @@ climdex.tnn(ci)
   These functions take a climdexInput object as input and compute the
   climdex indices TXx, TNx, TXn, and TNn. These are:
   \itemize{
-    \item{TXx}{Monthly maximum of daily maximum temperature.}
-    \item{TNx}{Monthly maximum of daily minimum temperature.}
-    \item{TXn}{Monthly minimum of daily maximum temperature.}
-    \item{TNn}{Monthly minimum of daily minimum temperature.}
+    \item{TXx: }{Monthly maximum of daily maximum temperature.}
+    \item{TNx: }{Monthly maximum of daily minimum temperature.}
+    \item{TXn: }{Monthly minimum of daily maximum temperature.}
+    \item{TNn: }{Monthly minimum of daily minimum temperature.}
   }  
 }
 

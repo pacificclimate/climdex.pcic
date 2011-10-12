@@ -20,13 +20,13 @@ climdex.prcptot(ci)
   These functions take a climdexInput object as input and compute the
   climdex indices R95pTOT, R99pTOT, and PRCPTOT. These are:
   \itemize{
-    \item{R95pTOT}{Annual sum of precipitation in days where daily
+    \item{R95pTOT: }{Annual sum of precipitation in days where daily
   precipitation exceeds the 95th percentile of daily precipitation in
   the base period.}
-    \item{R99pTOT}{Annual sum of precipitation in days where daily
+    \item{R99pTOT: }{Annual sum of precipitation in days where daily
   precipitation exceeds the 99th percentile of daily precipitation in
   the base period.}
-    \item{PRCPTOT}{Annual sum of precipitation in days where daily
+    \item{PRCPTOT: }{Annual sum of precipitation in days where daily
   precipitation is at least 1mm/day.}
   }  
 }
