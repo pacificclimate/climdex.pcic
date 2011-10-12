@@ -168,7 +168,7 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
 }
 
 climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), na.strings=NULL, cal="gregorian", date.types=NULL) {
-  if(is.missing(date.types))
+  if(missing(date.types))
     date.types <- list(list(fields=c("year", "jday"), format="%Y %j"),
                        list(fields=c("year", "month", "day"), format="%Y %m %d"))
   
@@ -337,7 +337,7 @@ growing.season.length <- function(daily.mean.temp, date.factor,
 }
 
 ## TN10p, TX10p, TN90p, TX90p
-## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004 (except fclimdex does not use this).
+## Requires use of bootstrap procedure to generate 1961-1990 pctile; see Zhang et al, 2004 
 percent.days.op.threshold <- function(temp, dates, date.factor, threshold.outside.base, base.thresholds, base.range, op='<') {
   f <- match.fun(op)
   
