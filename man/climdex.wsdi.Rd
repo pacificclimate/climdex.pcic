@@ -40,13 +40,13 @@ climdex.csdi(ci)
 }
 
 \note{
-  These functions may create slightly different results than fclimdex.
+  These functions may calculate slightly different results than fclimdex.
 
   Behaviour of climdex.wsdi and climdex.csdi differ somewhat from
-  fclimdex, as fclimdex contains a bug. It considers the spell, be it
-  cold or warm, to be part of the year in which it ended. climdex.wsdi
-  and climdex.csdi split the spell appropriately between the years in
-  which it occurred.
+  fclimdex. fclimdex considers all days in
+  a warm or cold spell to be part of the year in which the spell ended.
+  climdex.wsdi and climdex.csdi split the spell such that days in each
+  spell are allocated to the separate years in the days occurred.
 }
 
 \examples{

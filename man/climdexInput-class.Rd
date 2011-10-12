@@ -18,18 +18,18 @@
     \item{running.pctile.notbase}{Temperature percentiles used outside
       base period.}
     \item{pctile}{Precipitation percentiles.}
-    \item{dates}{Date sequence corresponding to temperature and
+    \item{dates}{Date sequence (type PCICt) corresponding to temperature and
       precipitation data.}
-    \item{base.range}{Date range of baseline period.}
+    \item{base.range}{Date range (type PCICt) of baseline period.}
     \item{annual.factor}{Factor used for creation of annual indices.}
     \item{monthly.factor}{Factor used for creation of monthly indices.}
   }
 }
 \details{
   The \code{climdexInput} class consists of all the data necessary to compute
-  the climdex indices. You will not need to modify any of the slots in
-  this class. That being said, you may want to repurpose this data for
-  other purposes. The following description of the data is aimed at that
+  the climdex indices. Users will not need to modify any of the slots in
+  this class. That being said, users may want or need to repurpose this data for
+  further analysis. The following description of the data is aimed at that
   audience.
 
   The \code{tmax}, \code{tmin}, \code{tavg}, and \code{prec} slots are
@@ -40,8 +40,8 @@
 
   To ease computation of monthly and annual data, \code{monthly.factor}
   and \code{annual.factor} are slots in the data structure. They are
-  also of the same length as the time series. These could be reused for
-  computation of any type of annual or monthly aggregation data.
+  also of the same length as the time series. These can be reused for
+  computation of any annual or monthly aggregates.
 
   The \code{base.range} slot contains vector of type PCICt containing
   the first and last day included in the baseline.
@@ -51,7 +51,7 @@
 
   The \code{running.pctile.notbase} slot contains the data necessary for
   computing temperature based percentiles outside of the base
-  period. This consists of 365 percentiles (one for each day) computed
+  period. This consists of one percentile for each day of the year, computed
   using an n-day (default is 5-day) running window surrounding that
   day. These percentiles are computed for both the 10th and 90th
   percentile for daily maximum and minimum temperature.

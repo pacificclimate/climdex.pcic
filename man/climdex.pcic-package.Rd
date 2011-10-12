@@ -13,7 +13,8 @@
   applications. However, they are not as useful when speaking about
   climate change.
 
-  The ETCCDI has created a set of 27 core indices with the intent of
+  The Expert Team on Climate Change Detection and Indicies (ETCCDI)
+  has created a set of 27 core indices with the intent of
   capturing the change in the extremes of climate and in selected
   parameters deemed relevant to other disciplines. These model the
   following types of parameters:
