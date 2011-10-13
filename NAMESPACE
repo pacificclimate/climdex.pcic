@@ -1,0 +1,4 @@
+useDynLib(climdex.pcic)
+
+export(climdexInput.raw, climdexInput.csv, climdex.fd, climdex.su, climdex.id, climdex.tr, climdex.gsl, climdex.txx, climdex.tnx, climdex.txn, climdex.tnn, climdex.tn10p, climdex.tx10p, climdex.tn90p, climdex.tx90p, climdex.wsdi, climdex.csdi, climdex.dtr, climdex.rx1day, climdex.rx5day, climdex.sdii, climdex.r10mm, climdex.r20mm, climdex.rnnmm, climdex.cdd, climdex.cwd, climdex.r95ptot, climdex.r99ptot, climdex.prcptot)
+
