@@ -419,7 +419,7 @@ running.quantile <- function(data, n, q, dpy, include.mask=NULL) {
     data[include.mask] <- NA
 
   ret <- .Call("running_quantile_windowed", data, n, q, dpy)
-  dim(ret) <- c(2, dpy)
+  dim(ret) <- c(length(q), dpy)
   ##browser()
   return(t(ret))
 }
