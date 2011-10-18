@@ -1,6 +1,38 @@
 library(caTools)
 library(PCICt)
 
+valid.climdexInput <- function(x) {
+  errors <- c()
+
+  if(!all(sapply(c("tmax", "tmin", "tavg", "prec", "dates", "annual.factor", "monthly.factor"), function(y) { length(slot(x, y)) }) == length(x@tmax)))
+    errors <- c(errors, "Data fields, dates, and factors must all be of the same length")
+
+  ## Check that namask.mon and namask.ann have columns for each of the variables
+  if(sum(c("tmax", "tmin", "tavg", "prec") %in% names(x@namask.ann)) != 4)
+    errors <- c(errors, "NA mask for annual must contain data for tmax, tmin, tavg, and prec.")
+
+  if(sum(c("tmax", "tmin", "tavg", "prec") %in% names(x@namask.mon)) != 4)
+    errors <- c(errors, "NA mask for monthly must contain data for tmax, tmin, tavg, and prec.")
+
+  ## Check that running.pctile.base running.pctile.notbase, and pctile all contain the proper named data.
+  bs.pctile.names <- c("tmax10", "tmax90", "tmin10", "tmin90")
+  pctile.names <- c("precwet95", "precwet99")
+
+  if(sum(bs.pctile.names %in% names(x@running.pctile.base)) != length(bs.pctile.names))
+    errors <- c(errors, "running.pctile.base does not contain at least one of tmax10, tmax90, tmin10, and tmin90.")
+
+  if(sum(bs.pctile.names %in% names(x@running.pctile.notbase)) != length(bs.pctile.names))
+    errors <- c(errors, "running.pctile.notbase does not contain at least one of tmax10, tmax90, tmin10, and tmin90.")
+
+  if(sum(pctile.names %in% names(x@pctile)) != length(pctile.names))
+    errors <- c(errors, "pctile does not contain at least one of precwet95 and precwet99.")
+  
+  if(length(errors) == 0)
+    return(TRUE)
+  else
+    return(errors)
+}
+
 setClass("climdexInput",
          representation(tmax = "numeric",
                         tmin = "numeric",
@@ -14,9 +46,9 @@ setClass("climdexInput",
                         dates = "PCICt",
                         base.range = "PCICt",
                         annual.factor = "factor",
-                        monthly.factor = "factor")
+                        monthly.factor = "factor"),
+         validity=valid.climdexInput
          )
-
 
 ## Returns PCICt field or dies
 get.date.field <- function(input.data, cal, date.types) {
@@ -118,12 +150,40 @@ get.na.mask <- function(x, f, threshold) {
   return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
+get.num.days.in.range <- function(x, date.range) {
+  return(sum(x >= date.range[1] & x <= date.range[2]))
+  
+}
+
 climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), n=5) {
+  if(length(tmin) != length(tmin.dates))
+    stop("Length of tmin data and tmin dates do not match.")
+  
+  if(length(tmax) != length(tmax.dates))
+    stop("Length of tmax data and tmax dates do not match.")
+  
+  if(length(prec) != length(prec.dates))
+    stop("Length of prec data and prec dates do not match.")
+
+  if(!(length(base.range) == 2 && is.numeric(base.range)))
+    stop("Invalid base date range; expecting vector of 2 numeric years.")
+
+  if(!(inherits(tmax.dates, "PCICt") && inherits(tmin.dates, "PCICt") && inherits(prec.dates, "PCICt")))
+    stop("Dates must all be of class PCICt.")
+
+  if(n != 5)
+    warning("Use of n != 5 varies from the Climdex definition. Use at your own risk.")
+  
   cal <- attr(tmax.dates, "cal")
   last.day.of.year <- "12-31"
   if(!is.null(attr(tmax.dates, "months")))
     last.day.of.year <- paste("12", attr(tmax.dates, "months")[12], sep="-")
   bs.date.range <- as.PCICt(paste(base.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
+
+  ## Check that the base range includes at least a month's worth of data for each variable.
+  if(!all(sapply(list(tmax.dates, tmin.dates, prec.dates), get.num.days.in.range, bs.date.range) > 30))
+    warning("There is less than a month of data for at least one of tmin, tmax, and prec. Consider revising your base range and/or check your input data.")
+
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
   print("bs.win.date.range computed")
   all.dates <- c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range)
@@ -167,10 +227,16 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=bs.pctile.base, running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
 }
 
-climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), na.strings=NULL, cal="gregorian", date.types=NULL) {
+climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), na.strings=NULL, cal="gregorian", date.types=NULL, n=5) {
+  if(sum(c("tmax", "tmin", "prec") %in% names(data.columns)) != 3)
+    stop("Must specify names of all data columns (tmin, tmax, prec).")
+
   if(missing(date.types))
     date.types <- list(list(fields=c("year", "jday"), format="%Y %j"),
                        list(fields=c("year", "month", "day"), format="%Y %m %d"))
+  else
+    if(any(!sapply(date.types, function(x) { return(sum(c("fields", "format") %in% names(x)) == 2 && is.character(x$fields) && is.character(x$format)) } )))
+      stop("Invalid date.types specified. See ?climdexInput.csv .")
   
   tmin.dat <- read.csv(tmin.file, na.strings=na.strings)
   tmax.dat <- read.csv(tmax.file, na.strings=na.strings)
@@ -181,9 +247,8 @@ climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(
   tmax.dat <- tmax.dat[!is.na(tmax.dat[,4]),]
   prec.dat <- prec.dat[!is.na(prec.dat[,4]),]
   
-  if(!(data.columns$tmin %in% names(tmin.dat) & data.columns$tmax %in% names(tmax.dat) & data.columns$prec %in% names(prec.dat))) {
+  if(!(data.columns$tmin %in% names(tmin.dat) & data.columns$tmax %in% names(tmax.dat) & data.columns$prec %in% names(prec.dat)))
     stop("Data columns not found in data.")
-  }
   
   tmin.dates <- get.date.field(tmin.dat, cal, date.types)
   tmax.dates <- get.date.field(tmax.dat, cal, date.types)
@@ -265,7 +330,11 @@ climdex.r10mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annu
 climdex.r20mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annual.factor, 20, ">=") * ci@namask.ann$prec) }
 
 ## Rnnmm: Annual. Exact match.
-climdex.rnnmm <- function(ci, threshold) { return(number.days.op.threshold(ci@prec, ci@annual.factor, threshold, ">=") * ci@namask.ann$prec) }
+climdex.rnnmm <- function(ci, threshold) {
+  if(!is.numeric(threshold) || length(threshold) != 1) stop("Please specify a single numeric threshold value.");
+
+  return(number.days.op.threshold(ci@prec, ci@annual.factor, threshold, ">=") * ci@namask.ann$prec)
+}
 
 ## Both CDD and CWD in fclimdex do not record the length of consecutive days on transition to a missing value
 ## CDD: Annual. Exact match.

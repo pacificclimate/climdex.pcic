@@ -37,6 +37,11 @@
   sufficiently readable and concise code as to facilitate easy
   verification by inspection.
 }
+\note{
+  Please note that the 360-day calendar used by this package does not
+  consist of 12 months of 30 days; see the documentation for the PCICt
+  package for more details.
+}
 \references{
   \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
   

@@ -1,6 +1,6 @@
 Package: climdex.pcic
-Version: 0.1-3
-Date: 2011-10-06
+Version: 0.1.1-1
+Date: 2011-10-18
 Title: PCIC implementation of Climdex routines
 Author: David Bronaugh <bronaugh@uvic.ca> for the Pacific Climate Impacts Consortium
 Maintainer: David Bronaugh <bronaugh@uvic.ca>
@@ -9,3 +9,4 @@ Suggests:
 Description: The pcic_climdex package provides PCIC's implementation of Climdex routines for computation of climate indices.
 License: LGPL-2.1
 URL: http://www.r-project.org
+LazyData: yes

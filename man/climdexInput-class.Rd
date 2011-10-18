@@ -43,6 +43,14 @@
   also of the same length as the time series. These can be reused for
   computation of any annual or monthly aggregates.
 
+  The climdexInput class also includes NA masks for both monthly
+  (\code{namask.mon}) and annual (\code{namask.ann}) data. These masks
+  consist of a vector of numbers of the same length as the monthly or
+  annual output data. The values used are 1 to signify that the data
+  meets the QC criteria, and NA to signify it does not. Years with
+  more than 15 days missing, and months with more than 3 days missing,
+  are considered to be of poor quality and are masked here with NA.
+  
   The \code{base.range} slot contains vector of type PCICt containing
   the first and last day included in the baseline.
 

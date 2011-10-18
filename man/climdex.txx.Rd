@@ -1,9 +1,9 @@
-\name{climdex.txx}
+\name{climdex.txx, climdex.tnx, climdex.txn, climdex.tnn}
 \alias{climdex.txx}
 \alias{climdex.tnx}
 \alias{climdex.txn}
 \alias{climdex.tnn}
-\title{climdex.txx}
+\title{Monthly Maximum/Minimum of Daily Maximum/Minimum Temperature}
 \description{
   These functions compute the climdex indices TXx, TNx, TXn, and TNn.
 }
@@ -35,21 +35,31 @@ climdex.tnn(ci)
 \examples{
 ## Create a climdexInput object from some data already loaded in and
 ## ready to go.
-## tmax.data, tmin.data, and prec.data are vectors of real numbers.
-\dontrun{ci <- climdexInput.raw(tmax.data, tmin.data, prec.data,
-tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))}
+
+## Parse the dates into PCICt.
+tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
+"jday")]), format="\%Y \%j", cal="gregorian")
+tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
+"jday")]), format="\%Y \%j", cal="gregorian")
+prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
+"jday")]), format="\%Y \%j", cal="gregorian")
+
+## Load the data in.
+ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
+ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
+tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Create a monthly timeseries of maximum daily maximum temperature.
-\dontrun{txx <- climdex.txx(ci)}
+txx <- climdex.txx(ci)
 
 ## Create a monthly timeseries of maximum daily minimum temperature.
-\dontrun{tnx <- climdex.tnx(ci)}
+tnx <- climdex.tnx(ci)
 
 ## Create a monthly timeseries of minimum daily maximum temperature.
-\dontrun{txn <- climdex.txn(ci)}
+txn <- climdex.txn(ci)
 
 ## Create a monthly timeseries of minimum daily minimum temperature.
-\dontrun{tnn <- climdex.tnn(ci)}
+tnn <- climdex.tnn(ci)
 }
 
 \seealso{

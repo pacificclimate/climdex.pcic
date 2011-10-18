@@ -1,9 +1,9 @@
-\name{climdex.su}
+\name{climdex.su, climdex.fd, climdex.id, climdex.tr}
 \alias{climdex.fd}
 \alias{climdex.su}
 \alias{climdex.id}
 \alias{climdex.tr}
-\title{climdex.su}
+\title{Frost Days, Summer Days, Icing Days, Tropical Nights}
 \description{
   These functions compute the climdex indices FD, SU, ID, and TR.
 }
@@ -44,21 +44,31 @@ climdex.tr(ci)
 \examples{
 ## Create a climdexInput object from some data already loaded in and
 ## ready to go.
-## tmax.data, tmin.data, and prec.data are vectors of real numbers.
-\dontrun{ci <- climdexInput.raw(tmax.data, tmin.data, prec.data,
-tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))}
+
+## Parse the dates into PCICt.
+tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
+"jday")]), format="\%Y \%j", cal="gregorian")
+tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
+"jday")]), format="\%Y \%j", cal="gregorian")
+prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
+"jday")]), format="\%Y \%j", cal="gregorian")
+
+## Load the data in.
+ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
+ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
+tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Create an annual timeseries of the number of frost days.
-\dontrun{fd <- climdex.fd(ci)}
+fd <- climdex.fd(ci)
 
 ## Create an annual timeseries of the number of summer days.
-\dontrun{su <- climdex.su(ci)}
+su <- climdex.su(ci)
 
 ## Create an annual timeseries of the number of icing days.
-\dontrun{id <- climdex.id(ci)}
+id <- climdex.id(ci)
 
 ## Create an annual timeseries of the number of tropical nights.
-\dontrun{tr <- climdex.tr(ci)}
+tr <- climdex.tr(ci)
 }
 
 \seealso{
