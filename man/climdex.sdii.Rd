@@ -46,6 +46,9 @@ tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Create a timeseries of annual SDII values.
 sdii <- climdex.sdii(ci)
+
+## Print these out for testing purposes.
+sdii
 }
 
 \seealso{

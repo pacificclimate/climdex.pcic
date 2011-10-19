@@ -56,6 +56,10 @@ cdd <- climdex.cdd(ci)
 ## Create an annual timeseries of the number of consecutive days where
 ## precipitation was at least 1mm/day.
 cwd <- climdex.cwd(ci)
+
+## Print these out for testing purposes.
+cdd
+cwd
 }
 
 \seealso{

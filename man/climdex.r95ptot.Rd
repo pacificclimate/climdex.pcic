@@ -66,6 +66,11 @@ r99ptot <- climdex.r99ptot(ci)
 ## Create an annual timeseries of the sum of precipitation where
 ## precipitation is at least 1mm/day.
 prcptot <- climdex.prcptot(ci)
+
+## Print these out for testing purposes.
+r95ptot
+r99ptot
+prcptot
 }
 
 \seealso{

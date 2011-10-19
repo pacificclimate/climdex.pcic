@@ -102,6 +102,12 @@ tn90p <- climdex.tn90p(ci)
 ## Create a monthly timeseries of percentage of daily maximum
 ## temperature values which are above the 90th percentile.
 tx90p <- climdex.tx90p(ci)
+
+## Print these out for testing purposes.
+tn10p
+tx10p
+tn90p
+tx90p
 }
 
 \seealso{

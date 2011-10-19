@@ -57,6 +57,10 @@ rx5day <- climdex.rx5day(ci)
 
 ## Create a timeseries of monthly maximum 1-day precipitation.
 rx1day <- climdex.rx1day(ci)
+
+## Print these out for testing purposes.
+rx5day
+rx1day
 }
 
 \seealso{

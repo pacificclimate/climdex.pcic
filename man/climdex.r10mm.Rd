@@ -61,6 +61,11 @@ r20mm <- climdex.r20mm(ci)
 ## Create an annual timeseries of the number of days where
 ## precipitation exceeds 25mm/day.
 r25mm <- climdex.rnnmm(ci, 25)
+
+## Print these out for testing purposes.
+r10mm
+r20mm
+r25mm
 }
 
 \seealso{

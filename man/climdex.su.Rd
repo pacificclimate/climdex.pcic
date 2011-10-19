@@ -69,6 +69,12 @@ id <- climdex.id(ci)
 
 ## Create an annual timeseries of the number of tropical nights.
 tr <- climdex.tr(ci)
+
+## Print these out for testing purposes.
+fd
+su
+id
+tr
 }
 
 \seealso{

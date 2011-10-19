@@ -60,6 +60,12 @@ txn <- climdex.txn(ci)
 
 ## Create a monthly timeseries of minimum daily minimum temperature.
 tnn <- climdex.tnn(ci)
+
+## Print these out for testing purposes.
+txx
+tnx
+txn
+tnn
 }
 
 \seealso{

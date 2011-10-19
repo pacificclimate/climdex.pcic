@@ -71,6 +71,10 @@ wsdi <- climdex.wsdi(ci)
 
 ## Create an annual timeseries of the cold spell duration index.
 csdi <- climdex.csdi(ci)
+
+## Print these out for testing purposes.
+wsdi
+csdi
 }
 
 \seealso{

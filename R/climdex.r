@@ -185,11 +185,8 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
     warning("There is less than a month of data for at least one of tmin, tmax, and prec. Consider revising your base range and/or check your input data.")
 
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
-  print("bs.win.date.range computed")
   all.dates <- c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range)
-  print("Concatenated dates...")
   date.range <- range(all.dates)
-  print("Date.range computed")
   year.range <- as.numeric(strftime(date.range, "%Y", tz="GMT"))
   new.date.range <- as.PCICt(paste(year.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")

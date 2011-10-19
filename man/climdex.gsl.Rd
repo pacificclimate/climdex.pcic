@@ -65,6 +65,9 @@ tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Create an annual timeseries of the growing season length in days.
 gsl <- climdex.gsl(ci)
+
+## Print these out for testing purposes.
+gsl
 }
 
 \seealso{
