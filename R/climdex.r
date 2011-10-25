@@ -102,19 +102,18 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   window <- floor(n / 2)
 
   dpy <- ifelse(is.null(attr(dates, "dpy")), 365, attr(dates, "dpy"))
-  years.all <- get.years(dates)
   inset <- get.bootstrap.set(dates, bootstrap.range, n)
-
+  nyears <- floor(sum(inset) / dpy)
+  
   if(!is.null(include.mask))
     x[include.mask] <- NA
 
   bs.data <- x[inset]
   
   ## This routine is written as described in Zhang et al, 2005 as referenced above.
-  years <- years.all[inset]
-  year.list <- unique(years[(window + 1):(length(years) - window)])
-  yidx <- 1:length(year.list)
+  yidx <- 1:nyears
   d <- sapply(yidx, function(idx.to.omit) {
+    ## Index is computed assuming `window` leading days of data...
     omit.index <- window + (1:dpy) + ((idx.to.omit - 1) * dpy)
     return(sapply(yidx[yidx != idx.to.omit], function(idx.to.replace.with) {
       replace.index <- window + (1:dpy) + ((idx.to.replace.with - 1) * dpy)
@@ -122,11 +121,10 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
       return(running.quantile(bs.data, n, qtiles, dpy))
     }))
   } )
-  byrs <- length(year.list)
   
-  dim(d) <- c(dpy, length(qtiles), byrs - 1, byrs)
+  dim(d) <- c(dpy, length(qtiles), nyears - 1, nyears)
   d <- aperm(d, perm=c(1, 4, 3, 2))
-  ## new dims: dpy, byrs, byrs-1, length(quantiles)
+  ## new dims: dpy, nyears, nyears-1, length(quantiles)
 
   return(lapply(1:length(qtiles), function(x) { d[,,,x] }))
 }
