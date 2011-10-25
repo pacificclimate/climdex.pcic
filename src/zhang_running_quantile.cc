@@ -53,7 +53,8 @@ extern "C" {
     
     // Implicit pseudo-floor (nearest number to zero) by integer division
     const int win_border = win_size / 2;
-    const int true_data_length = length(data) - 2 * win_border;
+    const int data_length = length(data);
+    const int true_data_length = data_length - 2 * win_border;
     const int days_per_year = INTEGER(dpy)[0];
     const int num_years = (int)ceil((double)true_data_length / (double)days_per_year);
     const int repeated_data_size = num_years * (days_per_year + 2 * win_border);
@@ -67,25 +68,33 @@ extern "C" {
     // This data will be 2 dimensional, row major, with the major dimension being the day of the year
     double* buf = new double[num_years * win_size];
 
+    // Create a map of NAs
+    bool* notna_map = new bool[length(data)];
+    int i = data_length;
+    while(i--)
+      notna_map[i] = !ISNA(data_ptr[i]);
+
     // Comment for preservation of sanity...
     // The input data does not stay on day 'day'; it starts on day 'day' - win_border. This gets around the problem of an off-by-two error.
     for(int day = 0; day < days_per_year; ++day) {
       int count = 0;
       // Fill buffer with data with NA removed
       for(int yr = 0; yr < num_years; ++yr) {
-	const double* yroff_ptr = &data_ptr[yr * days_per_year];
-	for(int winday = day; winday < day + win_size; ++winday) {
-	  const double d = yroff_ptr[winday];
-	  if(!ISNA(d))
-	    buf[count++] = d;
-	}
+	const int ydayoff = yr * days_per_year + day;
+	const bool* ydayoff_notna = &notna_map[ydayoff];
+	const double* ydayoff_data = &data_ptr[ydayoff];
+	int winday = win_size;
+	while(winday--)
+	  if(ydayoff_notna[winday])
+	    buf[count++] = ydayoff_data[winday];
       }
       // Quantiles on said buffer
-      for(int q_idx = 0; q_idx < nq; ++q_idx) {
-	quantiles_ptr[nq * day + q_idx] = c_quantile(buf, count, q_ptr[q_idx]);
-      }
+      const int nq_day = nq * day;
+      for(int q_idx = 0; q_idx < nq; ++q_idx)
+	quantiles_ptr[nq_day + q_idx] = c_quantile(buf, count, q_ptr[q_idx]);
     }
     delete[] buf;
+    delete[] notna_map;
 
     UNPROTECT(2);
     return(quantiles);

@@ -103,23 +103,23 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
 
   dpy <- ifelse(is.null(attr(dates, "dpy")), 365, attr(dates, "dpy"))
   years.all <- get.years(dates)
-  jdays.idx <- get.jdays.replaced.feb29(dates)
   inset <- get.bootstrap.set(dates, bootstrap.range, n)
 
-  bs.data <- x[inset]
-  jdays <- jdays.idx[inset]
   if(!is.null(include.mask))
-    bs.data[include.mask] <- NA
+    x[include.mask] <- NA
+
+  bs.data <- x[inset]
   
   ## This routine is written as described in Zhang et al, 2005 as referenced above.
   years <- years.all[inset]
   year.list <- unique(years[(window + 1):(length(years) - window)])
-  d <- sapply(year.list, function(year.to.omit) {
-    bs.data.temp <- bs.data
-    omit.index <- years == year.to.omit
-    return(sapply(year.list[year.list != year.to.omit], function(year.to.replace.with) {
-      bs.data.temp[omit.index] <- bs.data.temp[years == year.to.replace.with]
-      return(running.quantile(bs.data.temp, n, qtiles, dpy, include.mask))
+  yidx <- 1:length(year.list)
+  d <- sapply(yidx, function(idx.to.omit) {
+    omit.index <- window + (1:dpy) + ((idx.to.omit - 1) * dpy)
+    return(sapply(yidx[yidx != idx.to.omit], function(idx.to.replace.with) {
+      replace.index <- window + (1:dpy) + ((idx.to.replace.with - 1) * dpy)
+      bs.data[omit.index] <- bs.data[replace.index]
+      return(running.quantile(bs.data, n, qtiles, dpy))
     }))
   } )
   byrs <- length(year.list)
@@ -135,10 +135,11 @@ zhang.running.qtile <- function(x, dates, dates.base, qtiles, bootstrap.range, i
   jdays.idx <- get.jdays.replaced.feb29(dates)
   inset <- get.bootstrap.set(dates.base, bootstrap.range, n)
   dpy <- ifelse(is.null(attr(dates, "dpy")), 365, attr(dates, "dpy"))
+  
+  if(!is.null(include.mask))
+    x[include.mask] <- NA
 
   bs.data <- x[inset]
-  if(!is.null(include.mask))
-    bs.data[include.mask] <- NA
 
   d <- apply(running.quantile(bs.data, n, qtiles, dpy), 2, function(x) { return(x[jdays.idx]) } )
 
@@ -480,7 +481,7 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 ## Returns an n-day running quantile for each day of data
 ## Data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (dpy - floor(n/2) + 1)'th day..
 running.quantile <- function(data, n, q, dpy) {
-  ret <- .Call("running_quantile_windowed", data, n, q, dpy)
+  ret <- .Call("running_quantile_windowed", data, n, q, dpy, DUP=FALSE)
   dim(ret) <- c(length(q), dpy)
   ##browser()
   return(t(ret))
