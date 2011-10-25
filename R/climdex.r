@@ -1,6 +1,27 @@
 library(caTools)
 library(PCICt)
 
+tapply.fast <- function (X, INDEX, FUN = NULL, ..., simplify = TRUE) {
+  FUN <- if (!is.null(FUN))
+    match.fun(FUN)
+  
+  if(!is.factor(INDEX))
+    stop("INDEX must be a factor.")
+  
+  if (length(INDEX) != length(X))
+    stop("arguments must have same length")
+  
+  if (is.null(FUN))
+    return(INDEX)
+  
+  namelist <- levels(INDEX)
+  ans <- lapply(split(X, INDEX), FUN, ...)
+  
+  ans <- unlist(ans, recursive = FALSE)
+  names(ans) <- levels(INDEX)
+  return(ans)
+}
+
 valid.climdexInput <- function(x) {
   errors <- c()
 
@@ -80,7 +101,7 @@ get.years <- function(dates) {
 }
 
 get.jdays.replaced.feb29 <- function(dates) {
-  return(unlist(tapply(get.jdays(dates), get.years(dates), function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } })))
+  return(unlist(tapply.fast(get.jdays(dates), factor(get.years(dates)), function(x) { if(length(x) == 366) { return(c(1:59, 59, 60:365)) } else { return(x) } })))
 }
 
 get.bootstrap.set <- function(dates, bootstrap.range, win.size) {
@@ -146,7 +167,7 @@ zhang.running.qtile <- function(x, dates, dates.base, qtiles, bootstrap.range, i
 }
 
 get.na.mask <- function(x, f, threshold) {
-  return(c(1, NA)[1 + as.numeric(tapply(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
+  return(c(1, NA)[1 + as.numeric(tapply.fast(is.na(x), f, function(y) { return(sum(y) > threshold) } ))])
 }
 
 get.num.days.in.range <- function(x, date.range) {
@@ -200,7 +221,7 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
 
   filled.list <- list(filled.tmax, filled.tmin, filled.tavg, filled.prec)
   filled.list.names <- c("tmax", "tmin", "tavg", "prec")
-  
+
   namask.ann <- do.call(data.frame, lapply(filled.list, get.na.mask, annual.factor, 15))
   colnames(namask.ann) <- filled.list.names
   
@@ -273,16 +294,16 @@ climdex.tr <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.
 climdex.gsl <- function(ci) { return(growing.season.length(ci@tavg, ci@annual.factor) * ci@namask.ann$tavg) }
 
 ## TXx: Monthly. Exact match.
-climdex.txx <- function(ci) { return(tapply(ci@tmax, ci@monthly.factor, max) * ci@namask.mon$tmax) }
+climdex.txx <- function(ci) { return(tapply.fast(ci@tmax, ci@monthly.factor, max) * ci@namask.mon$tmax) }
 
 ## TNx: Monthly. Exact match.
-climdex.tnx <- function(ci) { return(tapply(ci@tmin, ci@monthly.factor, max) * ci@namask.mon$tmin) }
+climdex.tnx <- function(ci) { return(tapply.fast(ci@tmin, ci@monthly.factor, max) * ci@namask.mon$tmin) }
 
 ## TXn: Monthly. Exact match.
-climdex.txn <- function(ci) { return(tapply(ci@tmax, ci@monthly.factor, min) * ci@namask.mon$tmax) }
+climdex.txn <- function(ci) { return(tapply.fast(ci@tmax, ci@monthly.factor, min) * ci@namask.mon$tmax) }
 
 ## TNn: Monthly. Exact match.
-climdex.tnn <- function(ci) { return(tapply(ci@tmin, ci@monthly.factor, min) * ci@namask.mon$tmin) }
+climdex.tnn <- function(ci) { return(tapply.fast(ci@tmin, ci@monthly.factor, min) * ci@namask.mon$tmin) }
 
 ## TN10p: Monthly. Pattern matches, but still significant differences.
 ## Our implementation currently follows the example set by fclimdex for dealing with missing values, which is wrong; it biases results upwards when missing values are present.
@@ -374,7 +395,7 @@ get.series.lengths.at.ends <- function(x) {
 ## FD, ID, SU, TR, R10mm, R20mm, Rnnmm
 number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
   stopifnot(is.numeric(c(temp, threshold)))
-  return(tapply(match.fun(op)(temp, threshold), date.factor, sum, na.rm=TRUE))
+  return(tapply.fast(match.fun(op)(temp, threshold), date.factor, sum, na.rm=TRUE))
 }
 
 ## GSL
@@ -383,7 +404,7 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 ## NOTE: There is a difference of 1 between our output and fclimdex. See line 637; consider case where start and end day are same. Correct answer is 1 day GSL; their answer is 0 day.
 growing.season.length <- function(daily.mean.temp, date.factor,
                                   min.length=6, t.thresh=5) {
-  return(tapply(daily.mean.temp, date.factor, function(ts) {
+  return(tapply.fast(daily.mean.temp, date.factor, function(ts) {
     ts.len<- length(ts)
     ts.mid <- floor(ts.len / 2)
     gs.begin <- which(select.blocks.gt.length(ts[1:(ts.mid-1)] > t.thresh, min.length - 1))
@@ -418,12 +439,12 @@ percent.days.op.threshold <- function(temp, dates, date.factor, threshold.outsid
     byrs <- (years.base.range[2] - years.base.range[1] + 1)
     year.base.list <- years.base.range[1]:years.base.range[2]
 
-    d <- lapply(1:byrs, function(x) { yset <-  years.base == year.base.list[x]; sapply(1:(byrs - 1), function(y) { f(temp.base[yset], (base.thresholds[,x,y])[jdays.base[yset]]) } ) })
+    d <- lapply(1:byrs, function(x) { yset <-  which(years.base == year.base.list[x]); sapply(1:(byrs - 1), function(y) { f(temp.base[yset], base.thresholds[jdays.base[yset],x,y]) } ) })
     ## This repeats a bug (or at least, debatable decision) in fclimdex where they always divide by byrs - 1 even when there are NAs (missing values) in the thresholds
     dat[inset] <- unlist(lapply(d, apply, 1, function(x) { sum(as.numeric(x), na.rm=TRUE) } ) ) / (byrs - 1)
   }
   
-  return(tapply(dat, date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
+  return(tapply.fast(dat, date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
 }
 
 ## WSDI, CSDI
@@ -434,19 +455,19 @@ threshold.exceedance.duration.index <- function(daily.max.temp, date.factor, war
             min.length > 0)
 
   periods <- select.blocks.gt.length(match.fun(op)(daily.max.temp, warm.thresholds), min.length - 1)
-  return(tapply(periods, date.factor, sum))
+  return(tapply.fast(periods, date.factor, sum))
 }
 
 ## DTR
 ## Max and min temps are assumed to be same length
 mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
-  return(tapply(daily.max.temp - daily.min.temp, date.factor, mean))
+  return(tapply.fast(daily.max.temp - daily.min.temp, date.factor, mean))
 }
 
 ## Rx1day, Rx5day
 max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
   if(ndays == 1) {
-    return(tapply(daily.prec, date.factor, max))
+    return(tapply.fast(daily.prec, date.factor, max))
   } else {
     ## Ends of the data will be de-emphasized (padded with zero precip data); NAs replaced with 0
     new.series <- c(rep(0, floor(ndays / 2)), daily.prec, rep(0, floor(ndays / 2)))
@@ -454,26 +475,26 @@ max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
     prec.runsum <- runmean(new.series, k=ndays, endrule="trim") * ndays
     ## Uncommenting this introduces the bug in RX5day in fclimdex, making the results identical
     ##prec.runsum <- c(0, 0, prec.runsum[1:(length(prec.runsum) - floor(ndays / 2))])
-    return(tapply(prec.runsum, date.factor, max))
+    return(tapply.fast(prec.runsum, date.factor, max))
   }
 }
 
 ## SDII
 ## Period for computation of number of wet days shall be the entire range of the data supplied.
 simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
-  return(tapply(daily.prec, date.factor, function(prec) { idx <- prec >= 1 & !is.na(prec); if(sum(idx) == 0) { return(0); } else { return(sum(prec[idx], na.rm=TRUE) / sum(idx)) } } ))
+  return(tapply.fast(daily.prec, date.factor, function(prec) { idx <- prec >= 1 & !is.na(prec); if(sum(idx) == 0) { return(0); } else { return(sum(prec[idx], na.rm=TRUE) / sum(idx)) } } ))
 }
 
 ## CDD, CWD
 max.length.spell <- function(daily.prec, date.factor, threshold, op) {
   bools <- match.fun(op)(daily.prec, threshold)
-  return(tapply(get.series.lengths.at.ends(bools), date.factor, function(x) { return(max(x)) } ))
+  return(tapply.fast(get.series.lengths.at.ends(bools), date.factor, function(x) { return(max(x)) } ))
 }
 
 ## R95pTOT, R99pTOT
 total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
   f <- match.fun(op)
-  return(tapply(1:length(daily.prec), date.factor, function(x) { return(sum(daily.prec[x[f(daily.prec[x], threshold)]], na.rm=TRUE)) } ))
+  return(tapply.fast(1:length(daily.prec), date.factor, function(x) { return(sum(daily.prec[x[f(daily.prec[x], threshold)]], na.rm=TRUE)) } ))
 }
 
 ## Returns an n-day running quantile for each day of data
