@@ -109,7 +109,7 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
   bs.data <- x[inset]
   jdays <- jdays.idx[inset]
   if(!is.null(include.mask))
-    include.mask <- include.mask[inset]
+    bs.data[include.mask] <- NA
   
   ## This routine is written as described in Zhang et al, 2005 as referenced above.
   years <- years.all[inset]
@@ -138,9 +138,9 @@ zhang.running.qtile <- function(x, dates, dates.base, qtiles, bootstrap.range, i
 
   bs.data <- x[inset]
   if(!is.null(include.mask))
-    include.mask <- include.mask[inset]
+    bs.data[include.mask] <- NA
 
-  d <- apply(running.quantile(bs.data, n, qtiles, dpy, include.mask), 2, function(x) { return(x[jdays.idx]) } )
+  d <- apply(running.quantile(bs.data, n, qtiles, dpy), 2, function(x) { return(x[jdays.idx]) } )
 
   row.names(d) <- NULL
   return(d)
@@ -479,11 +479,7 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 
 ## Returns an n-day running quantile for each day of data
 ## Data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (dpy - floor(n/2) + 1)'th day..
-running.quantile <- function(data, n, q, dpy, include.mask=NULL) {
-  ## Apply include mask
-  if(!is.null(include.mask))
-    data[include.mask] <- NA
-
+running.quantile <- function(data, n, q, dpy) {
   ret <- .Call("running_quantile_windowed", data, n, q, dpy)
   dim(ret) <- c(length(q), dpy)
   ##browser()
