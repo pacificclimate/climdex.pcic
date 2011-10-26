@@ -23,6 +23,8 @@
     \item{base.range}{Date range (type PCICt) of baseline period.}
     \item{annual.factor}{Factor used for creation of annual indices.}
     \item{monthly.factor}{Factor used for creation of monthly indices.}
+    \item{northern.hemisphere}{Boolean used when computing growing
+      season length.}
   }
 }
 \details{
@@ -53,6 +55,14 @@
   
   The \code{base.range} slot contains vector of type PCICt containing
   the first and last day included in the baseline.
+
+  The \code{northern.hemisphere} slot contains a boolean indicating
+  whether the data came from the northern hemisphere. If FALSE, data is
+  assumed to have come from the southern hemisphere. This is used when
+  computing growing season length; if the data is from the southern
+  hemisphere, growing season length is the growing season starting in
+  the beginning of July of the year indicated, running to the end of
+  June of the following year.
 
   The \code{pctile} slot contains the 95th and 99th percentile values
   for the precipitation percentiles, computed on the base period.

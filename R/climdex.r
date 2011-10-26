@@ -67,7 +67,8 @@ setClass("climdexInput",
                         dates = "PCICt",
                         base.range = "PCICt",
                         annual.factor = "factor",
-                        monthly.factor = "factor"),
+                        monthly.factor = "factor",
+                        northern.hemisphere = "logical"),
          validity=valid.climdexInput
          )
 
@@ -175,7 +176,7 @@ get.num.days.in.range <- function(x, date.range) {
   
 }
 
-climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), n=5) {
+climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE) {
   if(length(tmin) != length(tmin.dates))
     stop("Length of tmin data and tmin dates do not match.")
   
@@ -210,7 +211,7 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   year.range <- as.numeric(strftime(date.range, "%Y", tz="GMT"))
   new.date.range <- as.PCICt(paste(year.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
-  
+
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
   monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
   
@@ -224,7 +225,7 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
 
   namask.ann <- do.call(data.frame, lapply(filled.list, get.na.mask, annual.factor, 15))
   colnames(namask.ann) <- filled.list.names
-  
+
   namask.mon <- do.call(data.frame, lapply(filled.list, get.na.mask, monthly.factor, 3))
   colnames(namask.mon) <- filled.list.names
 
@@ -241,10 +242,10 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   names(bs.pctile) <- c("tmax10", "tmax90", "tmin10", "tmin90")
   names(pctile) <- c("precwet95", "precwet99")
   
-  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=bs.pctile.base, running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor))
+  return(new("climdexInput", tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec, namask.ann=namask.ann, namask.mon=namask.mon, running.pctile.base=bs.pctile.base, running.pctile.notbase=bs.pctile, pctile=pctile, dates=date.series, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor, northern.hemisphere=northern.hemisphere))
 }
 
-climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), na.strings=NULL, cal="gregorian", date.types=NULL, n=5) {
+climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), na.strings=NULL, cal="gregorian", date.types=NULL, n=5, northern.hemisphere=TRUE) {
   if(sum(c("tmax", "tmin", "prec") %in% names(data.columns)) != 3)
     stop("Must specify names of all data columns (tmin, tmax, prec).")
 
@@ -271,7 +272,7 @@ climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(
   tmax.dates <- get.date.field(tmax.dat, cal, date.types)
   prec.dates <- get.date.field(prec.dat, cal, date.types)
 
-  return(climdexInput.raw(tmax.dat[,data.columns$tmax], tmin.dat[,data.columns$tmin], prec.dat[,data.columns$prec], tmax.dates, tmin.dates, prec.dates, base.range))
+  return(climdexInput.raw(tmax.dat[,data.columns$tmax], tmin.dat[,data.columns$tmin], prec.dat[,data.columns$prec], tmax.dates, tmin.dates, prec.dates, base.range, n, northern.hemisphere))
 }
 
 ## Temperature units: degrees C
@@ -291,7 +292,16 @@ climdex.id <- function(ci) { return(number.days.op.threshold(ci@tmax, ci@annual.
 climdex.tr <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.factor, 20, ">") * ci@namask.ann$tmin) }
 
 ## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1. Creates GSL 1 day longer than fclimdex due to off-by-one in fclimdex.
-climdex.gsl <- function(ci) { return(growing.season.length(ci@tavg, ci@annual.factor) * ci@namask.ann$tavg) }
+climdex.gsl <- function(ci) {
+  ## Gotta shift dates so that July 1 is considered Jan 1 of same year in southern hemisphere
+  if(ci@northern.hemisphere) {
+    return(growing.season.length(ci@tavg, ci@annual.factor) * ci@namask.ann$tavg)
+  } else {    
+    gsl.factor <- factor(strftime(ci@dates + 86400 * attr(ci@dates, "dpy") / 2, "%Y", tz="GMT"))
+    namask.gsl <- get.na.mask(ci@tavg, gsl.factor, 15)
+    return(growing.season.length(ci@tavg, gsl.factor) * namask.gsl)
+  }
+}
 
 ## TXx: Monthly. Exact match.
 climdex.txx <- function(ci) { return(tapply.fast(ci@tmax, ci@monthly.factor, max) * ci@namask.mon$tmax) }

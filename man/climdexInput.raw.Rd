@@ -7,12 +7,12 @@
 }
 \usage{
 climdexInput.raw(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates,
-  base.range=c(1961, 1990), n=5)
+  base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE)
 
 climdexInput.csv(tmax.file, tmin.file, prec.file,
   data.columns=list(tmin="tmin", tmax="tmax", prec="prec"),
   base.range=c(1961, 1990), na.strings=NULL, cal="gregorian",
-  date.types=NULL, n=5)
+  date.types=NULL, n=5, northern.hemisphere=TRUE)
 }
 \arguments{
   \item{tmax}{Daily maximum temperature data.}
@@ -30,6 +30,7 @@ climdexInput.csv(tmax.file, tmin.file, prec.file,
   \item{cal}{The calendar type used in the input files.}
   \item{base.range}{Years to use for the baseline.}
   \item{n}{Number of days to use as window for daily quantiles.}
+  \item{northern.hemisphere}{Whether this point is in the northern hemisphere.}
 }
 
 \details{
@@ -87,6 +88,14 @@ climdexInput.csv(tmax.file, tmin.file, prec.file,
   computing the percentiles used in \code{\link{climdex.tx10p}},
   \code{\link{climdex.tn10p}}, \code{\link{climdex.tx90p}}, and
   \code{\link{climdex.tn90p}}.
+
+  The \code{northern.hemisphere} argument specifies whether the data
+  came from the northern hemisphere. If FALSE, data is assumed to have
+  come from the southern hemisphere. This is used when computing growing
+  season length; if the data is from the southern hemisphere, growing
+  season length is the growing season starting in the beginning of July
+  of the year indicated, running to the end of June of the following
+  year.
 }
 
 \examples{
