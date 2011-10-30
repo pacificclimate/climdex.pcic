@@ -47,6 +47,9 @@ valid.climdexInput <- function(x) {
 
   if(sum(pctile.names %in% names(x@pctile)) != length(pctile.names))
     errors <- c(errors, "pctile does not contain at least one of precwet95 and precwet99.")
+
+  if(length(x@northern.hemisphere) != 1)
+    errors <- c(errors, "northern.hemisphere must be of length 1.")
   
   if(length(errors) == 0)
     return(TRUE)
@@ -88,7 +91,7 @@ get.date.field <- function(input.data, cal, date.types) {
 create.filled.series <- function(data, data.dates, new.date.sequence) {
   new.data <- rep(NA, length(new.date.sequence))
   data.in.new.data <- (data.dates >= new.date.sequence[1]) & (data.dates <= new.date.sequence[length(new.date.sequence)])
-  indices <- round(as.numeric(data.dates[data.in.new.data] - new.date.sequence[1], units="days")) + 1
+  indices <- floor(as.numeric(data.dates[data.in.new.data] - new.date.sequence[1], units="days")) + 1
   new.data[indices] <- data[data.in.new.data]
   return(new.data)
 }
@@ -294,12 +297,13 @@ climdex.tr <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.
 ## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1. Creates GSL 1 day longer than fclimdex due to off-by-one in fclimdex.
 climdex.gsl <- function(ci) {
   ## Gotta shift dates so that July 1 is considered Jan 1 of same year in southern hemisphere
+  ts.mid <- as.numeric(strftime(as.PCICt("1961-07-01", attr(ci@dates, "cal")), "%j"))
   if(ci@northern.hemisphere) {
-    return(growing.season.length(ci@tavg, ci@annual.factor) * ci@namask.ann$tavg)
+    return(growing.season.length(ci@tavg, ci@annual.factor, ts.mid) * ci@namask.ann$tavg)
   } else {    
-    gsl.factor <- factor(strftime(ci@dates + 86400 * attr(ci@dates, "dpy") / 2, "%Y", tz="GMT"))
+    gsl.factor <- factor(strftime(ci@dates + 86400 * ts.mid, "%Y", tz="GMT"))
     namask.gsl <- get.na.mask(ci@tavg, gsl.factor, 15)
-    return(growing.season.length(ci@tavg, gsl.factor) * namask.gsl)
+    return((growing.season.length(ci@tavg, gsl.factor, ts.mid) * namask.gsl)[1:(length(namask.gsl) - 1)])
   }
 }
 
@@ -412,7 +416,7 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 ## Meaningless if not annual
 ## Time series must be contiguous
 ## NOTE: There is a difference of 1 between our output and fclimdex. See line 637; consider case where start and end day are same. Correct answer is 1 day GSL; their answer is 0 day.
-growing.season.length <- function(daily.mean.temp, date.factor,
+growing.season.length <- function(daily.mean.temp, date.factor, ts.mid,
                                   min.length=6, t.thresh=5) {
   return(tapply.fast(daily.mean.temp, date.factor, function(ts) {
     ts.len<- length(ts)
@@ -448,7 +452,7 @@ percent.days.op.threshold <- function(temp, dates, date.factor, threshold.outsid
     years.base.range <- range(years.base)
     byrs <- (years.base.range[2] - years.base.range[1] + 1)
     year.base.list <- years.base.range[1]:years.base.range[2]
-
+    
     d <- lapply(1:byrs, function(x) { yset <-  which(years.base == year.base.list[x]); sapply(1:(byrs - 1), function(y) { f(temp.base[yset], base.thresholds[jdays.base[yset],x,y]) } ) })
     ## This repeats a bug (or at least, debatable decision) in fclimdex where they always divide by byrs - 1 even when there are NAs (missing values) in the thresholds
     dat[inset] <- unlist(lapply(d, apply, 1, function(x) { sum(as.numeric(x), na.rm=TRUE) } ) ) / (byrs - 1)

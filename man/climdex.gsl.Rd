@@ -31,11 +31,7 @@ climdex.gsl(ci)
   hemisphere, we suggest you move the data forward or backwards by six
   months.
   
-  Note that our implementation uses the middle of the year as the
-  midpoint. This differs from the Climdex definition, which uses July
-  1st. We don't believe this will cause differences in practice.
-
-  Also note that fclimdex contains a bug which causes it to report 1
+  Note that fclimdex contains a bug which causes it to report 1
   less day for the growing season length than it should. Therefore
   \code{climdex.gsl} will produce slightly longer growing seasons than
   fclimdex.
