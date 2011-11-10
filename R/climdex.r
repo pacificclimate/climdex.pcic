@@ -144,13 +144,12 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
       replace.index <- window + (1:dpy) + ((idx.to.replace.with - 1) * dpy)
       bs.data[omit.index] <- bs.data[replace.index]
       return(running.quantile(bs.data, n, qtiles, dpy))
-    }))
-  } )
-  
-  dim(d) <- c(dpy, length(qtiles), nyears - 1, nyears)
+    }, simplify="array"))
+  }, simplify="array" )
+
   d <- aperm(d, perm=c(1, 4, 3, 2))
   ## new dims: dpy, nyears, nyears-1, length(quantiles)
-
+  
   return(lapply(1:length(qtiles), function(x) { d[,,,x] }))
 }
 
@@ -206,9 +205,8 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   ## Get all dates for baseline work
   bs.date.range <- as.PCICt(paste(base.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
   bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
-  bs.win.year.range <- as.PCICt(paste(as.numeric(strftime(bs.win.date.range, "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
-  bs.date.series <- seq(bs.win.year.range[1], bs.win.year.range[2], by="day")
-
+  bs.date.series <- seq(bs.win.date.range[1], bs.win.date.range[2], by="day")
+  
   ## Check that the base range includes at least a month's worth of data for each variable.
   if(!all(sapply(list(tmax.dates, tmin.dates, prec.dates), get.num.days.in.range, bs.date.range) > 30))
     warning("There is less than a month of data for at least one of tmin, tmax, and prec. Consider revising your base range and/or check your input data.")
@@ -241,8 +239,8 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   ## Pad data passed as base if we're missing endpoints...
   filled.list.base <- list(tmax=create.filled.series(filled.tmax, date.series, bs.date.series), tmin=create.filled.series(filled.tmin, date.series, bs.date.series))
 
-  bs.pctile.base <- do.call(c, lapply(filled.list.base[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
-  bs.pctile <- do.call(data.frame, lapply(filled.list.base[1:2], zhang.running.qtile, date.series, date.series, c(0.1, 0.9), bs.date.range, n=n))
+  bs.pctile.base <- do.call(c, lapply(filled.list.base[1:2], zhang.bootstrap.qtile, bs.date.series, c(0.1, 0.9), bs.date.range, n=n))
+  bs.pctile <- do.call(data.frame, lapply(filled.list.base[1:2], zhang.running.qtile, date.series, bs.date.series, c(0.1, 0.9), bs.date.range, n=n))
 
   inset <- date.series >= bs.date.range[1] & date.series <= bs.date.range[2] & !is.na(filled.prec) & wet.days
   pctile <- quantile(filled.prec[inset], c(0.95, 0.99))
@@ -527,7 +525,6 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 running.quantile <- function(data, n, q, dpy) {
   ret <- .Call("running_quantile_windowed", data, n, q, dpy, DUP=FALSE)
   dim(ret) <- c(length(q), dpy)
-  ##browser()
   return(t(ret))
 }
 

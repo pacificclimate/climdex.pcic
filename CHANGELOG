@@ -1,6 +1,7 @@
 0.4-1: MAJOR BUG FIXES (changes results): 
- - r99ptot and r95ptot were using incorrect quantiles (all data, not just the base period).
- - Growing season length in Southern Hemisphere was off by 1 year.
+ - r99ptot and r95ptot were using incorrect quantiles (all data, not just the base period). AFFECTS ALL PREVIOUS VERSIONS.
+ - Growing season length in Southern Hemisphere was off by 1 year. Does not affect publicly released versions.
+Minor bug fix:
  - Fix bug which caused extra year to be included in data when data starts at base period start.
 
 0.3.1-1: Fix introduced issue which broke calculation of GSL for Gregorian calendars; in process, fixed GSL to use July 1st as center.
