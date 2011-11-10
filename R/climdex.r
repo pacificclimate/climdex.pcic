@@ -202,43 +202,49 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   last.day.of.year <- "12-31"
   if(!is.null(attr(tmax.dates, "months")))
     last.day.of.year <- paste("12", attr(tmax.dates, "months")[12], sep="-")
+
+  ## Get all dates for baseline work
   bs.date.range <- as.PCICt(paste(base.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
+  bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
+  bs.win.year.range <- as.PCICt(paste(as.numeric(strftime(bs.win.date.range, "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
+  bs.date.series <- seq(bs.win.year.range[1], bs.win.year.range[2], by="day")
 
   ## Check that the base range includes at least a month's worth of data for each variable.
   if(!all(sapply(list(tmax.dates, tmin.dates, prec.dates), get.num.days.in.range, bs.date.range) > 30))
     warning("There is less than a month of data for at least one of tmin, tmax, and prec. Consider revising your base range and/or check your input data.")
 
-  bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
-  all.dates <- c(tmin.dates, tmax.dates, prec.dates, bs.win.date.range)
-  date.range <- range(all.dates)
-  year.range <- as.numeric(strftime(date.range, "%Y", tz="GMT"))
-  new.date.range <- as.PCICt(paste(year.range, c("01-01", last.day.of.year), sep="-"), cal=cal)
+  ## Get dates for normal data
+  all.dates <- c(tmin.dates, tmax.dates, prec.dates)
+  new.date.range <- as.PCICt(paste(as.numeric(strftime(range(all.dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
 
+  ## Factors for dividing data up
   annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
   monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
-  
+
+  ## Filled data...
   filled.tmax <- create.filled.series(tmax, tmax.dates, date.series)
   filled.tmin <- create.filled.series(tmin, tmin.dates, date.series)
   filled.prec <- create.filled.series(prec, prec.dates, date.series)
   filled.tavg <- (filled.tmax + filled.tmin) / 2
+  filled.list <- list(tmax=filled.tmax, tmin=filled.tmin, tavg=filled.tavg, prec=filled.prec)
+  filled.list.names <- names(filled.list)
 
-  filled.list <- list(filled.tmax, filled.tmin, filled.tavg, filled.prec)
-  filled.list.names <- c("tmax", "tmin", "tavg", "prec")
-
+  ## NA masks
   namask.ann <- do.call(data.frame, lapply(filled.list, get.na.mask, annual.factor, 15))
-  colnames(namask.ann) <- filled.list.names
-
   namask.mon <- do.call(data.frame, lapply(filled.list, get.na.mask, monthly.factor, 3))
-  colnames(namask.mon) <- filled.list.names
+  colnames(namask.ann) <- colnames(namask.mon) <- filled.list.names
 
   ## DeMorgan's laws FTW
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
 
-  bs.pctile.base <- do.call(c, lapply(filled.list[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
-  bs.pctile <- do.call(data.frame, lapply(filled.list[1:2], zhang.running.qtile, date.series, date.series, c(0.1, 0.9), bs.date.range, n=n))
+  ## Pad data passed as base if we're missing endpoints...
+  filled.list.base <- list(tmax=create.filled.series(filled.tmax, date.series, bs.date.series), tmin=create.filled.series(filled.tmin, date.series, bs.date.series))
 
-  inset <- date.series >= new.date.range[1] & date.series <= new.date.range[2] & !is.na(filled.prec) & wet.days
+  bs.pctile.base <- do.call(c, lapply(filled.list.base[1:2], zhang.bootstrap.qtile, date.series, c(0.1, 0.9), bs.date.range, n=n))
+  bs.pctile <- do.call(data.frame, lapply(filled.list.base[1:2], zhang.running.qtile, date.series, date.series, c(0.1, 0.9), bs.date.range, n=n))
+
+  inset <- date.series >= bs.date.range[1] & date.series <= bs.date.range[2] & !is.na(filled.prec) & wet.days
   pctile <- quantile(filled.prec[inset], c(0.95, 0.99))
   
   names(bs.pctile.base) <- c("tmax10", "tmax90", "tmin10", "tmin90")
@@ -301,9 +307,14 @@ climdex.gsl <- function(ci) {
   if(ci@northern.hemisphere) {
     return(growing.season.length(ci@tavg, ci@annual.factor, ts.mid) * ci@namask.ann$tavg)
   } else {    
-    gsl.factor <- factor(strftime(ci@dates + 86400 * ts.mid, "%Y", tz="GMT"))
-    namask.gsl <- get.na.mask(ci@tavg, gsl.factor, 15)
-    return((growing.season.length(ci@tavg, gsl.factor, ts.mid) * namask.gsl)[1:(length(namask.gsl) - 1)])
+    gsl.dates <- ci@dates - 86400 * ts.mid
+    valid.date.range <- range(ci@dates)
+    inset <- gsl.dates >= valid.date.range[1] & gsl.dates <= valid.date.range[2]
+    gsl.factor <- factor(strftime(gsl.dates[inset], "%Y", tz="GMT"))
+    gsl.temp.data <- ci@tavg[inset]
+    namask.gsl <- get.na.mask(gsl.temp.data, gsl.factor, 15)
+    namask.gsl[length(namask.gsl)] <- NA
+    return((growing.season.length(gsl.temp.data, gsl.factor, ts.mid) * namask.gsl))
   }
 }
 

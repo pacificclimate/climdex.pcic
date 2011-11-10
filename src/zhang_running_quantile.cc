@@ -57,7 +57,6 @@ extern "C" {
     const int true_data_length = data_length - 2 * win_border;
     const int days_per_year = INTEGER(dpy)[0];
     const int num_years = (int)ceil((double)true_data_length / (double)days_per_year);
-    const int repeated_data_size = num_years * (days_per_year + 2 * win_border);
     const int nq = length(q);
     const double* q_ptr = REAL(q);
     const double* data_ptr = REAL(data);
