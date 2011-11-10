@@ -31,10 +31,17 @@ climdex.gsl(ci)
   hemisphere, we suggest you move the data forward or backwards by six
   months.
   
-  Note that fclimdex contains a bug which causes it to report 1
-  less day for the growing season length than it should. Therefore
-  \code{climdex.gsl} will produce slightly longer growing seasons than
-  fclimdex.
+  Note that fclimdex contains a number of bugs with growing season
+  length. These include:
+  \itemize{
+    \item{Reporting 1 less day of growing season than it should.}
+    \item{Reporting a maximum of n-6 days of growing season in the
+      tropics.}
+    \item{Invalid results in the southern hemisphere overall.}
+  }
+
+  Because of these issues, do not expect identical results from fclimdex
+  and climdex.pcic .
 }
 
 \value{
