@@ -305,7 +305,7 @@ climdex.gsl <- function(ci) {
   if(ci@northern.hemisphere) {
     return(growing.season.length(ci@tavg, ci@annual.factor, ts.mid) * ci@namask.ann$tavg)
   } else {    
-    gsl.dates <- ci@dates - 86400 * ts.mid
+    gsl.dates <- ci@dates - 86400 * (ts.mid - 1)
     valid.date.range <- range(ci@dates)
     inset <- gsl.dates >= valid.date.range[1] & gsl.dates <= valid.date.range[2]
     gsl.factor <- factor(strftime(gsl.dates[inset], "%Y", tz="GMT"))
@@ -429,12 +429,11 @@ growing.season.length <- function(daily.mean.temp, date.factor, ts.mid,
                                   min.length=6, t.thresh=5) {
   return(tapply.fast(daily.mean.temp, date.factor, function(ts) {
     ts.len<- length(ts)
-    ts.mid <- floor(ts.len / 2)
     gs.begin <- which(select.blocks.gt.length(ts[1:(ts.mid-1)] > t.thresh, min.length - 1))
 
     ## Growing season actually ends the day -before- the sequence of sketchy days
     gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < t.thresh, min.length - 1)) - 1
-
+    
     if(length(gs.begin) == 0) {
       return(0)
     } else if(length(gs.end) == 0) {
