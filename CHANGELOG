@@ -1,3 +1,7 @@
+0.5-1: Feature additions:
+ - Add option to produce output for rx5day that matches fclimdex
+ - Add output of annual variables for TXx, TNx, TXn, TNn, TN/TX 10/90p, DTR, Rx1day, Rx5day.
+
 0.4-1: MAJOR BUG FIXES (changes results): 
  - r99ptot and r95ptot were using incorrect quantiles (all data, not just the base period). AFFECTS ALL PREVIOUS VERSIONS.
  - Growing season length in Southern Hemisphere was off by 1 year. Does not affect publicly released versions.

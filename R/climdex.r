@@ -113,7 +113,7 @@ get.bootstrap.set <- function(dates, bootstrap.range, win.size) {
   return(dates >= bootstrap.win.range[1] & dates <= bootstrap.win.range[2] & strftime(dates, format="%m-%d", tz="GMT") != "02-29")
 }
 
-## Input is: bootstrap range, vector of 2 POSIXct, win.size is window size in days (single integer)
+## Input is: bootstrap range, vector of 2 PCICt, win.size is window size in days (single integer)
 get.bootstrap.windowed.range <- function(bootstrap.range, win.size) {
   ## Changed due to a bug in PCICt
   ##window <- as.difftime(floor(win.size / 2), units="days")
@@ -121,7 +121,7 @@ get.bootstrap.windowed.range <- function(bootstrap.range, win.size) {
   return(c(bootstrap.range[1] - window, bootstrap.range[2] + window))
 }
 
-## Expects POSIXct for all dates
+## Expects PCICt for all dates
 ## Do the Zhang boostrapping method described in Xuebin Zhang et al's 2005 paper, "Avoiding Inhomogeneity in Percentile-Based Indices of Temperature Extremes" J.Clim vol 18 pp.1647-1648, "Removing the 'jump'".
 zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mask=NULL, n=5) {
   window <- floor(n / 2)
@@ -240,7 +240,7 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   filled.list.base <- list(tmax=create.filled.series(filled.tmax, date.series, bs.date.series), tmin=create.filled.series(filled.tmin, date.series, bs.date.series))
 
   bs.pctile.base <- do.call(c, lapply(filled.list.base[1:2], zhang.bootstrap.qtile, bs.date.series, c(0.1, 0.9), bs.date.range, n=n))
-  bs.pctile <- do.call(data.frame, lapply(filled.list.base[1:2], zhang.running.qtile, date.series, bs.date.series, c(0.1, 0.9), bs.date.range, n=n))
+  bs.pctile <- do.call(data.frame, lapply(filled.list.base[1:2], zhang.running.qtile, dates=date.series, dates.base=bs.date.series, qtiles=c(0.1, 0.9), bootstrap.range=bs.date.range, n=n))
 
   inset <- date.series >= bs.date.range[1] & date.series <= bs.date.range[2] & !is.na(filled.prec) & wet.days
   pctile <- quantile(filled.prec[inset], c(0.95, 0.99))
@@ -358,7 +358,7 @@ climdex.rx1day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly
 
 ## Rx5day: Monthly. Code should be correct.
 ## fclimdex implements Rx5day incorrectly; the running sum series is off by 2 days, and the first day a running sum can be computed for is left out entirely. This results in wet days near a month boundary going into a different month.
-climdex.rx5day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5) * ci@namask.mon$prec) }
+climdex.rx5day <- function(ci, shift.2days.right=FALSE) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5, shift.2days.right) * ci@namask.mon$prec) }
 
 ## SDII: Annual. Small differences due to fclimdex's rounding to 1 decimal place.
 climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
@@ -487,7 +487,8 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 }
 
 ## Rx1day, Rx5day
-max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
+## Setting shift.2days.right to TRUE reproduces a bug in RX5day in fclimdex, making the results identical
+max.nday.consec.prec <- function(daily.prec, date.factor, ndays, shift.2days.right=FALSE) {
   if(ndays == 1) {
     return(tapply.fast(daily.prec, date.factor, max))
   } else {
@@ -495,8 +496,8 @@ max.nday.consec.prec <- function(daily.prec, date.factor, ndays) {
     new.series <- c(rep(0, floor(ndays / 2)), daily.prec, rep(0, floor(ndays / 2)))
     new.series[is.na(new.series)] <- 0
     prec.runsum <- runmean(new.series, k=ndays, endrule="trim") * ndays
-    ## Uncommenting this introduces the bug in RX5day in fclimdex, making the results identical
-    ##prec.runsum <- c(0, 0, prec.runsum[1:(length(prec.runsum) - floor(ndays / 2))])
+    if(shift.2days.right)
+      prec.runsum <- c(0, 0, prec.runsum[1:(length(prec.runsum) - floor(ndays / 2))])
     return(tapply.fast(prec.runsum, date.factor, max))
   }
 }

@@ -11,6 +11,8 @@ climdex.rx1day(ci)
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
+  \item{shift.2days.right}{Whether to shift the timeseries 2 days to the
+    right before reducing to a monthly maximum.}
 }
 
 \details{
@@ -27,11 +29,12 @@ climdex.rx1day(ci)
 }
 
 \note{
-  Behaviour of climdex.rx5day differs somewhat from fclimdex, as
-  fclimdex contains a bug. The running sum series computed by fclimdex
-  is off by 2 days, and the first day a running sum can be computed for
-  is left out entirely. This can result in wet periods near a month
-  boundary going into a different month.
+  The default behaviour of climdex.rx5day differs somewhat from
+  fclimdex, as fclimdex and climdex.pcic differ on the definition of
+  Rx5day. The running sum series computed by fclimdex is off by 2 days,
+  and the first day a running sum can be computed for is left out
+  entirely. The behaviour of fclimdex can be replicated by setting
+  shift.2days.right to TRUE.
 }
 
 \examples{
