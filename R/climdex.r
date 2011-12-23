@@ -163,7 +163,7 @@ zhang.running.qtile <- function(x, dates, dates.base, qtiles, bootstrap.range, i
 
   bs.data <- x[inset]
 
-  d <- apply(running.quantile(bs.data, n, qtiles, dpy), 2, function(x) { return(x[jdays.idx]) } )
+  d <- apply(running.quantile(bs.data, n, qtiles, dpy), 2, function(qtile.for.days) { return(qtile.for.days[jdays.idx]) } )
 
   row.names(d) <- NULL
   return(d)
@@ -282,6 +282,8 @@ climdexInput.csv <- function(tmax.file, tmin.file, prec.file, data.columns=list(
   return(climdexInput.raw(tmax.dat[,data.columns$tmax], tmin.dat[,data.columns$tmin], prec.dat[,data.columns$prec], tmax.dates, tmin.dates, prec.dates, base.range, n, northern.hemisphere))
 }
 
+freq.to.factor <- function(ci, freq) { switch(freq, annual=ci@annual.factor, monthly=ci@monthly.factor, NULL) }
+
 ## Temperature units: degrees C
 ## Precipitation units: mm per unit time
 
@@ -299,11 +301,11 @@ climdex.id <- function(ci) { return(number.days.op.threshold(ci@tmax, ci@annual.
 climdex.tr <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.factor, 20, ">") * ci@namask.ann$tmin) }
 
 ## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1. Creates GSL 1 day longer than fclimdex due to off-by-one in fclimdex.
-climdex.gsl <- function(ci) {
+climdex.gsl <- function(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")) {
   ## Gotta shift dates so that July 1 is considered Jan 1 of same year in southern hemisphere
   ts.mid <- as.numeric(strftime(as.PCICt("1961-07-01", attr(ci@dates, "cal")), "%j"))
   if(ci@northern.hemisphere) {
-    return(growing.season.length(ci@tavg, ci@annual.factor, ts.mid) * ci@namask.ann$tavg)
+    return(growing.season.length(ci@tavg, ci@annual.factor, ts.mid, gsl.mode=match.arg(gsl.mode)) * ci@namask.ann$tavg)
   } else {    
     gsl.dates <- ci@dates - 86400 * (ts.mid - 1)
     valid.date.range <- range(ci@dates)
@@ -312,36 +314,36 @@ climdex.gsl <- function(ci) {
     gsl.temp.data <- ci@tavg[inset]
     namask.gsl <- get.na.mask(gsl.temp.data, gsl.factor, 15)
     namask.gsl[length(namask.gsl)] <- NA
-    return((growing.season.length(gsl.temp.data, gsl.factor, ts.mid) * namask.gsl))
+    return((growing.season.length(gsl.temp.data, gsl.factor, ts.mid, gsl.mode=match.arg(gsl.mode)) * namask.gsl))
   }
 }
 
 ## TXx: Monthly. Exact match.
-climdex.txx <- function(ci) { return(tapply.fast(ci@tmax, ci@monthly.factor, max) * ci@namask.mon$tmax) }
+climdex.txx <- function(ci, freq=c("monthly", "annual")) { return(tapply.fast(ci@tmax, freq.to.factor(ci, match.arg(freq)), max) * ci@namask.mon$tmax) }
 
 ## TNx: Monthly. Exact match.
-climdex.tnx <- function(ci) { return(tapply.fast(ci@tmin, ci@monthly.factor, max) * ci@namask.mon$tmin) }
+climdex.tnx <- function(ci, freq=c("monthly", "annual")) { return(tapply.fast(ci@tmin, freq.to.factor(ci, match.arg(freq)), max) * ci@namask.mon$tmin) }
 
 ## TXn: Monthly. Exact match.
-climdex.txn <- function(ci) { return(tapply.fast(ci@tmax, ci@monthly.factor, min) * ci@namask.mon$tmax) }
+climdex.txn <- function(ci, freq=c("monthly", "annual")) { return(tapply.fast(ci@tmax, freq.to.factor(ci, match.arg(freq)), min) * ci@namask.mon$tmax) }
 
 ## TNn: Monthly. Exact match.
-climdex.tnn <- function(ci) { return(tapply.fast(ci@tmin, ci@monthly.factor, min) * ci@namask.mon$tmin) }
+climdex.tnn <- function(ci, freq=c("monthly", "annual")) { return(tapply.fast(ci@tmin, freq.to.factor(ci, match.arg(freq)), min) * ci@namask.mon$tmin) }
 
 ## TN10p: Monthly. Pattern matches, but still significant differences.
 ## Our implementation currently follows the example set by fclimdex for dealing with missing values, which is wrong; it biases results upwards when missing values are present.
 #percent.days.op.threshold <- function(temp, dates, annual.factor, threshold.outside.base, base.thresholds, base.range, op='<') {
 
-climdex.tn10p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@dates, ci@monthly.factor, ci@running.pctile.notbase$tmin10, ci@running.pctile.base$tmin10, ci@base.range, "<") * ci@namask.mon$tmin) }
+climdex.tn10p <- function(ci, freq=c("monthly", "annual")) { return(percent.days.op.threshold(ci@tmin, ci@dates, freq.to.factor(ci, match.arg(freq)), ci@running.pctile.notbase$tmin10, ci@running.pctile.base$tmin10, ci@base.range, "<") * ci@namask.mon$tmin) }
 
 ## TX10p: Monthly. Pattern matches, but still significant differences.
-climdex.tx10p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@dates, ci@monthly.factor, ci@running.pctile.notbase$tmax10, ci@running.pctile.base$tmax10, ci@base.range, "<") * ci@namask.mon$tmax) }
+climdex.tx10p <- function(ci, freq=c("monthly", "annual")) { return(percent.days.op.threshold(ci@tmax, ci@dates, freq.to.factor(ci, match.arg(freq)), ci@running.pctile.notbase$tmax10, ci@running.pctile.base$tmax10, ci@base.range, "<") * ci@namask.mon$tmax) }
 
 ## TN90p: Monthly. Pattern matches, but still significant differences.
-climdex.tn90p <- function(ci) { return(percent.days.op.threshold(ci@tmin, ci@dates, ci@monthly.factor, ci@running.pctile.notbase$tmin90, ci@running.pctile.base$tmin90, ci@base.range, ">") * ci@namask.mon$tmin) }
+climdex.tn90p <- function(ci, freq=c("monthly", "annual")) { return(percent.days.op.threshold(ci@tmin, ci@dates, freq.to.factor(ci, match.arg(freq)), ci@running.pctile.notbase$tmin90, ci@running.pctile.base$tmin90, ci@base.range, ">") * ci@namask.mon$tmin) }
 
 ## TX90p: Monthly. Pattern matches, but still significant differences.
-climdex.tx90p <- function(ci) { return(percent.days.op.threshold(ci@tmax, ci@dates, ci@monthly.factor, ci@running.pctile.notbase$tmax90, ci@running.pctile.base$tmax90, ci@base.range, ">") * ci@namask.mon$tmax) }
+climdex.tx90p <- function(ci, freq=c("monthly", "annual")) { return(percent.days.op.threshold(ci@tmax, ci@dates, freq.to.factor(ci, match.arg(freq)), ci@running.pctile.notbase$tmax90, ci@running.pctile.base$tmax90, ci@base.range, ">") * ci@namask.mon$tmax) }
 
 ## WSDI: Annual. Significant differences.
 ## fclimdex implements CSDI and WSDI incorrectly; it adds the entire spell to the year in which the spell ended. This code sums up the days which were part of the spell.
@@ -351,14 +353,14 @@ climdex.wsdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tma
 climdex.csdi <- function(ci) { return(threshold.exceedance.duration.index(ci@tmin, ci@annual.factor, ci@running.pctile.notbase$tmin10, "<") * ci@namask.ann$tavg) }
 
 ## DTR: Monthly. Differences in some samples at the 3rd decimal place.
-climdex.dtr <- function(ci) { return(mean.daily.temp.range(ci@tmax, ci@tmin, ci@monthly.factor) * ci@namask.mon$tavg) }
+climdex.dtr <- function(ci, freq=c("monthly", "annual")) { return(mean.daily.temp.range(ci@tmax, ci@tmin, freq.to.factor(ci, match.arg(freq))) * ci@namask.mon$tavg) }
 
 ## Rx1day: Monthly. Exact match.
-climdex.rx1day <- function(ci) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 1) * ci@namask.mon$prec) }
+climdex.rx1day <- function(ci, freq=c("monthly", "annual")) { return(max.nday.consec.prec(ci@prec, freq.to.factor(ci, match.arg(freq)), 1) * ci@namask.mon$prec) }
 
 ## Rx5day: Monthly. Code should be correct.
 ## fclimdex implements Rx5day incorrectly; the running sum series is off by 2 days, and the first day a running sum can be computed for is left out entirely. This results in wet days near a month boundary going into a different month.
-climdex.rx5day <- function(ci, shift.2days.right=FALSE) { return(max.nday.consec.prec(ci@prec, ci@monthly.factor, 5, shift.2days.right) * ci@namask.mon$prec) }
+climdex.rx5day <- function(ci, freq=c("monthly", "annual"), shift.2days.right=FALSE) { return(max.nday.consec.prec(ci@prec, freq.to.factor(ci, match.arg(freq)), 5, shift.2days.right) * ci@namask.mon$prec) }
 
 ## SDII: Annual. Small differences due to fclimdex's rounding to 1 decimal place.
 climdex.sdii <- function(ci) { return(simple.precipitation.intensity.index(ci@prec, ci@annual.factor) * ci@namask.ann$prec) }
@@ -392,21 +394,21 @@ climdex.r99ptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@a
 ## PRCPTOT: Annual. Exact match.
 climdex.prcptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
 
-all.indicies <- c('fd', 'su', 'id', 'tr', 'gsl', 'txx', 'tnx', 'txn', 'tnn', 'tn10p', 'tx10p', 'tn90p', 'tx90p', 'wsdi', 'csdi',
-                  'dtr', 'rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot')
+all.indices <- c('fd', 'su', 'id', 'tr', 'gsl', 'txx', 'tnx', 'txn', 'tnn', 'tn10p', 'tx10p', 'tn90p', 'tx90p', 'wsdi', 'csdi',
+                 'dtr', 'rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot')
 
 ##
 ## HELPERS FINISHED. IMPLEMENTATIION BELOW.
 ##
 
 
-get.series.lengths.at.ends <- function(x) {
+get.series.lengths.at.ends <- function(x, na.value=FALSE) {
   n <- length(x)
   if(n == 1)
     return(as.numeric(x))
 
   res <- rep(0, n)
-  x[is.na(x)] <- FALSE
+  x[is.na(x)] <- na.value
 
   ## Compare series to lag-1 and lag+1 series; false added to trigger state transition from TRUE at ends of series
   start <- which(x & !(c(FALSE, x[1:(n - 1)])))
@@ -422,26 +424,30 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 }
 
 ## GSL
-## Meaningless if not annual
+## The default mode is meaningless if not annual
 ## Time series must be contiguous
 ## NOTE: There is a difference of 1 between our output and fclimdex. See line 637; consider case where start and end day are same. Correct answer is 1 day GSL; their answer is 0 day.
 growing.season.length <- function(daily.mean.temp, date.factor, ts.mid,
-                                  min.length=6, t.thresh=5) {
-  return(tapply.fast(daily.mean.temp, date.factor, function(ts) {
-    ts.len<- length(ts)
-    gs.begin <- which(select.blocks.gt.length(ts[1:(ts.mid-1)] > t.thresh, min.length - 1))
-
-    ## Growing season actually ends the day -before- the sequence of sketchy days
-    gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < t.thresh, min.length - 1)) - 1
+                                  min.length=6, t.thresh=5, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")) {
+  gsl.mode <- match.arg(gsl.mode)
+  if(gsl.mode == "GSL") {
+    return(tapply.fast(daily.mean.temp, date.factor, function(ts) {
+      ts.len<- length(ts)
+      gs.begin <- which(select.blocks.gt.length(ts[1:(ts.mid-1)] > t.thresh, min.length - 1))
+      
+      ## Growing season actually ends the day -before- the sequence of sketchy days
+      gs.end <- which(select.blocks.gt.length(ts[ts.mid:ts.len] < t.thresh, min.length - 1)) - 1
+      
+      ## If no growing season start, 0 length; if no end, ends at end of year; otherwise, end - start + 1
+      return(ifelse(length(gs.begin) == 0, 0, ifelse(length(gs.end) == 0, ts.len - gs.begin[1] + 1, gs.end[1] - gs.begin[1] + 1 + ts.mid)))
+    }))
+  } else {
+    in.gsl <- select.blocks.gt.length(daily.mean.temp >= t.thresh, min.length - 1) | !select.blocks.gt.length(daily.mean.temp < t.thresh, min.length - 1, TRUE)
+    warning("GSL_first, GSL_max, and GSL_sum are experimental alternative growing season length definitions. Use at your own risk.")
     
-    if(length(gs.begin) == 0) {
-      return(0)
-    } else if(length(gs.end) == 0) {
-      return(ts.len - gs.begin[1] + 1)
-    } else {
-      return(gs.end[1] - gs.begin[1] + 1 + ts.mid)
-    }
-  } ))
+    innerfunc <- switch(gsl.mode, GSL_first=function(bl) { ifelse(any(bl > 0), (bl[bl > 0])[1], 0) }, GSL_max=max, GSL_sum=sum)
+    return(tapply.fast(in.gsl, date.factor, function(ts) { block.lengths <- get.series.lengths.at.ends(ts); return(innerfunc(block.lengths)); }))
+  }
 }
 
 ## TN10p, TX10p, TN90p, TX90p
@@ -520,7 +526,7 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
   return(tapply.fast(1:length(daily.prec), date.factor, function(x) { return(sum(daily.prec[x[f(daily.prec[x], threshold)]], na.rm=TRUE)) } ))
 }
 
-## Returns an n-day running quantile for each day of data
+## Returns an n-day running quantile for each day of data (dimensions c(dpy, q))
 ## Data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (dpy - floor(n/2) + 1)'th day..
 running.quantile <- function(data, n, q, dpy) {
   ret <- .Call("running_quantile_windowed", data, n, q, dpy, DUP=FALSE)
@@ -528,34 +534,8 @@ running.quantile <- function(data, n, q, dpy) {
   return(t(ret))
 }
 
-## Returns an n-day running quantile for each day of data
-## Data is assumed to be 365 days per year, data is assumed to be padded by floor(n/2) days on either end, and data is assumed to start on the (365 - floor(n/2) + 1)'th day..
-running.quantile.r <- function(data, n, q, include.mask=NULL) {
-  window <- floor(n / 2)
-  true.data.length <- length(data) - 2 * window
-
-  ## Doesn't seem to make a difference (this is behaviour of fclimdex)
-  ##data[1:window] <- data[window + 1]
-  ##data[length(data) - (0:(window - 1))] <- data[length(data) - window]
-  
-  ## Apply include mask
-  if(!is.null(include.mask))
-    data[include.mask] <- NA
-
-  ## Create n lists of indices 
-  data.perm <- unlist(lapply(1:n, function(x) { return(data[x:(true.data.length + x - 1)]) }))
-  dim(data.perm) <- c(365, ceiling(length(data.perm) / 365))
-
-  ## Transpose so apply goes faster
-  data.perm <- t(data.perm)
-
-  ## Return transposed data so that major dim is proportional to length of q
-  d <- t(apply(data.perm, 2, quantile, q, na.rm=TRUE, type=8))
-  return(d)
-}
-
 ## Takes an array of booleans; returns an array of booleans where only blocks of TRUE longer than n are still TRUE
-select.blocks.gt.length <- function(d, n) {
+select.blocks.gt.length <- function(d, n, na.value=FALSE) {
   stopifnot(is.logical(d), is.numeric(n))
 
   if(n <= 1)
@@ -564,7 +544,7 @@ select.blocks.gt.length <- function(d, n) {
   if(n >= length(d))
     return(rep(FALSE, length(d)))
 
-  d[is.na(d)] <- FALSE
+  d[is.na(d)] <- na.value
   
   d2 <- Reduce(function(x, y) { return(c(rep(FALSE, y), d[1:(length(d) - y)]) & x) }, 1:n, d)
   return(Reduce(function(x, y) { return(c(d2[(y + 1):length(d2)], rep(FALSE, y)) | x) }, 1:n, d2))

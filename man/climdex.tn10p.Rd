@@ -9,27 +9,29 @@
   TN10p.
 }
 \usage{
-climdex.tn10p(ci)
-climdex.tx10p(ci)
-climdex.tn90p(ci)
-climdex.tx90p(ci)
+climdex.tn10p(ci, freq=c("monthly", "annual"))
+climdex.tx10p(ci, freq=c("monthly", "annual"))
+climdex.tn90p(ci, freq=c("monthly", "annual"))
+climdex.tx90p(ci, freq=c("monthly", "annual"))
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
+  \item{freq}{Time frequency to aggregate to.}
+
 }
 
 \details{
   These functions take a climdexInput object as input and compute the
   climdex indices TN10p, TX10p, TN90p, and TN10p. These are:
   \itemize{
-    \item{TN10p: }{Monthly percent of values below the 10th percentile
-  of baseline daily minimum temperature.}
-    \item{TX10p: }{Monthly percent of values below the 10th percentile
-  of baseline daily maximum temperature.}
-    \item{TN90p: }{Monthly percent of values above the 90th percentile
-  of baseline daily minimum temperature.}
-    \item{TX90p: }{Monthly percent of values above the 90th percentile
-  of baseline daily maximum temperature.}
+    \item{TN10p: }{Monthly or annual percent of values below the 10th
+      percentile of baseline daily minimum temperature.}
+    \item{TX10p: }{Monthly or annual percent of values below the 10th
+      percentile of baseline daily maximum temperature.}
+    \item{TN90p: }{Monthly or annual percent of values above the 90th
+      percentile of baseline daily minimum temperature.}
+    \item{TX90p: }{Monthly or annual percent of values above the 90th
+      percentile of baseline daily maximum temperature.}
   }  
   
   Computation of these percentiles involves use of a boostrap procedure,
@@ -53,7 +55,8 @@ climdex.tx90p(ci)
 }
 
 \value{
-  A vector containing the value of the index for each month.
+  A vector containing a timeseries containing values of the index on a
+  monthly or annual timescale.
 }
 
 \note{

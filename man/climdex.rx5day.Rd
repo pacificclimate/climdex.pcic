@@ -6,11 +6,12 @@
   These functions compute the climdex indices Rx5day and Rx1day.
 }
 \usage{
-climdex.rx5day(ci)
-climdex.rx1day(ci)
+climdex.rx5day(ci, freq=c("monthly", "annual"), shift.2days.right=FALSE)
+climdex.rx1day(ci, freq=c("monthly", "annual"))
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
+  \item{freq}{Time frequency to aggregate to.}
   \item{shift.2days.right}{Whether to shift the timeseries 2 days to the
     right before reducing to a monthly maximum.}
 }
@@ -19,8 +20,8 @@ climdex.rx1day(ci)
   These functions take a climdexInput object as input and compute the
   climdex indices Rx5day and Rx1day. These are:
   \itemize{
-    \item{Rx5day: }{Monthly maximum 5-day consecutive precipitation.}
-    \item{Rx1day: }{Monthly maximum 1-day precipitation.}
+    \item{Rx5day: }{Monthly or annual maximum 5-day consecutive precipitation.}
+    \item{Rx1day: }{Monthly or annual maximum 1-day precipitation.}
   }  
 }
 

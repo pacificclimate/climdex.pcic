@@ -6,10 +6,11 @@
   input.
 }
 \usage{
-climdex.gsl(ci)
+climdex.gsl(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum"))
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
+  \item{gsl.mode}{Growing season length method to use.}
 }
 
 \details{
@@ -23,25 +24,27 @@ climdex.gsl(ci)
   more days with mean temperature above 5 degrees Celsius; spells of
   cold days are defined as six or more days with a mean temperature
   below 5 degrees Celsius.
+
+  The three alternate modes provided ('GSL_first', 'GSL_max', and
+  'GSL_sum') are for testing purposes only. They differ considerably
+  from the first ('GSL') mode. All of them use a list of growing seasons
+  -- here defined as six or more consecutive days with a mean temperature
+  greater than or equal to 5 degrees Celsius, followed by either the end
+  of the year or six or more consecutive days with a mean temperature
+  less than 5 degrees Celsius. 'GSL_first' returns the first growing
+  season found; 'GSL_max' returns the longest growing season found; and
+  'GSL_sum' returns the total length of all growing seasons found.
 }
 
 \note{
-  \code{climdex.gsl} only implements GSL for the northern
-  hemisphere. Should you want to use this function in the southern
-  hemisphere, we suggest you move the data forward or backwards by six
-  months.
-  
-  Note that fclimdex contains a number of bugs with growing season
-  length. These include:
-  \itemize{
-    \item{Reporting 1 less day of growing season than it should.}
-    \item{Reporting a maximum of n-6 days of growing season in the
-      tropics.}
-    \item{Invalid results in the southern hemisphere overall.}
-  }
+  Note that fclimdex results may differ from results using the first
+  ('GSL') mode due to bugs in fclimdex. Please ensure you are using the
+  latest version of fclimdex, as there have been numerous bug fixes and
+  the results should, at this point, match.
 
-  Because of these issues, do not expect identical results from fclimdex
-  and climdex.pcic .
+  Please do not use the 'GSL_first', 'GSL_max', or 'GSL_sum' modes for
+  anything other than testing purposes at this time, nor should you rely
+  on this parameter being present in future versions of climdex.pcic.
 }
 
 \value{

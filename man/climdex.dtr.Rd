@@ -5,20 +5,20 @@
   This function computes the diurnal temperature range on a monthly basis.
 }
 \usage{
-climdex.dtr(ci)
+climdex.dtr(ci, freq=c("monthly", "annual"))
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
+  \item{freq}{Time frequency to aggregate to.}
 }
 
 \details{
-  \code{climdex.dtr} computes the mean daily diurnal temperature range
-  on a monthly basis.
+  \code{climdex.dtr} computes the mean daily diurnal temperature
+  range. The frequency of observation can be either monthly or annual.
 }
 
 \value{
-  A vector containing the mean monthly diurnal temperature range for
-  each month.
+  A vector containing the mean monthly or mean annual diurnal temperature range.
 }
 
 \note{

@@ -8,23 +8,24 @@
   These functions compute the climdex indices TXx, TNx, TXn, and TNn.
 }
 \usage{
-climdex.txx(ci)
-climdex.tnx(ci)
-climdex.txn(ci)
-climdex.tnn(ci)
+climdex.txx(ci, freq=c("monthly", "annual"))
+climdex.tnx(ci, freq=c("monthly", "annual"))
+climdex.txn(ci, freq=c("monthly", "annual"))
+climdex.tnn(ci, freq=c("monthly", "annual"))
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
+  \item{freq}{Time frequency to aggregate to.}
 }
 
 \details{
   These functions take a climdexInput object as input and compute the
   climdex indices TXx, TNx, TXn, and TNn. These are:
   \itemize{
-    \item{TXx: }{Monthly maximum of daily maximum temperature.}
-    \item{TNx: }{Monthly maximum of daily minimum temperature.}
-    \item{TXn: }{Monthly minimum of daily maximum temperature.}
-    \item{TNn: }{Monthly minimum of daily minimum temperature.}
+    \item{TXx: }{Monthly or annual maximum of daily maximum temperature.}
+    \item{TNx: }{Monthly or annual maximum of daily minimum temperature.}
+    \item{TXn: }{Monthly or annual minimum of daily maximum temperature.}
+    \item{TNn: }{Monthly or annual minimum of daily minimum temperature.}
   }  
 }
 
