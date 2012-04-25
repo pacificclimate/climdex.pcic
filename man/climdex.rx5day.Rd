@@ -6,14 +6,14 @@
   These functions compute the climdex indices Rx5day and Rx1day.
 }
 \usage{
-climdex.rx5day(ci, freq=c("monthly", "annual"), shift.2days.right=FALSE)
+climdex.rx5day(ci, freq=c("monthly", "annual"), center.mean.on.last.day=FALSE)
 climdex.rx1day(ci, freq=c("monthly", "annual"))
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
   \item{freq}{Time frequency to aggregate to.}
-  \item{shift.2days.right}{Whether to shift the timeseries 2 days to the
-    right before reducing to a monthly maximum.}
+  \item{center.mean.on.last.day}{Whether to center the 5-day running
+    mean on the last day of the window, instead of the center day.}
 }
 
 \details{
@@ -35,7 +35,7 @@ climdex.rx1day(ci, freq=c("monthly", "annual"))
   Rx5day. The running sum series computed by fclimdex is off by 2 days,
   and the first day a running sum can be computed for is left out
   entirely. The behaviour of fclimdex can be replicated by setting
-  shift.2days.right to TRUE.
+  center.mean.on.last.day to TRUE.
 }
 
 \examples{

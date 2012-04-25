@@ -1,3 +1,13 @@
+0.6-1: MAJOR BUG FIXES (changes results):
+ - Changed mistaken code which resulted in quantile type for tn/tx 10/90p being type=6 not type=8.
+ - Changed quantile method for precipitation (r99ptot, r95ptot) from type=7 to type=8.
+ - Truncate dates so that last day of data isn't omitted under some conditions. This can cause differences in some situations in the final year or month of data.
+Minor bug fixes and improvements:
+ - Exposed interface to quantile method used in C++ code.
+
+0.5-2:
+ - Export a few more functions
+
 0.5-1: Feature additions:
  - Add option to produce output for rx5day that matches fclimdex
  - Add output of annual variables for TXx, TNx, TXn, TNn, TN/TX 10/90p, DTR, Rx1day, Rx5day.

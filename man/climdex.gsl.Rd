@@ -48,8 +48,7 @@ climdex.gsl(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum"))
 }
 
 \value{
-  A vector containing the number of days meeting the criteria of the
-  index for each year.
+  A vector containing the number of days in the growing season for each year.
 }
 
 \examples{
@@ -77,7 +76,7 @@ gsl
 }
 
 \seealso{
-  \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
+  \code{\link{growing.season.length}}, \code{\link{climdexInput.csv}}.
 }
 
 \references{

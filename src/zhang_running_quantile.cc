@@ -8,13 +8,13 @@
 
 // Implements R's type=8
 double c_quantile(double* data, const int n, const double quantile) {
-  if(n < 2) {
+  if(n < 2 || quantile < 0 || quantile > 1) {
     return(R_NaReal);
   }
   
   // Constants for quantiles. Can be modified if needed.
-  const double a = 1/3;
-  const double b = 1/3;
+  const double a = 1.0/3.0;
+  const double b = 1.0/3.0;
   double* data_end = data + n;
   
   const double fuzz = 4 * std::numeric_limits<double>::epsilon();
@@ -43,6 +43,22 @@ double c_quantile(double* data, const int n, const double quantile) {
 }
 
 extern "C" {
+  SEXP c_quantile2(SEXP data, SEXP quantile) {
+    PROTECT(quantile = coerceVector(quantile, REALSXP));
+    const int n = length(data);
+    const int nq = length(quantile);
+    const double* q_ptr = REAL(quantile);
+    double* data_ptr = REAL(data);
+    SEXP res = allocVector(REALSXP, 1);
+    double* res_ptr = REAL(res);
+
+    for(int i = 0; i < nq; ++i)
+      res_ptr[i] = c_quantile(data_ptr, n, q_ptr[i]);
+
+    UNPROTECT(1);
+    return(res);
+  }
+
   // Expects data in date sequence
   //void running_quantile_windowed_365day(const double* data, double* quantiles, const int* n, const double* q, const int* data_length, const int* num_quantiles) {
   SEXP running_quantile_windowed(SEXP data, SEXP n, SEXP q, SEXP dpy) {
@@ -102,8 +118,10 @@ extern "C" {
   void R_init_mylib(DllInfo* info) {
     R_CallMethodDef callMethods[] = { 
       {"running_quantile_windowed", (DL_FUNC) &running_quantile_windowed, 4 },
+      {"c_quantile2", (DL_FUNC) &c_quantile2, 2 },
       { NULL, NULL, 0 } 
     };
+
     R_registerRoutines(info, NULL, callMethods, NULL, NULL);
     /*R_RegisterCCallable("pcicspatial", "get_coverage", get_coverage);*/
   }
