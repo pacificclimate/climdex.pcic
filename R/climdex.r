@@ -97,11 +97,11 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
 }
 
 get.jdays <- function(dates) {
-  return(as.numeric(strftime(dates, "%j", tz="GMT")))
+  return(as.numeric(format(dates, "%j", tz="GMT")))
 }
 
 get.years <- function(dates) {
-  as.numeric(strftime(dates, format="%Y", tz="GMT"))
+  as.numeric(format(dates, format="%Y", tz="GMT"))
 }
 
 get.jdays.replaced.feb29 <- function(dates) {
@@ -110,7 +110,7 @@ get.jdays.replaced.feb29 <- function(dates) {
 
 get.bootstrap.set <- function(dates, bootstrap.range, win.size) {
   bootstrap.win.range <- get.bootstrap.windowed.range(bootstrap.range, win.size)
-  return(dates >= bootstrap.win.range[1] & dates <= bootstrap.win.range[2] & strftime(dates, format="%m-%d", tz="GMT") != "02-29")
+  return(dates >= bootstrap.win.range[1] & dates <= bootstrap.win.range[2] & (attr(dates, "dpy") == 360 | format(dates, format="%m-%d", tz="GMT") != "02-29"))
 }
 
 ## Input is: bootstrap range, vector of 2 PCICt, win.size is window size in days (single integer)
@@ -217,12 +217,12 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
 
   ## Get dates for normal data
   all.dates <- c(tmin.dates, tmax.dates, prec.dates)
-  new.date.range <- as.PCICt(paste(as.numeric(strftime(range(all.dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
+  new.date.range <- as.PCICt(paste(as.numeric(format(range(all.dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
 
   ## Factors for dividing data up
-  annual.factor <- as.factor(strftime(date.series, "%Y", tz="GMT"))
-  monthly.factor <- as.factor(strftime(date.series, "%Y-%m", tz="GMT"))
+  annual.factor <- as.factor(format(date.series, "%Y", tz="GMT"))
+  monthly.factor <- as.factor(format(date.series, "%Y-%m", tz="GMT"))
 
   ## Filled data...
   filled.tmax <- create.filled.series(tmax, trunc(tmax.dates, "days"), date.series)
@@ -309,14 +309,14 @@ climdex.tr <- function(ci) { return(number.days.op.threshold(ci@tmin, ci@annual.
 ## GSL: Annual. Should work, needs more testing; is imprecise around date of Jul 1. Creates GSL 1 day longer than fclimdex due to off-by-one in fclimdex.
 climdex.gsl <- function(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")) {
   ## Gotta shift dates so that July 1 is considered Jan 1 of same year in southern hemisphere
-  ts.mid <- as.numeric(strftime(as.PCICt("1961-07-01", attr(ci@dates, "cal")), "%j"))
+  ts.mid <- as.numeric(format(as.PCICt("1961-07-01", attr(ci@dates, "cal")), "%j"))
   if(ci@northern.hemisphere) {
     return(growing.season.length(ci@tavg, ci@annual.factor, ts.mid, gsl.mode=match.arg(gsl.mode)) * ci@namask.ann$tavg)
   } else {    
     gsl.dates <- ci@dates - 86400 * (ts.mid - 1)
     valid.date.range <- range(ci@dates)
     inset <- gsl.dates >= valid.date.range[1] & gsl.dates <= valid.date.range[2]
-    gsl.factor <- factor(strftime(gsl.dates[inset], "%Y", tz="GMT"))
+    gsl.factor <- factor(format(gsl.dates[inset], "%Y", tz="GMT"))
     gsl.temp.data <- ci@tavg[inset]
     namask.gsl <- get.na.mask(gsl.temp.data, gsl.factor, 15)
     namask.gsl[length(namask.gsl)] <- NA
@@ -379,7 +379,7 @@ climdex.r10mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annu
 climdex.r20mm <- function(ci) { return(number.days.op.threshold(ci@prec, ci@annual.factor, 20, ">=") * ci@namask.ann$prec) }
 
 ## Rnnmm: Annual. Exact match.
-climdex.rnnmm <- function(ci, threshold) {
+climdex.rnnmm <- function(ci, threshold=1) {
   if(!is.numeric(threshold) || length(threshold) != 1) stop("Please specify a single numeric threshold value.");
 
   return(number.days.op.threshold(ci@prec, ci@annual.factor, threshold, ">=") * ci@namask.ann$prec)
@@ -524,7 +524,14 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 ## CDD, CWD
 spell.length.max <- function(daily.prec, date.factor, threshold, op) {
   bools <- match.fun(op)(daily.prec, threshold)
-  return(tapply.fast(get.series.lengths.at.ends(bools), date.factor, function(x) { return(max(x)) } ))
+
+  last.true <- tapply.fast(bools, function(x) { x[length(x)] })
+  all.true <- tapply.fast(bools, function(x) { sum(x) == length(x) })
+  max.spell <- tapply.fast(get.series.lengths.at.ends(bools), date.factor, function(x) { return(max(x)) } )
+  
+  ## Mask out values which are in the middle of a spell with NA
+  na.mask <- c(1, NA)[as.integer((max.spell == 0) & all.true & c(FALSE, last.true[-length(last.true)]))]
+  return(max.spell * na.mask)
 }
 
 ## R95pTOT, R99pTOT
@@ -547,7 +554,7 @@ running.quantile <- function(data, n, q, dpy) {
 select.blocks.gt.length <- function(d, n, na.value=FALSE) {
   stopifnot(is.logical(d), is.numeric(n))
 
-  if(n <= 1)
+  if(n < 1)
     return(d)
 
   if(n >= length(d))

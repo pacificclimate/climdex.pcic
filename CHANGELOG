@@ -1,9 +1,10 @@
 0.6-1: MAJOR BUG FIXES (changes results):
- - Changed mistaken code which resulted in quantile type for tn/tx 10/90p being type=6 not type=8.
- - Changed quantile method for precipitation (r99ptot, r95ptot) from type=7 to type=8.
- - Truncate dates so that last day of data isn't omitted under some conditions. This can cause differences in some situations in the final year or month of data.
+ - Changed mistaken code which resulted in quantile type for tn/tx 10/90p being type=6 not type=8. This caused a slight negative bias in some situations, but occasionally caused large differences.
+ - Changed quantile method for precipitation (r99ptot, r95ptot) from type=7 to type=8. This caused a small positive bias in some situations.
+ - Truncate dates so that last day of data isn't omitted under some conditions. This can cause differences in some situations in the final year or month of data, and can cause the last value to be NA.
 Minor bug fixes and improvements:
  - Exposed interface to quantile method used in C++ code.
+ - Mask data with NA for CDD/CWD where the entire year is wet/dry.
 
 0.5-2:
  - Export a few more functions
