@@ -19,7 +19,7 @@ double c_quantile(double* data, const int n, const double quantile) {
   
   const double fuzz = 4 * std::numeric_limits<double>::epsilon();
   const double nppm = a + quantile * (n + 1 - a - b) - 1;
-  const int j = floor(nppm + fuzz);
+  const int j = (int)floor(nppm + fuzz);
   // Variance from R: Should probably be <= not < here.
   const double h = (fabs(nppm - (double)j) <= fuzz) ? 0 : nppm - (double)j;
   double* right_elem = std::max(data, std::min(data + j + 1, data_end - 1));;
