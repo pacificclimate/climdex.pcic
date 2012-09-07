@@ -6,11 +6,13 @@
   These functions compute the climdex indices CDD and CWD.
 }
 \usage{
-climdex.cdd(ci)
-climdex.cwd(ci)
+climdex.cdd(ci, spells.can.span.years=TRUE)
+climdex.cwd(ci, spells.can.span.years=TRUE)
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
+  \item{spells.can.span.years}{Whether to allow spells of dry/wet days
+    to span years}
 }
 
 \details{
@@ -26,6 +28,10 @@ climdex.cwd(ci)
 
   Dry spells are considered to be sequences of days where daily
   preciptation is less than 1mm per day.
+
+  The \code{spells.can.span.years} option specifies whether spells can
+  cross year boundaries -- i.e., span years. The default for this is the
+  same as for fclimdex.
 }
 
 \value{
@@ -63,7 +69,7 @@ cwd
 }
 
 \seealso{
-  \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
+  \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}, \code{\link{spell.length.max}}.
 }
 
 \references{

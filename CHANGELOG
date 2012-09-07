@@ -1,3 +1,9 @@
+0.6-2:
+ - Update documentation to reflect all changes.
+ - Update and clean up comments.
+ - Update climdexInput.csv to accept climdexInput.raw's new arguments.
+ - Change order of arguments to climdexInput.raw to match historical order.
+
 0.6-1: MAJOR BUG FIXES, in order of importance (changes results):
  - Changed mistaken code which resulted in quantile type for tn/tx 10/90p being type=6 not type=8. In aggregate, this caused a slight negative bias; individual results may, under some circumstances, vary by very large amounts.
  - Changed quantile method for precipitation (r99ptot, r95ptot) from type=7 to type=8. This caused a small positive bias in aggregate, with large differences under some circumstances.

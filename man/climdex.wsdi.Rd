@@ -6,11 +6,13 @@
   These functions compute the climdex indices WSDI and CSDI.
 }
 \usage{
-climdex.wsdi(ci)
-climdex.csdi(ci)
+climdex.wsdi(ci, spells.can.span.years=FALSE)
+climdex.csdi(ci, spells.can.span.years=FALSE)
 }
 \arguments{
   \item{ci}{Object of type climdexInput.}
+  \item{spells.can.span.years}{Whether to allow spells of dry/wet days
+    to span years.}
 }
 
 \details{
@@ -33,6 +35,10 @@ climdex.csdi(ci)
   temperature is below the 10th percentile of daily minimum temperature
   for a 5-day running window surrounding this day during the baseline
   period.
+
+  The \code{spells.can.span.years} option specifies whether spells can
+  cross year boundaries -- i.e., span years. The default for this is the
+  same as fclimdex.
 }
 
 \value{
@@ -78,7 +84,7 @@ csdi
 }
 
 \seealso{
-  \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
+  \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}, \code{\link{threshold.exceedance.duration.index}}.
 }
 
 \references{

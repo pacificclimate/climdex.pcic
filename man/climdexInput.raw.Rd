@@ -1,29 +1,31 @@
 \name{climdexInput.raw, climdexInput.csv}
 \alias{climdexInput.csv}
 \alias{climdexInput.raw}
+\alias{get.outofbase.quantiles}
 \title{Methods for Creating climdexInput Objects}
 \description{
   These functions create climdexInput objects for use with the climdex methods.
 }
 \usage{
-climdexInput.raw(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates,
-  base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE)
+climdexInput.raw(tmax, tmin, prec, tmax.dates, tmin.dates,prec.dates, base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE,pad.data.with.first.last.values=FALSE, tavg=NULL, tavg.dates=NULL, temp.quantiles.notbase=NULL, prec.quantiles=NULL, temp.quantiles.base=NULL)
 
-climdexInput.csv(tmax.file, tmin.file, prec.file,
-  data.columns=list(tmin="tmin", tmax="tmax", prec="prec"),
-  base.range=c(1961, 1990), na.strings=NULL, cal="gregorian",
-  date.types=NULL, n=5, northern.hemisphere=TRUE)
+climdexInput.csv(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), na.strings=NULL, cal="gregorian", date.types=NULL, n=5, northern.hemisphere=TRUE, pad.data.with.first.last.values=FALSE, tavg.file=NULL, temp.quantiles.notbase=NULL, prec.quantiles=NULL, temp.quantiles.base=NULL)
+
+get.outofbase.quantiles(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), n=5, pad.data.with.first.last.values=FALSE)
 }
 \arguments{
   \item{tmax}{Daily maximum temperature data.}
   \item{tmin}{Daily minimum temperature data.}
   \item{prec}{Daily total precipitation data.}
+  \item{tavg}{Daily mean temperature data.}
   \item{tmax.dates}{Dates for the daily maximum temperature data.}
   \item{tmin.dates}{Dates for the daily minimum temperature data.}
   \item{prec.dates}{Dates for the daily total precipitation data.}
+  \item{tavg.dates}{Dates for the daily mean temperature data.}
   \item{tmax.file}{Name of file containing daily maximum temperature data.}
   \item{tmin.file}{Name of file containing daily minimum temperature data.}
   \item{prec.file}{Name of file containing daily total precipitation data.}
+  \item{tavg.file}{Name of file containing daily mean temperature data.}
   \item{data.columns}{Column names for tmin, tmax, and prec data.}
   \item{date.types}{Column names for tmin, tmax, and prec data (see notes).}
   \item{na.strings}{Strings used for NA values; passed to \code{\link{read.csv}}.}
@@ -31,30 +33,32 @@ climdexInput.csv(tmax.file, tmin.file, prec.file,
   \item{base.range}{Years to use for the baseline.}
   \item{n}{Number of days to use as window for daily quantiles.}
   \item{northern.hemisphere}{Whether this point is in the northern hemisphere.}
+  \item{pad.data.with.first.last.values}{Base data padding option (see notes).}
+  \item{temp.quantiles.notbase}{Out of base quantiles (see notes).}
+  \item{prec.quantiles}{Precipitation quantiles (see notes).}
+  \item{temp.quantiles.base}{In-base quantiles (see notes).}
 }
 
 \details{
-  These functions take input climate data, and produce as output a data
-  structure which can be used with the other methods in this package to
-  compute all of the Climdex indices as specified on the webpage cited
-  in the references section.
-
-  \code{climdexInput.csv} should be used when your data is already in a
-  CSV file. \code{climdexInput.raw} should be used in all other circumstances, as
-  it is much more flexible.
+  These functions take input climate data at daily resolution, and
+  produce as output a ClimdexInput data structure. This data structure
+  is then passed to each of the routines used to compute the Climdex
+  indices. The indices themselves are specified on the webpage cited in
+  the references section. \code{climdexInput.csv} should be used when
+  your data is already in a CSV file. \code{climdexInput.raw} should be
+  used in all other circumstances, as it is much more flexible.
   
-  \code{climdexInput.csv} takes as arguments three input filenames, one for
+  \code{climdexInput.csv} takes as arguments three input filenames: one for
   each of daily maximum temperature, minimum temperature, and total
-  preciptation. Optionally, it also takes a list containing the names of
-  the data columns for each of the variables stored in those files, a
-  vector of NA strings for missing value handling, the baseline range,
-  the window size, the calendar type, and a data structure containing
-  the information needed to parse the dates out of the file.
-
+  preciptation.
+  
   \code{climdexInput.raw} takes as arguments the input daily maximum
   temperature, minimum temperature, and total precipitation data along
-  with the associated series of dates and optionally the baseline range
-  and window size.
+  with the associated series of dates.
+
+  Daily mean temperature data can optionally be supplied; if it is not
+  supplied, it will be computed by taking the mean of the minimum and
+  maximum daily temperature for each day.
 }
 
 \value{
@@ -63,7 +67,7 @@ climdexInput.csv(tmax.file, tmin.file, prec.file,
 
 \note{
   Units are assumed to be mm/day for precipitation and degrees Celsius
-  for temperature. No units conversion happens internally.
+  for temperature. No units conversion is performed internally.
 
   The \code{tmax.dates}, \code{tmin.dates}, and \code{prec.dates}
   arguments are vectors of type \code{PCICt}.
@@ -96,6 +100,38 @@ climdexInput.csv(tmax.file, tmin.file, prec.file,
   season length is the growing season starting in the beginning of July
   of the year indicated, running to the end of June of the following
   year.
+
+  The \code{pad.data.with.first.last.values} argument specifies whether
+  to pad the data passed into the baseline quantile routine with the
+  first and last values. If TRUE, the first (at the beginning of the
+  series) and last (at the end of the series) values will be used to pad
+  the beginning and ends of this series. If FALSE, either NA or the
+  values for the previous two (at the beginning) and last two (at the
+  end) days of data will be used.
+  
+  The \code{temp.quantiles.notbase} argument allows the user to supply
+  pre-computed quantiles for data outside the base period. This is a
+  list consisting of four named vectors of length 365 (or 360, in the
+  case of 360 day calendars). These vectors contain the thresholds for
+  each day for the 10th percentile of tmax and tmin (tx10thresh and
+  tn10thresh) and for the 90th percentile of tmax and tmin (tx90thresh
+  and tn90thresh).
+  
+  The \code{prec.quantiles} argument allows the user to specify
+  pre-computed precipitation quantiles. This is a vector containing two
+  named elements -- r95thresh (the 95th percentile of wet days) and
+  r99thresh (the 99th percentile of wet days).
+
+  The \code{temp.quantiles.base} argument allows the user to specify
+  pre-computed quantiles for data inside the base period. This is a list
+  consisting of four named vectors of dimensions 365 (or 360, in the
+  case of 360 day calendars) by the number of base years by the number
+  of base years less one; two for the 10th percentile of tmax and tmin
+  (tx10thresh and tn10thresh) and two for the 90th percentile of tmax
+  and tmin (tx90thresh and tn90thresh). Each of these vectors contain a
+  set of thresholds for each day for each year; this set contains
+  quantiles computed with the current year replaced with one of the
+  other years of data.
 }
 
 \examples{
