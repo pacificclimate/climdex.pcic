@@ -514,11 +514,10 @@ climdex.rnnmm <- function(ci, threshold=1) {
 }
 
 ## Both CDD and CWD in fclimdex do not record the length of consecutive days on transition to a missing value
-## CDD: Annual. Exact match.
-climdex.cdd <- function(ci) { return(spell.length.max(ci@prec, ci@annual.factor, 1, "<") * ci@namask.ann$prec) }
+climdex.cdd <- function(ci, spells.can.span.years=TRUE) { return(spell.length.max(ci@prec, ci@annual.factor, 1, "<", spells.can.span.years) * ci@namask.ann$prec) }
 
-## CWD: Annual. Exact match.
-climdex.cwd <- function(ci) { return(spell.length.max(ci@prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
+## CWD
+climdex.cwd <- function(ci, spells.can.span.years=TRUE) { return(spell.length.max(ci@prec, ci@annual.factor, 1, ">=", spells.can.span.years) * ci@namask.ann$prec) }
 
 ## R95pTOT: Annual. Exact match.
 climdex.r95ptot <- function(ci) { return(total.precip.op.threshold(ci@prec, ci@annual.factor, ci@prec.pctile['r95thresh'], ">") * ci@namask.ann$prec) }
@@ -679,15 +678,21 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 }
 
 ## CDD, CWD
-spell.length.max <- function(daily.prec, date.factor, threshold, op) {
+## Computes the longest string of days which exceed or are below (depending on op) the given threshold
+## for each period (as specified by date.factor).
+spell.length.max <- function(daily.prec, date.factor, threshold, op, spells.can.span.years) {
   bools <- match.fun(op)(daily.prec, threshold)
 
-  all.true <- tapply.fast(bools, date.factor, all)
-  max.spell <- tapply.fast(get.series.lengths.at.ends(bools), date.factor, max)
-  
-  ## Mask out values which are in the middle of a spell with NA
-  na.mask <- c(1, NA)[as.integer((max.spell == 0) & all.true) + 1]
-  return(max.spell * na.mask)
+  if(spells.can.span.years) {
+    all.true <- tapply.fast(bools, date.factor, all)
+    max.spell <- tapply.fast(get.series.lengths.at.ends(bools), date.factor, max)
+    
+    ## Mask out values which are in the middle of a spell with NA
+    na.mask <- c(1, NA)[as.integer((max.spell == 0) & all.true) + 1]
+    return(max.spell * na.mask)
+  } else {
+    return(tapply.fast(bools, date.factor, function(x) { max(get.series.lengths.at.ends(x)) }))
+  }
 }
 
 ## R95pTOT, R99pTOT

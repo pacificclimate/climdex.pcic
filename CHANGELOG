@@ -1,7 +1,7 @@
 0.6-1: MAJOR BUG FIXES, in order of importance (changes results):
- - Changed mistaken code which resulted in quantile type for tn/tx 10/90p being type=6 not type=8. This caused a slight negative bias in some situations, but occasionally caused large differences.
- - Changed quantile method for precipitation (r99ptot, r95ptot) from type=7 to type=8. This caused a small positive bias in some situations.
- - Truncate dates so that last day of data isn't omitted under some conditions. This can cause differences in some situations in the final year or month of data, and can cause the last value to be NA.
+ - Changed mistaken code which resulted in quantile type for tn/tx 10/90p being type=6 not type=8. In aggregate, this caused a slight negative bias; individual results may, under some circumstances, vary by very large amounts.
+ - Changed quantile method for precipitation (r99ptot, r95ptot) from type=7 to type=8. This caused a small positive bias in aggregate, with large differences under some circumstances.
+ - Truncate dates so that last day of data isn't omitted under some conditions. This can cause differences when data is centered on the middle of the day in the final year or month of data, and can cause the last value to be NA.
  - Modified GSL code to not report a GSL 1 day longer than it should have under many circumstances.
  - Modified GSL code to always use July 1st (if NH) or January 1st (if SH); may affect results under certain circumstances with Gregorian calendars.
 Minor bug fixes:
