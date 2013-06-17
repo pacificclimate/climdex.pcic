@@ -22,8 +22,8 @@ double c_quantile(double* data, const int n, const double quantile) {
   const int j = (int)floor(nppm + fuzz);
   // Variance from R: Should probably be <= not < here.
   const double h = (fabs(nppm - (double)j) <= fuzz) ? 0 : nppm - (double)j;
-  double* right_elem = std::max(data, std::min(data + j + 1, data_end - 1));;
-  double* left_elem = std::max(data, std::min(data + j, data_end - 1));;
+  double* right_elem = std::max(data, std::min(data + j + 1, data_end - 1));
+  double* left_elem = std::max(data, std::min(data + j, data_end - 1));
   
   if(h == 1) {
     std::nth_element(data, right_elem, data_end);
@@ -49,7 +49,7 @@ extern "C" {
     const int nq = length(quantile);
     const double* q_ptr = REAL(quantile);
     double* data_ptr = REAL(data);
-    SEXP res = allocVector(REALSXP, 1);
+    SEXP res = allocVector(REALSXP, nq);
     double* res_ptr = REAL(res);
 
     for(int i = 0; i < nq; ++i)
