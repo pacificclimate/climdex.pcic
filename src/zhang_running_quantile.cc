@@ -1,13 +1,14 @@
-#include <R.h>
-#include <Rinternals.h>
-#include <R_ext/Rdynload.h>
-#include <R_ext/Arith.h>
 #include <math.h>
 #include <limits>
 #include <algorithm>
+#include <vector>
+#include <Rcpp.h>
+
+using namespace std;
+using namespace Rcpp;
 
 // Implements R's type=8
-double c_quantile(double* data, const int n, const double quantile) {
+double c_quantile(double* data, const int n, const double quantile, bool sorted=false) {
   if(n < 2 || quantile < 0 || quantile > 1) {
     return(R_NaReal);
   }
@@ -17,115 +18,330 @@ double c_quantile(double* data, const int n, const double quantile) {
   const double b = 1.0/3.0;
   double* data_end = data + n;
   
-  const double fuzz = 4 * std::numeric_limits<double>::epsilon();
+  const double fuzz = 4 * numeric_limits<double>::epsilon();
   const double nppm = a + quantile * (n + 1 - a - b) - 1;
   const int j = (int)floor(nppm + fuzz);
   // Variance from R: Should probably be <= not < here.
   const double h = (fabs(nppm - (double)j) <= fuzz) ? 0 : nppm - (double)j;
-  double* right_elem = std::max(data, std::min(data + j + 1, data_end - 1));
-  double* left_elem = std::max(data, std::min(data + j, data_end - 1));
+  double* right_elem = max(data, min(data + j + 1, data_end - 1));
+  double* left_elem = max(data, min(data + j, data_end - 1));
   
   if(h == 1) {
-    std::nth_element(data, right_elem, data_end);
+    if(!sorted)
+      nth_element(data, right_elem, data_end);
     return(*right_elem);
   } else {
     // No guarantee that 2nd nth_element call will preserve order such that the pointer used by the 1st call still points to the same thing; so store the result before calling nth_element again.
-    std::nth_element(data, left_elem, data_end);
+    if(!sorted)
+      nth_element(data, left_elem, data_end);
     const double left = *left_elem;
     if(h == 0) {
       return(left);
     } else {
-      std::nth_element(data, right_elem, data_end);
+      if(!sorted)
+	nth_element(data, right_elem, data_end);
       const double right = *right_elem;
       return((1 - h) * left + h * right);
     }
   }
 }
 
-extern "C" {
-  SEXP c_quantile2(SEXP data, SEXP quantile) {
-    PROTECT(quantile = coerceVector(quantile, REALSXP));
-    const int n = length(data);
-    const int nq = length(quantile);
-    const double* q_ptr = REAL(quantile);
-    double* data_ptr = REAL(data);
-    SEXP res = allocVector(REALSXP, nq);
-    double* res_ptr = REAL(res);
+class DatYrTuple {
+public:
+  DatYrTuple() { dat = nan(""); yr = -1; }
+  DatYrTuple(double dat, int yr): dat(dat), yr(yr) { }
+  bool operator < (const DatYrTuple& d) const { return dat < d.dat; }
+  double dat;
+  int yr;
+};
 
-    for(int i = 0; i < nq; ++i)
-      res_ptr[i] = c_quantile(data_ptr, n, q_ptr[i]);
+class IdxDupflagPair {
+public:
+  IdxDupflagPair() { idx = -1; dup = false; }
+  bool operator < (const IdxDupflagPair& d) const { return idx < d.idx; }
+  int idx;
+  bool dup;
+};
 
-    UNPROTECT(1);
-    return(res);
+// NOTE: Takes data with floor(win_size / 2) elements attached to beginning and end.
+// Extracts an n-day window into the data, removing NAs and generating a 3-tuple.
+vector<DatYrTuple> extract_window_with_year(const double* dat, const int* notna_map, const int day, const int win_size, const int nyr, const int dpy) {
+  const int min_day = day;
+  const int max_day = day + win_size;
+  vector<DatYrTuple> out_dat;
+  out_dat.reserve(win_size * nyr);
+
+  for(int i = 0; i < nyr; ++i) {
+    const int last_elem = i * dpy + max_day;
+    for(int j = i * dpy + min_day; j < last_elem; ++j)
+      if(notna_map[j])
+	out_dat.push_back(DatYrTuple(dat[j], i));
   }
+  return out_dat;
+}
 
-  // Expects data in date sequence
-  //void running_quantile_windowed_365day(const double* data, double* quantiles, const int* n, const double* q, const int* data_length, const int* num_quantiles) {
-  SEXP running_quantile_windowed(SEXP data, SEXP n, SEXP q, SEXP dpy) {
-    PROTECT(n = coerceVector(n, INTSXP));
-    PROTECT(dpy = coerceVector(dpy, INTSXP));
-    
-    const int win_size = INTEGER(n)[0];
-    
-    // Implicit pseudo-floor (nearest number to zero) by integer division
-    const int win_border = win_size / 2;
-    const int data_length = length(data);
-    const int true_data_length = data_length - 2 * win_border;
-    const int days_per_year = INTEGER(dpy)[0];
-    const int num_years = (int)ceil((double)true_data_length / (double)days_per_year);
-    const int nq = length(q);
-    const double* q_ptr = REAL(q);
-    const double* data_ptr = REAL(data);
+RcppExport SEXP extract_win_yr(SEXP data_, SEXP notna_map_, SEXP day_, SEXP win_size_, SEXP nyr_, SEXP dpy_) {
+  const NumericVector data(data_);
+  const LogicalVector notna_map(notna_map_);
+  const int day = as<int>(day_);
+  const int nyr = as<int>(nyr_);
+  const int win_size = as<int>(win_size_);
+  const int dpy = as<int>(dpy_);
 
-    SEXP quantiles = allocVector(REALSXP, nq * days_per_year);
-    double* quantiles_ptr = REAL(quantiles);
+  const vector<DatYrTuple>& dyt = extract_window_with_year(data.begin(), notna_map.begin(), day, win_size, nyr, dpy);
 
-    // This data will be 2 dimensional, row major, with the major dimension being the day of the year
-    double* buf = new double[num_years * win_size];
+  NumericVector dat(dyt.size());
+  IntegerVector yr(dyt.size());
+  List ret;
 
-    // Create a map of NAs
-    bool* notna_map = new bool[length(data)];
-    int i = data_length;
-    while(i--)
-      notna_map[i] = !ISNA(data_ptr[i]);
-
-    // Comment for preservation of sanity...
-    // The input data does not stay on day 'day'; it starts on day 'day' - win_border. This gets around the problem of an off-by-two error.
-    for(int day = 0; day < days_per_year; ++day) {
-      int count = 0;
-      // Fill buffer with data with NA removed
-      for(int yr = 0; yr < num_years; ++yr) {
-	const int ydayoff = yr * days_per_year + day;
-	const bool* ydayoff_notna = &notna_map[ydayoff];
-	const double* ydayoff_data = &data_ptr[ydayoff];
-	int winday = win_size;
-	while(winday--)
-	  if(ydayoff_notna[winday])
-	    buf[count++] = ydayoff_data[winday];
-      }
-      // Quantiles on said buffer
-      const int nq_day = nq * day;
-      for(int q_idx = 0; q_idx < nq; ++q_idx)
-	quantiles_ptr[nq_day + q_idx] = c_quantile(buf, count, q_ptr[q_idx]);
-    }
-    delete[] buf;
-    delete[] notna_map;
-
-    UNPROTECT(2);
-    return(quantiles);
-  }
-
-  void R_init_mylib(DllInfo* info) {
-    R_CallMethodDef callMethods[] = { 
-      {"running_quantile_windowed", (DL_FUNC) &running_quantile_windowed, 4 },
-      {"c_quantile2", (DL_FUNC) &c_quantile2, 2 },
-      { NULL, NULL, 0 } 
-    };
-
-    R_registerRoutines(info, NULL, callMethods, NULL, NULL);
-    /*R_RegisterCCallable("pcicspatial", "get_coverage", get_coverage);*/
+  int idx = 0;
+  for(vector<DatYrTuple>::const_iterator i = dyt.begin(); i != dyt.end(); ++i, ++idx) {
+    dat[idx] = (*i).dat;
+    yr[idx] = (*i).yr;
   }
   
-  void R_unload_mylib(DllInfo* info) {
+  ret["dat"] = dat;
+  ret["yr"] = yr;
+
+  return ret;
+}
+
+vector<vector<int> > create_yrs_index(const vector<DatYrTuple>& sorted_in, const int nyr) {
+  const int max_elems = sorted_in.size() / nyr;
+  vector<int> temp(max_elems);
+  temp.resize(0);
+  vector<vector<int> > yidx(nyr, temp);
+  int idx = 0;
+  for(vector<DatYrTuple >::const_iterator i = sorted_in.begin(); i != sorted_in.end(); ++i, ++idx) 
+    yidx[(*i).yr].push_back(idx);
+  return yidx;
+}
+
+RcppExport SEXP create_yrs_idx(SEXP sorted_in_, SEXP nyr_) {
+  List sorted_in(sorted_in_);
+  const int nyr = as<int>(nyr_);
+  const NumericVector& dat = sorted_in["dat"];
+  const IntegerVector& yr = sorted_in["yr"];
+  const int datsize = dat.size();
+  vector<DatYrTuple> d(datsize);
+
+  for(int i = 0; i < datsize; ++i) {
+    d[i].dat = dat[i];
+    d[i].yr = yr[i];
   }
+
+  return wrap(create_yrs_index(d, nyr));
+}
+
+vector<IdxDupflagPair> get_index_tuples(const vector<vector<int> >& yrs_index, const int rm_year, const int dup_year) {
+  vector<IdxDupflagPair> id(yrs_index[rm_year].size() + yrs_index[dup_year].size());
+  int id_idx = 0;
+  for(vector<int>::const_iterator i = yrs_index[rm_year].begin(); i != yrs_index[rm_year].end(); ++i, ++id_idx)
+    id[id_idx].idx = (*i);
+  for(vector<int>::const_iterator i = yrs_index[dup_year].begin(); i != yrs_index[dup_year].end(); ++i, ++id_idx) {
+    id[id_idx].dup = true;
+    id[id_idx].idx = (*i);
+  }
+  sort(id.begin(), id.end());
+  return id;
+}
+
+RcppExport SEXP get_idx_pairs(SEXP yrs_index_, SEXP rm_year_, SEXP dup_year_) {
+  const int rm_year = as<int>(rm_year_);
+  const int dup_year = as<int>(dup_year_);
+  List yrs_index_list(yrs_index_);
+  vector<vector<int> > yrs_index(yrs_index_list.size());
+
+  int yrid = 0;
+  for(List::iterator i = yrs_index_list.begin(); i != yrs_index_list.end(); ++i, ++yrid) {
+    const IntegerVector& d = (*i);
+    yrs_index[yrid].resize(d.size());
+    std::copy(d.begin(), d.end(), yrs_index[yrid].begin());
+  }
+
+  const vector<IdxDupflagPair>& idxt = get_index_tuples(yrs_index, rm_year, dup_year);
+  LogicalVector dup(idxt.size());
+  IntegerVector idx(idxt.size());
+  List ret;
+
+  for(int i = 0; i < dup.size(); ++i) {
+    dup[i] = idxt[i].dup;
+    idx[i] = idxt[i].idx;
+  }
+
+  ret["dup"] = dup;
+  ret["idx"] = idx;
+
+  return ret;
+}
+
+vector<double> replace_data_year(const vector<double>& in_data, vector<double>& out, const vector<vector<int> >& yrs_index, const int rm_year, const int dup_year) {
+  const vector<IdxDupflagPair> dfp = get_index_tuples(yrs_index, rm_year, dup_year);
+  int numdup = 0, numnotdup = 0;
+  for(vector<IdxDupflagPair>::const_iterator i = dfp.begin(); i != dfp.end(); ++i) { numdup += (int)((*i).dup); numnotdup += (int)(!(*i).dup); }
+  out.resize(in_data.size() + numdup - numnotdup);
+
+  int last_in_idx = -1, next_out_idx = 0;
+  for(vector<IdxDupflagPair>::const_iterator i = dfp.begin(); i != dfp.end(); ++i) {
+    const bool isdup = (*i).dup;
+    const int idx = (*i).idx;
+    const int nonspecial_block_length = idx - last_in_idx - 1;
+
+    if(isdup) {
+      copy(&in_data[last_in_idx + 1], &in_data[idx + 1], &out[next_out_idx]);
+      out[next_out_idx + nonspecial_block_length + 1] = in_data[idx];
+      next_out_idx += 2;
+    } else {
+      copy(&in_data[last_in_idx + 1], &in_data[idx], &out[next_out_idx]);
+    }
+    next_out_idx += nonspecial_block_length;
+    last_in_idx = idx;
+  }
+
+  if(last_in_idx + 1 < in_data.size()) {
+    copy(&in_data[last_in_idx + 1], &in_data[in_data.size()], &out[next_out_idx]);
+  }
+
+  return out;
+}
+
+RcppExport SEXP replace_data_year_R(SEXP in_data_, SEXP yrs_index_, SEXP rm_year_, SEXP dup_year_, SEXP win_size_) {
+  const int rm_year = as<int>(rm_year_);
+  const int dup_year = as<int>(dup_year_);
+  const int win_size = as<int>(win_size_);
+  const vector<double> in_data = as<vector<double> >(in_data_);
+
+  List yrs_index_list(yrs_index_);
+  vector<vector<int> > yrs_index(yrs_index_list.size());
+
+  int yrid = 0;
+  for(List::iterator i = yrs_index_list.begin(); i != yrs_index_list.end(); ++i, ++yrid) {
+    const IntegerVector& d = (*i);
+    yrs_index[yrid].resize(d.size());
+    std::copy(d.begin(), d.end(), yrs_index[yrid].begin());
+  }
+  vector<double> out(yrs_index.size() * win_size);
+  
+  replace_data_year(in_data, out, yrs_index, rm_year, dup_year);
+
+  return wrap(out);
+}
+
+vector<double> get_data_only(const vector<DatYrTuple>& in_dat) {
+  vector<double> out_dat(in_dat.size());
+  const int dat_size = in_dat.size();
+  for(int i = 0; i < in_dat.size(); ++i)
+    out_dat[i] = in_dat[i].dat;
+  return out_dat;
+}
+
+RcppExport SEXP c_quantile2(SEXP data_, SEXP quantile_) {
+  const NumericVector q(quantile_);
+  const NumericVector data(data_);
+  const int n = data.size();
+  const int nq = q.size();
+  NumericVector res(nq);
+  
+  for(int i = 0; i < nq; ++i)
+    res[i] = c_quantile(data.begin(), n, q[i]);
+  
+  return res;
+}
+
+RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_, SEXP dpy_) {
+  const int win_size = as<int>(n_);
+  const int days_per_year = as<int>(dpy_);
+  const NumericVector q(q_);
+  const NumericVector data(data_);
+  const int nq = q.size();
+  const int data_length = data.size();
+  
+  // Implicit pseudo-floor (nearest number to zero) by integer division
+  const int win_border = win_size / 2;
+  const int true_data_length = data_length - 2 * win_border;
+  const int num_years = (int)ceil((double)true_data_length / (double)days_per_year);
+  
+  const int day_mul = 1;
+  const int rmyr_mul = days_per_year;
+  const int dupyr_mul = days_per_year * num_years;
+  const int q_mul = days_per_year * num_years * (num_years - 1);
+
+  NumericVector quantiles(nq * days_per_year * num_years * (num_years - 1));
+  LogicalVector notna_map = !is_na(data);
+  
+  // Comment for preservation of sanity...
+  // The input data does not stay on day 'day'; it starts on day 'day' - win_border. This gets around the problem of an off-by-two error.
+  vector<double> rep_dat(win_size * num_years);
+  for(int day = 0; day < days_per_year; ++day) {
+    vector<DatYrTuple> win_tuples(extract_window_with_year(data.begin(), notna_map.begin(), day, win_size, num_years, days_per_year));
+    std::sort(win_tuples.begin(), win_tuples.end());
+    const vector<vector<int> >& yrs_index = create_yrs_index(win_tuples, num_years);
+    const vector<double>& win_dat = get_data_only(win_tuples);
+
+    const int off_day = day * day_mul;
+    for(int rm_year = 0; rm_year < num_years; ++rm_year) {
+      const int off_day_rmyr = off_day + rm_year * rmyr_mul;
+      int dup_idx = 0;
+      for(int dup_year = 0; dup_year < num_years; ++dup_year) {
+	if(dup_year != rm_year) {
+	  replace_data_year(win_dat, rep_dat, yrs_index, rm_year, dup_year);
+	  const int off_day_rmyr_dupyr = off_day_rmyr + dup_idx * dupyr_mul;
+	  const int nq_day = nq * day;
+	  for(int q_idx = 0; q_idx < nq; ++q_idx)
+	    quantiles[off_day_rmyr_dupyr + q_idx * q_mul] = c_quantile(&rep_dat[0], rep_dat.size(), q[q_idx], true);
+	  ++dup_idx;
+	  rep_dat.resize(0);
+	}
+      }
+    }
+  }
+
+  return quantiles;
+}
+
+
+// Expects data in date sequence
+//void running_quantile_windowed_365day(const double* data, double* quantiles, const int* n, const double* q, const int* data_length, const int* num_quantiles) {
+RcppExport SEXP running_quantile_windowed(SEXP data_, SEXP n_, SEXP q_, SEXP dpy_) {
+  const int win_size = as<int>(n_);
+  const int days_per_year = as<int>(dpy_);
+  const NumericVector q(q_);
+  const NumericVector data(data_);
+  const int nq = q.size();
+  const int data_length = data.size();
+  
+  // Implicit pseudo-floor (nearest number to zero) by integer division
+  const int win_border = win_size / 2;
+  const int true_data_length = data_length - 2 * win_border;
+  const int num_years = (int)ceil((double)true_data_length / (double)days_per_year);
+  
+  NumericVector quantiles(nq * days_per_year);
+  
+  // This data will be 2 dimensional, row major, with the major dimension being the day of the year
+  double* buf = new double[num_years * win_size];
+  
+  LogicalVector notna_map = !is_na(data);
+  
+  // Comment for preservation of sanity...
+  // The input data does not stay on day 'day'; it starts on day 'day' - win_border. This gets around the problem of an off-by-two error.
+  for(int day = 0; day < days_per_year; ++day) {
+    int count = 0;
+    // Fill buffer with data with NA removed
+    for(int yr = 0; yr < num_years; ++yr) {
+      const int ydayoff = yr * days_per_year + day;
+      const int* ydayoff_notna = &notna_map.begin()[ydayoff];
+      const double* ydayoff_data = &data.begin()[ydayoff];
+      int winday = win_size;
+      while(winday--)
+	if(ydayoff_notna[winday])
+	  buf[count++] = ydayoff_data[winday];
+    }
+    // Quantiles on said buffer
+    const int nq_day = nq * day;
+    for(int q_idx = 0; q_idx < nq; ++q_idx)
+      quantiles[nq_day + q_idx] = c_quantile(buf, count, q[q_idx]);
+  }
+  delete[] buf;
+  
+  return quantiles;
 }
