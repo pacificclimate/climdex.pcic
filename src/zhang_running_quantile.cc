@@ -64,18 +64,24 @@ public:
 };
 
 // NOTE: Takes data with floor(win_size / 2) elements attached to beginning and end.
-// Extracts an n-day window into the data, removing NAs and generating a 3-tuple.
+// Extracts an n-day window into the data, removing NAs and generating a 2-tuple.
 vector<DatYrTuple> extract_window_with_year(const double* dat, const int* notna_map, const int day, const int win_size, const int nyr, const int dpy) {
   const int min_day = day;
   const int max_day = day + win_size;
+  const int half_win = win_size / 2;
   vector<DatYrTuple> out_dat;
   out_dat.reserve(win_size * nyr);
 
-  for(int i = 0; i < nyr; ++i) {
-    const int last_elem = i * dpy + max_day;
-    for(int j = i * dpy + min_day; j < last_elem; ++j)
-      if(notna_map[j])
-	out_dat.push_back(DatYrTuple(dat[j], i));
+  for(int yr = 0; yr < nyr; ++yr) {
+    const int yr_base = yr * dpy;
+    for(int day_idx = min_day; day_idx < max_day; ++day_idx) {
+      const int idx = day_idx + yr_base;
+      if(notna_map[idx]) {
+	// This is kind of ugly. But it works.
+	const int actual_yr = (int)floor((float)(idx - half_win) / (float)dpy);
+	out_dat.push_back(DatYrTuple(dat[idx], actual_yr));
+      }
+    }
   }
   return out_dat;
 }
@@ -112,8 +118,11 @@ vector<vector<int> > create_yrs_index(const vector<DatYrTuple>& sorted_in, const
   temp.resize(0);
   vector<vector<int> > yidx(nyr, temp);
   int idx = 0;
-  for(vector<DatYrTuple >::const_iterator i = sorted_in.begin(); i != sorted_in.end(); ++i, ++idx) 
-    yidx[(*i).yr].push_back(idx);
+  for(vector<DatYrTuple >::const_iterator i = sorted_in.begin(); i != sorted_in.end(); ++i, ++idx) {
+    const int yr = (*i).yr;
+    if(yr >= 0 && yr < nyr)
+      yidx[yr].push_back(idx);
+  }
   return yidx;
 }
 
@@ -290,7 +299,6 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
 	  for(int q_idx = 0; q_idx < nq; ++q_idx)
 	    quantiles[off_day_rmyr_dupyr + q_idx * q_mul] = c_quantile(&rep_dat[0], rep_dat.size(), q[q_idx], true);
 	  ++dup_idx;
-	  rep_dat.resize(0);
 	}
       }
     }
@@ -298,7 +306,6 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
 
   return quantiles;
 }
-
 
 // Expects data in date sequence
 //void running_quantile_windowed_365day(const double* data, double* quantiles, const int* n, const double* q, const int* data_length, const int* num_quantiles) {
