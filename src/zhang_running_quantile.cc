@@ -207,7 +207,7 @@ vector<IdxDupflagPair> get_index_tuples(const vector<vector<IdxDayPair> >& yrs_i
     const int ok_range_max = min(max_day, day + half_win);
     for(vector<IdxDayPair>::const_iterator i = yrs_index[dup_year].begin(); i != yrs_index[dup_year].end(); ++i) {
       const int cur_day = (*i).day;
-      if(!(need_dup_omit && (cur_day > ok_range_max || cur_day < ok_range_min))) {
+      if(cur_day <= ok_range_max && cur_day >= ok_range_min) {
 	id[id_idx].dup = true;
 	id[id_idx].idx = (*i).idx;
 	++id_idx;

@@ -159,21 +159,9 @@ zhang.bootstrap.qtile <- function(x, dates, qtiles, bootstrap.range, include.mas
     bs.data[1:window] <- bs.data[window + 1]
     bs.data[length(bs.data) - 0:(window - 1)] <- bs.data[length(bs.data) - window]
   }
-  
-  ## This routine is written as described in Zhang et al, 2005 as referenced above.
-  yidx <- 1:nyears
-  d <- sapply(yidx, function(idx.to.omit) {
-    ## Index is computed assuming `window` leading days of data...
-    omit.index <- window + (1:dpy) + ((idx.to.omit - 1) * dpy)
-    return(sapply(yidx[yidx != idx.to.omit], function(idx.to.replace.with) {
-      replace.index <- window + (1:dpy) + ((idx.to.replace.with - 1) * dpy)
-      bs.data[omit.index] <- bs.data[replace.index]
-      return(running.quantile(bs.data, n, qtiles, dpy))
-    }, simplify="array"))
-  }, simplify="array" )
 
-  d <- aperm(d, perm=c(1, 4, 3, 2))
-  ## new dims: dpy, nyears, nyears-1, length(quantiles)
+  d <- .Call("running_quantile_windowed_bootstrap", bs.data, n, qtiles, dpy, DUP=FALSE)
+  dim(d) <- c(dpy, nyears, nyears - 1, length(qtiles))
   
   return(lapply(1:length(qtiles), function(x) { d[,,,x] }))
 }
