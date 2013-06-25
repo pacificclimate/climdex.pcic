@@ -381,7 +381,8 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
     }
 
     if(!have.base.quantiles) {
-      bs.pctile.base <- do.call(c, lapply(filled.list.base[1:2], zhang.bootstrap.qtile, bs.date.series, c(0.1, 0.9), bs.date.range, n=n, pad.data.with.first.last.values=pad.data.with.first.last.values))
+      bs.pctile.base <- c(zhang.bootstrap.qtile(filled.list.base$tmax, bs.date.series, c(0.1, 0.9), bs.date.range, n=n, pad.data.with.first.last.values=pad.data.with.first.last.values),
+                          zhang.bootstrap.qtile(filled.list.base$tmin, bs.date.series, c(0.1, 0.9), bs.date.range, n=n, pad.data.with.first.last.values=pad.data.with.first.last.values))
       names(bs.pctile.base) <- bs.pctile.names
     }
   }

@@ -116,8 +116,8 @@ public:
       // we will need the first 1 or 2 days sorted into the array too. Because we can only deal with sorted data later,
       // that data has to be added regardless and removed as needed.
     } else if(day > dpy - half_win - 1) {
-      const int min_idx = (dpy - 1) - day + half_win;
-      const int max_idx_plusone = half_win + half_win;
+      const int min_idx = half_win;
+      const int max_idx_plusone = half_win + (day + half_win) - (dpy - 1);
       for(int idx = min_idx; idx < max_idx_plusone; ++idx) {
 	if(notna_map[idx]) {
 	  const int actual_yr = (int)floor((float)(idx - half_win) / (float)dpy);
