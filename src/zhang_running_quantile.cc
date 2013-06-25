@@ -72,12 +72,20 @@ public:
   int day;
 };
 
+class ClimdexBootstrapper {
+public:
+  const int win_size, nyr, dpy;
+  const double* dat;
+  const int* notna_map;
+  const int half_win;
+
+  ClimdexBootstrapper(const double* dat, const int* notna_map, const int win_size, const int nyr, const int dpy): dat(dat), notna_map(notna_map), win_size(win_size), nyr(nyr), dpy(dpy), half_win(win_size / 2) { }
+  
 // NOTE: Takes data with floor(win_size / 2) elements attached to beginning and end.
 // Extracts an n-day window into the data, removing NAs and generating a 2-tuple.
-vector<DatYrTuple> extract_window_with_year(const double* dat, const int* notna_map, const int day, const int win_size, const int nyr, const int dpy) {
+vector<DatYrTuple> extract_window_with_year(const int day) {
   const int min_day = day;
   const int max_day = day + win_size;
-  const int half_win = win_size / 2;
   vector<DatYrTuple> out_dat;
   out_dat.reserve(win_size * nyr + half_win);
 
@@ -121,36 +129,7 @@ vector<DatYrTuple> extract_window_with_year(const double* dat, const int* notna_
   return out_dat;
 }
 
-RcppExport SEXP extract_win_yr(SEXP data_, SEXP notna_map_, SEXP day_, SEXP win_size_, SEXP nyr_, SEXP dpy_) {
-  const NumericVector data(data_);
-  const LogicalVector notna_map(notna_map_);
-  const int day = as<int>(day_);
-  const int nyr = as<int>(nyr_);
-  const int win_size = as<int>(win_size_);
-  const int dpy = as<int>(dpy_);
-
-  const vector<DatYrTuple>& dyt = extract_window_with_year(data.begin(), notna_map.begin(), day, win_size, nyr, dpy);
-
-  NumericVector dat(dyt.size());
-  IntegerVector yr(dyt.size());
-  IntegerVector day_no(dyt.size());
-  List ret;
-
-  int idx = 0;
-  for(vector<DatYrTuple>::const_iterator i = dyt.begin(); i != dyt.end(); ++i, ++idx) {
-    dat[idx] = (*i).dat;
-    yr[idx] = (*i).yr;
-    day_no[idx] = (*i).day;
-  }
-  
-  ret["dat"] = dat;
-  ret["yr"] = yr;
-  ret["day"] = yr;
-
-  return ret;
-}
-
-vector<vector<IdxDayPair> > create_yrs_index(const vector<DatYrTuple>& sorted_in, const int nyr) {
+vector<vector<IdxDayPair> > create_yrs_index(const vector<DatYrTuple>& sorted_in) {
   const int max_elems = sorted_in.size() / nyr;
   vector<IdxDayPair> temp(max_elems);
   temp.resize(0);
@@ -165,41 +144,20 @@ vector<vector<IdxDayPair> > create_yrs_index(const vector<DatYrTuple>& sorted_in
   return yidx;
 }
 
-/*
-RcppExport SEXP create_yrs_idx(SEXP sorted_in_, SEXP nyr_) {
-  List sorted_in(sorted_in_);
-  const int nyr = as<int>(nyr_);
-  const NumericVector& dat = sorted_in["dat"];
-  const IntegerVector& yr = sorted_in["yr"];
-  const IntegerVector& day_no = sorted_in["day"];
-  const int datsize = dat.size();
-  vector<DatYrTuple> d(datsize);
-
-  for(int i = 0; i < datsize; ++i) {
-    d[i].dat = dat[i];
-    d[i].yr = yr[i];
-    d[i].day = day_no[i];
-  }
-
-  return wrap(create_yrs_index(d, nyr));
-}
-*/
-
-vector<IdxDupflagPair> get_index_tuples(const vector<vector<IdxDayPair> >& yrs_index, const int rm_year, const int dup_year, const int nyr, const int day, const int win_size, const int dpy) {
-  const int half_win = win_size / 2;
+vector<IdxDupflagPair> get_index_tuples(const vector<vector<IdxDayPair> >& yrs_index, const int rm_year, const int dup_year, const int day) {
   const int day_check_lower = half_win;
   const int day_check_upper = dpy - half_win - 1;
   const int min_day = 0;
   const int max_day = dpy - 1;
-  vector<IdxDupflagPair> id(yrs_index[rm_year].size() + yrs_index[dup_year].size() + half_win + 1);
+  vector<IdxDupflagPair> df_pairs(yrs_index[rm_year].size() + yrs_index[dup_year].size() + half_win + 1);
   
   const bool need_rm_first_year_extras = day > day_check_upper && rm_year != 0 && dup_year != 0;
   const bool need_rm_last_year_extras = day < day_check_lower && rm_year != (nyr - 1) && dup_year != (nyr - 1);
   const bool need_dup_omit = (day > day_check_upper && (dup_year == 0 || rm_year == 0)) || (day < day_check_lower && (dup_year == (nyr - 1) || rm_year == (nyr - 1)));
-  int id_idx = 0;
+  int df_idx = 0;
   
-  for(vector<IdxDayPair>::const_iterator i = yrs_index[rm_year].begin(); i != yrs_index[rm_year].end(); ++i, ++id_idx)
-    id[id_idx].idx = (*i).idx;
+  for(vector<IdxDayPair>::const_iterator i = yrs_index[rm_year].begin(); i != yrs_index[rm_year].end(); ++i, ++df_idx)
+    df_pairs[df_idx].idx = (*i).idx;
 
   // This runs if we need to ensure that only stuff within the OK range is copied (the other stuff is simply preserved. Viva le WTF!
   if(need_dup_omit) {
@@ -208,15 +166,15 @@ vector<IdxDupflagPair> get_index_tuples(const vector<vector<IdxDayPair> >& yrs_i
     for(vector<IdxDayPair>::const_iterator i = yrs_index[dup_year].begin(); i != yrs_index[dup_year].end(); ++i) {
       const int cur_day = (*i).day;
       if(cur_day <= ok_range_max && cur_day >= ok_range_min) {
-	id[id_idx].dup = true;
-	id[id_idx].idx = (*i).idx;
-	++id_idx;
+	df_pairs[df_idx].dup = true;
+	df_pairs[df_idx].idx = (*i).idx;
+	++df_idx;
       }
     }
   } else {
-    for(vector<IdxDayPair>::const_iterator i = yrs_index[dup_year].begin(); i != yrs_index[dup_year].end(); ++i, ++id_idx) {
-      id[id_idx].dup = true;
-      id[id_idx].idx = (*i).idx;
+    for(vector<IdxDayPair>::const_iterator i = yrs_index[dup_year].begin(); i != yrs_index[dup_year].end(); ++i, ++df_idx) {
+      df_pairs[df_idx].dup = true;
+      df_pairs[df_idx].idx = (*i).idx;
     }
   }
 
@@ -225,8 +183,8 @@ vector<IdxDupflagPair> get_index_tuples(const vector<vector<IdxDayPair> >& yrs_i
     for(vector<IdxDayPair>::const_iterator i = yrs_index[0].begin(); i != yrs_index[0].end(); ++i) {
       const int cur_day = (*i).day;
       if(cur_day < day_check_lower) {
-	id[id_idx].idx = (*i).idx;
-	++id_idx;
+	df_pairs[df_idx].idx = (*i).idx;
+	++df_idx;
       }
     }
   }
@@ -234,56 +192,25 @@ vector<IdxDupflagPair> get_index_tuples(const vector<vector<IdxDayPair> >& yrs_i
     for(vector<IdxDayPair>::const_iterator i = yrs_index[nyr - 1].begin(); i != yrs_index[nyr - 1].end(); ++i) {
       const int cur_day = (*i).day;
       if(cur_day > day_check_upper) {
-	id[id_idx].idx = (*i).idx;
-	++id_idx;
+	df_pairs[df_idx].idx = (*i).idx;
+	++df_idx;
       }
     }
   }
 
-  id.resize(id_idx);
-  sort(id.begin(), id.end());
-  return id;
+  df_pairs.resize(df_idx);
+  sort(df_pairs.begin(), df_pairs.end());
+  return df_pairs;
 }
 
-/*
-RcppExport SEXP get_idx_pairs(SEXP yrs_index_, SEXP rm_year_, SEXP dup_year_) {
-  const int rm_year = as<int>(rm_year_);
-  const int dup_year = as<int>(dup_year_);
-  List yrs_index_list(yrs_index_);
-  vector<vector<int> > yrs_index(yrs_index_list.size());
-
-  int yrid = 0;
-  for(List::iterator i = yrs_index_list.begin(); i != yrs_index_list.end(); ++i, ++yrid) {
-    const IntegerVector& d = (*i);
-    yrs_index[yrid].resize(d.size());
-    std::copy(d.begin(), d.end(), yrs_index[yrid].begin());
-  }
-
-  const vector<IdxDupflagPair>& idxt = get_index_tuples(yrs_index, rm_year, dup_year);
-  LogicalVector dup(idxt.size());
-  IntegerVector idx(idxt.size());
-  List ret;
-
-  for(int i = 0; i < dup.size(); ++i) {
-    dup[i] = idxt[i].dup;
-    idx[i] = idxt[i].idx;
-  }
-
-  ret["dup"] = dup;
-  ret["idx"] = idx;
-
-  return ret;
-}
-*/
-
-vector<double> replace_data_year(const vector<double>& in_data, vector<double>& out, const vector<vector<IdxDayPair> >& yrs_index, const int rm_year, const int dup_year, const int nyr, const int day, const int win_size, const int dpy) {
-  const vector<IdxDupflagPair> dfp = get_index_tuples(yrs_index, rm_year, dup_year, nyr, day, win_size, dpy);
+void replace_data_year(const vector<double>& in_data, vector<double>& out, const vector<vector<IdxDayPair> >& yrs_index, const int rm_year, const int dup_year, const int day) {
+  const vector<IdxDupflagPair>& df_pairs = get_index_tuples(yrs_index, rm_year, dup_year, day);
   int numdup = 0, numnotdup = 0;
-  for(vector<IdxDupflagPair>::const_iterator i = dfp.begin(); i != dfp.end(); ++i) { numdup += (int)((*i).dup); numnotdup += (int)(!(*i).dup); }
+  for(vector<IdxDupflagPair>::const_iterator i = df_pairs.begin(); i != df_pairs.end(); ++i) { numdup += (int)((*i).dup); numnotdup += (int)(!(*i).dup); }
   out.resize(in_data.size() + numdup - numnotdup);
 
   int last_in_idx = -1, next_out_idx = 0;
-  for(vector<IdxDupflagPair>::const_iterator i = dfp.begin(); i != dfp.end(); ++i) {
+  for(vector<IdxDupflagPair>::const_iterator i = df_pairs.begin(); i != df_pairs.end(); ++i) {
     const bool isdup = (*i).dup;
     const int idx = (*i).idx;
     const int nonspecial_block_length = idx - last_in_idx - 1;
@@ -302,33 +229,7 @@ vector<double> replace_data_year(const vector<double>& in_data, vector<double>& 
   if(last_in_idx + 1 < in_data.size()) {
     copy(&in_data[last_in_idx + 1], &in_data[in_data.size()], &out[next_out_idx]);
   }
-
-  return out;
 }
-
-/*
-RcppExport SEXP replace_data_year_R(SEXP in_data_, SEXP yrs_index_, SEXP rm_year_, SEXP dup_year_, SEXP win_size_) {
-  const int rm_year = as<int>(rm_year_);
-  const int dup_year = as<int>(dup_year_);
-  const int win_size = as<int>(win_size_);
-  const vector<double> in_data = as<vector<double> >(in_data_);
-
-  List yrs_index_list(yrs_index_);
-  vector<vector<int> > yrs_index(yrs_index_list.size());
-
-  int yrid = 0;
-  for(List::iterator i = yrs_index_list.begin(); i != yrs_index_list.end(); ++i, ++yrid) {
-    const IntegerVector& d = (*i);
-    yrs_index[yrid].resize(d.size());
-    std::copy(d.begin(), d.end(), yrs_index[yrid].begin());
-  }
-  vector<double> out(yrs_index.size() * win_size);
-  
-  replace_data_year(in_data, out, yrs_index, rm_year, dup_year);
-
-  return wrap(out);
-}
-*/
 
 vector<double> get_data_only(const vector<DatYrTuple>& in_dat) {
   vector<double> out_dat(in_dat.size());
@@ -337,6 +238,7 @@ vector<double> get_data_only(const vector<DatYrTuple>& in_dat) {
     out_dat[i] = in_dat[i].dat;
   return out_dat;
 }
+};
 
 RcppExport SEXP c_quantile2(SEXP data_, SEXP quantile_) {
   const NumericVector q(quantile_);
@@ -371,15 +273,16 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
 
   NumericVector quantiles(nq * days_per_year * num_years * (num_years - 1));
   LogicalVector notna_map = !is_na(data);
+  ClimdexBootstrapper bs(data.begin(), notna_map.begin(), win_size, num_years, days_per_year);
   
   // Comment for preservation of sanity...
   // The input data does not stay on day 'day'; it starts on day 'day' - win_border. This gets around the problem of an off-by-two error.
   vector<double> rep_dat(win_size * num_years);
   for(int day = 0; day < days_per_year; ++day) {
-    vector<DatYrTuple> win_tuples(extract_window_with_year(data.begin(), notna_map.begin(), day, win_size, num_years, days_per_year));
+    vector<DatYrTuple> win_tuples(bs.extract_window_with_year(day));
     std::sort(win_tuples.begin(), win_tuples.end());
-    const vector<vector<IdxDayPair> >& yrs_index = create_yrs_index(win_tuples, num_years);
-    const vector<double>& win_dat = get_data_only(win_tuples);
+    const vector<vector<IdxDayPair> >& yrs_index = bs.create_yrs_index(win_tuples);
+    const vector<double>& win_dat = bs.get_data_only(win_tuples);
 
     const int off_day = day * day_mul;
     for(int rm_year = 0; rm_year < num_years; ++rm_year) {
@@ -387,7 +290,7 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
       int dup_idx = 0;
       for(int dup_year = 0; dup_year < num_years; ++dup_year) {
 	if(dup_year != rm_year) {
-	  replace_data_year(win_dat, rep_dat, yrs_index, rm_year, dup_year, num_years, day, win_size, days_per_year);
+	  bs.replace_data_year(win_dat, rep_dat, yrs_index, rm_year, dup_year, day);
 	  const int off_day_rmyr_dupyr = off_day_rmyr + dup_idx * dupyr_mul;
 	  const int nq_day = nq * day;
 	  for(int q_idx = 0; q_idx < nq; ++q_idx)
