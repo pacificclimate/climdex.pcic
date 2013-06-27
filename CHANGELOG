@@ -1,3 +1,6 @@
+0.7-1:
+ - Implement much faster bootstrapping algorithm.
+
 0.6-2:
  - Update documentation to reflect all changes.
  - Update and clean up comments.
