@@ -6,7 +6,8 @@
   each day, and averages them using the date factor passed in.
 }
 \usage{
-percent.days.op.threshold(temp, dates, jdays, date.factor, threshold.outside.base, base.thresholds, base.range, op='<')
+percent.days.op.threshold(temp, dates, jdays, date.factor,
+threshold.outside.base, base.thresholds, base.range, op='<')
 }
 \arguments{
   \item{temp}{Sequence of temperature values.}
@@ -44,7 +45,11 @@ ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
 tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Compute monthly tx90p.
-tx90p <- percent.days.op.threshold(ci@tmax, ci@dates, ci@jdays, ci@monthly.factor, ci@running.pctile.notbase$tx90thresh, ci@running.pctile.base$tx90thresh, ci@base.range, ">") * ci@namask.mon$tmax
+tx90p <- percent.days.op.threshold(ci@tmax, ci@dates, ci@jdays, ci@monthly.factor,
+                                   ci@running.pctile.notbase$tx90thresh,
+                                   ci@running.pctile.base$tx90thresh,
+                                   ci@base.range, ">") * ci@namask.mon$tmax
+
 }
 \seealso{
   \link{climdexInput-class}.

@@ -6,7 +6,9 @@
   \code{min.length} days which exceed or are below the given threshold.
 }
 \usage{
-threshold.exceedance.duration.index(daily.temp, date.factor, jdays, thresholds, op=">", min.length=6, spells.can.span.years=TRUE)
+threshold.exceedance.duration.index(daily.temp, date.factor, jdays,
+thresholds, op=">", min.length=6, spells.can.span.years=TRUE)
+
 }
 \arguments{
   \item{daily.temp}{Data to compute index on.}

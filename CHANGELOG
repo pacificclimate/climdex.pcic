@@ -1,3 +1,12 @@
+0.7-4:
+ - Fixed a bug where tavg.dates was being incorrectly checked.
+
+0.7-3:
+ - Improve performance of creating climdexInput structure and GSL in the southern hemisphere.
+
+0.7-2:
+ - Clean up line length problems with documentation.
+
 0.7-1:
  - Implement much faster bootstrapping algorithm.
 

@@ -7,11 +7,20 @@
   These functions create climdexInput objects for use with the climdex methods.
 }
 \usage{
-climdexInput.raw(tmax, tmin, prec, tmax.dates, tmin.dates,prec.dates, base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE,pad.data.with.first.last.values=FALSE, tavg=NULL, tavg.dates=NULL, temp.quantiles.notbase=NULL, prec.quantiles=NULL, temp.quantiles.base=NULL)
+climdexInput.raw(tmax, tmin, prec, tmax.dates, tmin.dates,prec.dates,
+base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE,
+pad.data.with.first.last.values=FALSE, tavg=NULL, tavg.dates=NULL,
+temp.quantiles.notbase=NULL, prec.quantiles=NULL, temp.quantiles.base=NULL)
 
-climdexInput.csv(tmax.file, tmin.file, prec.file, data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990), na.strings=NULL, cal="gregorian", date.types=NULL, n=5, northern.hemisphere=TRUE, pad.data.with.first.last.values=FALSE, tavg.file=NULL, temp.quantiles.notbase=NULL, prec.quantiles=NULL, temp.quantiles.base=NULL)
+climdexInput.csv(tmax.file, tmin.file, prec.file,
+data.columns=list(tmin="tmin", tmax="tmax", prec="prec"),
+base.range=c(1961, 1990), na.strings=NULL, cal="gregorian",
+date.types=NULL, n=5, northern.hemisphere=TRUE,
+pad.data.with.first.last.values=FALSE, tavg.file=NULL,
+temp.quantiles.notbase=NULL, prec.quantiles=NULL, temp.quantiles.base=NULL)
 
-get.outofbase.quantiles(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), n=5, pad.data.with.first.last.values=FALSE)
+get.outofbase.quantiles(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates,
+base.range=c(1961, 1990), n=5, pad.data.with.first.last.values=FALSE)
 }
 \arguments{
   \item{tmax}{Daily maximum temperature data.}

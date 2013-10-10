@@ -7,7 +7,9 @@
   definitions.
 }
 \usage{
-growing.season.length(daily.mean.temp, date.factor, dates, northern.hemisphere, min.length=6, t.thresh=5, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum"))
+growing.season.length(daily.mean.temp, date.factor, dates,
+northern.hemisphere, min.length=6, t.thresh=5,
+gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum"))
 }
 \arguments{
   \item{daily.mean.temp}{Timeseries of daily mean temperature (in
@@ -56,7 +58,8 @@ ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
 tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Create an annual timeseries of the growing season length in days.
-gsl <- growing.season.length(ci@tavg, ci@annual.factor, ci@dates, ci@northern.hemisphere, gsl.mode="GSL") * ci@namask.ann$tavg
+gsl <- growing.season.length(ci@tavg, ci@annual.factor, ci@dates,
+                             ci@northern.hemisphere, gsl.mode="GSL") * ci@namask.ann$tavg
 
 ## Print these out for testing purposes.
 gsl

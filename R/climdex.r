@@ -104,22 +104,21 @@ create.filled.series <- function(data, data.dates, new.date.sequence) {
 
 ## Get julian day of year
 get.jdays <- function(dates) {
-  as.integer(format(dates, "%j", tz="GMT"))
+  return(as.POSIXlt(dates)$yday + 1)
 }
 
 ## Get year
 get.years <- function(dates) {
-  as.integer(format(dates, format="%Y", tz="GMT"))
+  return(as.POSIXlt(dates)$year + 1900)
 }
 
 ## Get month number
 get.months <- function(dates) {
-  as.integer(format(dates, format="%m", tz="GMT"))
+  return(as.POSIXlt(dates)$mon + 1)
 }
 
 ## Juggle the list so that day 366 == day 365
-get.jdays.replaced.feb29 <- function(dates) {
-  jdays <- get.jdays(dates)
+get.jdays.replaced.feb29 <- function(jdays) {
   indices <- which(jdays == 366)
   if(length(indices) > 0)
     jdays[rep(indices, each=366) + -365:0] <- c(1:59, 59, 60:365)
@@ -221,7 +220,7 @@ check.basic.argument.validity <- function(tmax, tmin, prec, tmax.dates, tmin.dat
 
   dates.list <- list(tmax.dates, tmin.dates, prec.dates)
   if(!is.null(tavg))
-    dates.list <- c(dates.list, tavg.dates)
+    dates.list <- c(dates.list, list(tavg.dates))
   if(any(!sapply(dates.list, inherits, "PCICt")))
     stop("Dates must be of class PCICt.")
 
@@ -324,11 +323,11 @@ climdexInput.raw <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.date
   ## Get dates for normal data
   new.date.range <- as.PCICt(paste(as.numeric(format(range(all.dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
-  jdays <- get.jdays.replaced.feb29(date.series)
+  jdays <- get.jdays.replaced.feb29(get.jdays(date.series))
   
   ## Factors for dividing data up
-  annual.factor <- as.factor(format(date.series, "%Y", tz="GMT"))
-  monthly.factor <- as.factor(format(date.series, "%Y-%m", tz="GMT"))
+  annual.factor <- factor(format(date.series, format="%Y", tz="GMT"))
+  monthly.factor <- factor(format(date.series, format="%Y-%m", tz="GMT"))
 
   ## Filled data...
   filled.tmax <- create.filled.series(tmax, trunc(tmax.dates, "days"), date.series)
@@ -480,12 +479,15 @@ climdex.gsl <- function(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")
   if(ci@northern.hemisphere) {
     return(growing.season.length(ci@tavg, ci@annual.factor, ci@dates, ci@northern.hemisphere, gsl.mode=match.arg(gsl.mode)) * ci@namask.ann$tavg)
   } else {
-    valid.date.range <- range(ci@dates)
-    valid.years <- get.years(valid.date.range)
-    years.gsl <- get.years(ci@dates) - floor((12 - get.months(ci@dates)) / 6)
+    dates.POSIXlt <- as.POSIXlt(ci@dates)
+    years <- dates.POSIXlt$year + 1900
+    months <- dates.POSIXlt$mon + 1
+
+    valid.years <- range(years)
+    years.gsl <- years - floor((12 - months) / 6)
 
     inset <- years.gsl >= valid.years[1]
-    gsl.factor <- factor(as.character(years.gsl[inset]))
+    gsl.factor <- factor(years.gsl[inset])
     gsl.temp.data <- ci@tavg[inset]
     namask.gsl <- get.na.mask(gsl.temp.data, gsl.factor, 15)
     namask.gsl[length(namask.gsl)] <- NA
@@ -675,7 +677,9 @@ percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold
     dat[inset] <- psum(lapply(1:dim(f.result)[2], function(x) { f.result[,x] }), na.rm=TRUE) / (byrs - 1)
   }
   
-  return(tapply.fast(dat, date.factor, function(x) { x.nona <- x[!is.na(x)]; if(!length(x.nona)) return(NA); return(sum(x.nona) / length(x.nona) * 100) } ))
+  ret <- tapply.fast(dat, date.factor, function(x) { return(sum(x, na.rm=TRUE) / sum(!is.na(x))); }) * 100
+  ret[is.nan(ret)] <- NA
+  return(ret)
 }
 
 ## WSDI, CSDI
@@ -686,13 +690,13 @@ threshold.exceedance.duration.index <- function(daily.temp, date.factor, jdays, 
   stopifnot(is.numeric(c(daily.temp, thresholds, min.length)), is.factor(date.factor),
             is.function(match.fun(op)),
             min.length > 0)
-
+  f <- match.fun(op)
   if(spells.can.span.years) {
-    periods <- select.blocks.gt.length(match.fun(op)(daily.temp, thresholds[jdays]), min.length - 1)
+    periods <- select.blocks.gt.length(f(daily.temp, thresholds[jdays]), min.length - 1)
     return(tapply.fast(periods, date.factor, sum))
   } else {
     ## fclimdex behaviour...
-    return(tapply.fast(1:length(daily.temp), date.factor, function(idx) { sum(select.blocks.gt.length(match.fun(op)(daily.temp[idx], thresholds[jdays[idx]]), min.length - 1)) } ))
+    return(tapply.fast(1:length(daily.temp), date.factor, function(idx) { sum(select.blocks.gt.length(f(daily.temp[idx], thresholds[jdays[idx]]), min.length - 1)) } ))
   }
 }
 
