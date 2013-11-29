@@ -52,16 +52,8 @@ valid.climdexInput <- function(x) {
   errors <- do.call(c, c(list(errors), lapply(intersect(present.data.vars, c("tmax", "tmin", "prec")), function(n) {
     if(is.null(quantiles[n]))
       return(NULL)
-    if(separate.base[n]) {
-      ## We can't deeply inspect the data if we want to make computation of quantile thresholds lazy; thus no looking at whether the individual quantiles are actually present.
-      if(need.base.data && (is.null(x@quantiles[[n]]) || is.null(x@quantiles[[n]]$inbase)))
-        return(paste("In-base quantiles for", n, "are missing."))
-      if(is.null(x@quantiles[[n]]) || is.null(x@quantiles[[n]]$outbase))
-        return(paste("Out of base quantiles for", n, "are missing.", sep=""))
-    } else {
-      if(is.null(x@quantiles[[n]]))
-        return(paste("Quantiles for", n, "are missing.", sep=""))
-    }
+    if(!(n %in% ls(envir=x@quantiles)))
+      return(paste("Quantiles for", n, "are missing.", sep=""))
     return(NULL)
   })))
 
@@ -77,7 +69,7 @@ valid.climdexInput <- function(x) {
 ## Class definition declaration
 setClass("climdexInput",
          representation(data = "list",
-                        quantiles = "list",
+                        quantiles = "environment",
                         namask.ann = "list",
                         namask.mon = "list",
                         dates = "PCICt",
@@ -352,17 +344,17 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 
   ## Pad data passed as base if we're missing endpoints...
   if(!have.quantiles) {
-    quantiles <- list()
+    quantiles <- environment()
     bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
     bs.date.series <- seq(bs.win.date.range[1], bs.win.date.range[2], by="day")
     filled.list.base <- list(tmax=create.filled.series(filled.list$tmax, date.series, bs.date.series), tmin=create.filled.series(filled.list$tmin, date.series, bs.date.series))
 
     if(days.in.base['tmax'] > days.threshold)
-      quantiles$tmax <- get.temp.var.quantiles(filled.list$tmax, date.series, bs.date.series, temp.qtiles, bs.date.range, n, pad.data.with.first.last.values, TRUE)
+      delayedAssign("tmax", get.temp.var.quantiles(filled.list$tmax, date.series, bs.date.series, temp.qtiles, bs.date.range, n, pad.data.with.first.last.values, TRUE), assign.env=quantiles)
     if(days.in.base['tmin'] > days.threshold)
-      quantiles$tmin <- get.temp.var.quantiles(filled.list$tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n, pad.data.with.first.last.values, TRUE)
+      delayedAssign("tmin", get.temp.var.quantiles(filled.list$tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n, pad.data.with.first.last.values, TRUE), assign.env=quantiles)
     if(days.in.base['prec'] > days.threshold)
-      quantiles$prec <- get.prec.var.quantiles(filled.list$prec, date.series, bs.date.range, prec.qtiles)
+      delayedAssign("prec", get.prec.var.quantiles(filled.list$prec, date.series, bs.date.range, prec.qtiles), assign.env=quantiles)
   }
   
   return(new("climdexInput", data=filled.list, quantiles=quantiles, namask.ann=namask.ann, namask.mon=namask.mon, dates=date.series, jdays=jdays, base.range=bs.date.range, annual.factor=annual.factor, monthly.factor=monthly.factor, northern.hemisphere=northern.hemisphere))
