@@ -45,9 +45,9 @@ ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
 tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Compute monthly tx90p.
-tx90p <- percent.days.op.threshold(ci@tmax, ci@dates, ci@jdays, ci@monthly.factor,
-                                   ci@running.pctile.notbase$tx90thresh,
-                                   ci@running.pctile.base$tx90thresh,
+tx90p <- percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@monthly.factor,
+                                   ci@quantiles$tmax$outbase$q90,
+                                   ci@quantiles$tmax$inbase$q90,
                                    ci@base.range, ">") * ci@namask.mon$tmax
 
 }

@@ -38,7 +38,7 @@ ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
 tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Calculate frost days.
-fd <- number.days.op.threshold(ci@tmin, ci@annual.factor, 0, "<")
+fd <- number.days.op.threshold(ci@data$tmin, ci@annual.factor, 0, "<")
 }
 \keyword{ts}
 \keyword{climate}

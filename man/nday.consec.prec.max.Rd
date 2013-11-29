@@ -40,7 +40,7 @@ ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
 tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Compute rx5day on a monthly basis.
-rx5day <- nday.consec.prec.max(ci@prec, ci@monthly.factor, 5)
+rx5day <- nday.consec.prec.max(ci@data$prec, ci@monthly.factor, 5)
 }
 \keyword{ts}
 \keyword{climate}

@@ -58,7 +58,7 @@ ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
 tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 
 ## Create an annual timeseries of the growing season length in days.
-gsl <- growing.season.length(ci@tavg, ci@annual.factor, ci@dates,
+gsl <- growing.season.length(ci@data$tavg, ci@annual.factor, ci@dates,
                              ci@northern.hemisphere, gsl.mode="GSL") * ci@namask.ann$tavg
 
 ## Print these out for testing purposes.
