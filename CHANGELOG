@@ -2,6 +2,7 @@
  - WARNING: The internal data structures, as well as the format of supplied and generated out-of-base quantile data, have changed somewhat.
    If your code relies on this or uses these features, you will need to modify it.
  - Additionally, allow lazy evaluation of quantile thresholds; only pay for what you use...
+ - Transition documentation to Roxygen2
 
 0.7-4:
  - Fixed a bug where tavg.dates was being incorrectly checked.
