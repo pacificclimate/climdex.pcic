@@ -617,15 +617,45 @@ climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, prec.file=NULL,
   return(climdexInput.raw(tmax=tmax$dat, tmin=tmin$dat, prec=prec$dat, tmax.dates=tmax$dates, tmin.dates=tmin$dates, prec.dates=prec$dates, base.range=base.range, n=n, northern.hemisphere=northern.hemisphere, pad.data.with.first.last.values=pad.data.with.first.last.values, tavg=tavg$dat, tavg.dates=tavg$dates, quantiles=quantiles, temp.qtiles=temp.qtiles, prec.qtiles=prec.qtiles))
 }
 
-#' Get NA masks or date factors given frequency definition
+#' Get date factors given frequency definition
 #' 
-#' These functions take a frequency definition and return data appropriate for
-#' that output frequency.
+#' This function takes a frequency definition and returns the appropriate date factor.
 #' 
-#' These are convenience functions which simply return the appropriate NA mask
-#' or date factor given an output time frequency (monthly or annual).
+#' This is a convenience function which return the appropriate
+#' date factor given an output time frequency (monthly or annual).
 #' 
-#' @aliases freq.to.factor freq.to.namask
+#' @param ci ClimdexInput object.
+#' @param freq Frequency (either monthly or annual).
+#' @return An NA mask or date factor for the given frequency.
+#' @keywords ts climate
+#' @examples
+#' 
+#' ## Parse the dates into PCICt.
+#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
+#' "jday")]), format="%Y %j", cal="gregorian")
+#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
+#' "jday")]), format="%Y %j", cal="gregorian")
+#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
+#' "jday")]), format="%Y %j", cal="gregorian")
+#' 
+#' ## Load the data in.
+#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
+#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
+#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
+#' 
+#' ## Get appropriate NA mask and date factor
+#' date.factor.ann <- freq.to.factor(ci, "annual")
+#' 
+#' @export
+freq.to.factor <- function(ci, freq) { switch(freq, annual=ci@annual.factor, monthly=ci@monthly.factor, NULL) }
+
+#' Get NA mask given frequency definition
+#' 
+#' This function takes a frequency definition and returns the appropriate NA mask.
+#' 
+#' This is a convenience function which return the appropriate
+#' NA mask given an output time frequency (monthly or annual).
+#' 
 #' @param ci ClimdexInput object.
 #' @param freq Frequency (either monthly or annual).
 #' @return An NA mask or date factor for the given frequency.
@@ -647,16 +677,13 @@ climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, prec.file=NULL,
 #' 
 #' ## Get appropriate NA mask and date factor
 #' na.mask.ann <- freq.to.namask(ci, "annual")
-#' date.factor.ann <- freq.to.factor(ci, "annual")
 #' 
-#' @export
-freq.to.factor <- function(ci, freq) { switch(freq, annual=ci@annual.factor, monthly=ci@monthly.factor, NULL) }
-
-## Returns appropriate NA mask for given time frequency
 #' @export
 freq.to.namask <- function(ci, freq) { switch(freq, annual=ci@namask.ann, monthly=ci@namask.mon, NULL) }
 
 #' Frost Days
+#' 
+#' This function computes the climdex index FD.
 #' 
 #' This function takes a climdexInput object as input and computes the FD (frost
 #' days) climdex index: that is, the annual count of days where daily minimum
@@ -665,6 +692,7 @@ freq.to.namask <- function(ci, freq) { switch(freq, annual=ci@namask.ann, monthl
 #' @param ci Object of type climdexInput.
 #' @return A vector containing the number of frost days for each year.
 #' @template generic_seealso_references
+#' 
 #' @templateVar cdxvar fd
 #' @templateVar cdxdescription an annual timeseries of the number of frost days.
 #' @template get_generic_example
@@ -674,6 +702,8 @@ climdex.fd <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 
 #' Summer Days
 #' 
+#' This function computes the climdex index SU.
+#' 
 #' This function takes a climdexInput object as input and computes the SU (summer
 #' days) climdex index: that is, the annual count of days where daily maximum
 #' temperature exceeds 25 degrees Celsius.
@@ -682,13 +712,15 @@ climdex.fd <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 #' @return A vector containing the number of summer days for each year.
 #' @template generic_seealso_references
 #' @templateVar cdxvar su
-#' @templateVar cdxdescription "an annual timeseries of the number of summer days."
+#' @templateVar cdxdescription an annual timeseries of the number of summer days.
 #' @template get_generic_example
 #' 
 #' @export
 climdex.su <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.days.op.threshold(ci@data$tmax, ci@annual.factor, 25, ">") * ci@namask.ann$tmax) }
 
 #' Icing Days
+#' 
+#' This function computes the climdex index ID.
 #' 
 #' This function takes a climdexInput object as input and computes the ID (icing
 #' days) climdex index: that is, the annual count of days where daily maximum
@@ -698,13 +730,15 @@ climdex.su <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.da
 #' @return A vector containing the number of icing days for each year.
 #' @template generic_seealso_references
 #' @templateVar cdxvar id
-#' @templateVar cdxdescription "an annual timeseries of the number of icing days."
+#' @templateVar cdxdescription an annual timeseries of the number of icing days.
 #' @template get_generic_example
 #' 
 #' @export
 climdex.id <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.days.op.threshold(ci@data$tmax, ci@annual.factor, 0, "<") * ci@namask.ann$tmax) }
 
 #' Tropical Nights
+#' 
+#' This function computes the climdex index TR.
 #' 
 #' This function takes a climdexInput object as input and computes the TR
 #' (tropical nights) climdex index: that is, the annual count of days where
@@ -714,7 +748,7 @@ climdex.id <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.da
 #' @return A vector containing the number of frost days for each year.
 #' @template generic_seealso_references
 #' @templateVar cdxvar tr
-#' @templateVar cdxdescription "an annual timeseries of the number of tropical nights."
+#' @templateVar cdxdescription an annual timeseries of the number of tropical nights.
 #' @template get_generic_example
 #' 
 #' @export
@@ -761,7 +795,7 @@ climdex.tr <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 #' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
 #' @keywords ts climate
 #' @templateVar cdxvar gsl
-#' @templateVar cdxdescription "an annual timeseries of the growing season length in days."
+#' @templateVar cdxdescription an annual timeseries of the growing season length in days.
 #' @template get_generic_example
 #' 
 #' @export
@@ -787,152 +821,166 @@ climdex.gsl <- function(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")
   }
 }
 
-#' Monthly Maximum/Minimum of Daily Maximum/Minimum Temperature
+#' Monthly Maximum of Daily Maximum Temperature
+#'
+#' This function computes the climdex index TXx.
 #' 
-#' These functions compute the climdex indices TXx, TNx, TXn, and TNn.
+#' This function takes a climdexInput object as input and computes
+#' the monthly or annual maximum of daily maximum temperature.
 #' 
-#' These functions take a climdexInput object as input and compute the climdex
-#' indices TXx, TNx, TXn, and TNn. These are: \itemize{ \item{TXx: }{Monthly or
-#' annual maximum of daily maximum temperature.}  \item{TNx: }{Monthly or annual
-#' maximum of daily minimum temperature.}  \item{TXn: }{Monthly or annual minimum
-#' of daily maximum temperature.}  \item{TNn: }{Monthly or annual minimum of daily
-#' minimum temperature.}  }
-#' 
-#' @aliases climdex.txx climdex.tnx climdex.txn climdex.tnn
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
 #' @return A vector containing the value of the index for each month.
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
-#' @examples
-#' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create a monthly timeseries of maximum daily maximum temperature.
-#' txx <- climdex.txx(ci)
-#' 
-#' ## Create a monthly timeseries of maximum daily minimum temperature.
-#' tnx <- climdex.tnx(ci)
-#' 
-#' ## Create a monthly timeseries of minimum daily maximum temperature.
-#' txn <- climdex.txn(ci)
-#' 
-#' ## Create a monthly timeseries of minimum daily minimum temperature.
-#' tnn <- climdex.tnn(ci)
-#' 
-#' ## Print these out for testing purposes.
-#' txx
-#' tnx
-#' txn
-#' tnn
+#' @template generic_seealso_references
+#' @templateVar cdxvar txx
+#' @templateVar cdxdescription a monthly timeseries of maximum daily maximum temperature.
+#' @template get_generic_example
 #' 
 #' @export
 climdex.txx <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax)); return(tapply.fast(ci@data$tmax, freq.to.factor(ci, match.arg(freq)), max) * freq.to.namask(ci, match.arg(freq))$tmax) }
 
+#' Monthly Maximum of Daily Minimum Temperature
+#'
+#' This function computes the climdex index TNx.
+#' 
+#' This function takes a climdexInput object as input and computes
+#' the monthly or annual maximum of daily minimum temperature.
+#' 
+#' @param ci Object of type climdexInput.
+#' @param freq Time frequency to aggregate to.
+#' @return A vector containing the value of the index for each month.
+#' @template generic_seealso_references
+#' @templateVar cdxvar tnx
+#' @templateVar cdxdescription a monthly timeseries of maximum daily minimum temperature.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.tnx <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin)); return(tapply.fast(ci@data$tmin, freq.to.factor(ci, match.arg(freq)), max) * freq.to.namask(ci, match.arg(freq))$tmin) }
 
+#' Monthly Minimum of Daily Maximum Temperature
+#'
+#' This function computes the climdex index TXn.
+#' 
+#' This function takes a climdexInput object as input and computes
+#' the monthly or annual minimum of daily maximum temperature.
+#' 
+#' @param ci Object of type climdexInput.
+#' @param freq Time frequency to aggregate to.
+#' @return A vector containing the value of the index for each month.
+#' @template generic_seealso_references
+#' @templateVar cdxvar txn
+#' @templateVar cdxdescription a monthly timeseries of minimum daily maximum temperature.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.txn <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax)); return(tapply.fast(ci@data$tmax, freq.to.factor(ci, match.arg(freq)), min) * freq.to.namask(ci, match.arg(freq))$tmax) }
 
+#' Monthly Minimum of Daily Minimum Temperature
+#'
+#' This function computes the climdex index TNn.
+#' 
+#' This function takes a climdexInput object as input and computes
+#' the monthly or annual minimum of daily minimum temperature.
+#' 
+#' @param ci Object of type climdexInput.
+#' @param freq Time frequency to aggregate to.
+#' @return A vector containing the value of the index for each month.
+#' @template generic_seealso_references
+#' @templateVar cdxvar tnn
+#' @templateVar cdxdescription a monthly timeseries of minimum daily minimum temperature.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.tnn <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin)); return(tapply.fast(ci@data$tmin, freq.to.factor(ci, match.arg(freq)), min) * freq.to.namask(ci, match.arg(freq))$tmin) }
 
 ## Our implementation currently follows the example set by fclimdex for dealing with missing values, which is wrong; it biases results upwards when missing values are present.
-#' Percent of Values Above/Below 10th/90th Percentile Temperature
+
+#' Percent of Values Below 10th Percentile Daily Minimum Temperature
 #' 
-#' These functions compute the climdex indices TN10p, TX10p, TN90p, and TN10p.
+#' This function computes the climdex index TN10p.
 #' 
-#' These functions take a climdexInput object as input and compute the climdex
-#' indices TN10p, TX10p, TN90p, and TN10p. These are: \itemize{ \item{TN10p: }
-#' {Monthly or annual percent of values below the 10th percentile of baseline
-#' daily minimum temperature.}  \item{TX10p: }{Monthly or annual percent of values
-#' below the 10th percentile of baseline daily maximum temperature.}
-#' \item{TN90p: }{Monthly or annual percent of values above the 90th percentile of
-#' baseline daily minimum temperature.}  \item{TX90p: }{Monthly or annual percent
-#' of values above the 90th percentile of baseline daily maximum temperature.}
-#' }
+#' This function takes a climdexInput object as input and computes the
+#' monthly or annual percent of values below the 10th percentile of baseline
+#' daily minimum temperature.
 #' 
 #' @template threshold_indices_block
 #' @template threshold_indices_args
 #' @template missing_values_caveat
 #'
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
 #' @template generic_seealso_references
-#' @examples
-#' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create a monthly timeseries of percentage of daily minimum
-#' ## temperature values which fall below the 10th percentile.
-#' tn10p <- climdex.tn10p(ci)
-#' 
-#' ## Create a monthly timeseries of percentage of daily maximum
-#' ## temperature values which fall below the 10th percentile.
-#' tx10p <- climdex.tx10p(ci)
-#' 
-#' ## Create a monthly timeseries of percentage of daily minimum
-#' ## temperature values which are above the 90th percentile.
-#' tn90p <- climdex.tn90p(ci)
-#' 
-#' ## Create a monthly timeseries of percentage of daily maximum
-#' ## temperature values which are above the 90th percentile.
-#' tx90p <- climdex.tx90p(ci)
-#' 
-#' ## Print these out for testing purposes.
-#' tn10p
-#' tx10p
-#' tn90p
-#' tx90p
+#' @templateVar cdxvar tn10p
+#' @templateVar cdxdescription a monthly timeseries of percentage of daily minimum temperature values which fall below the 10th percentile.
+#' @template get_generic_example
 #' 
 #' @export
 climdex.tn10p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(percent.days.op.threshold(ci@data$tmin, ci@dates, ci@jdays, freq.to.factor(ci, match.arg(freq)), ci@quantiles$tmin$outbase$q10, ci@quantiles$tmin$inbase$q10, ci@base.range, "<") * freq.to.namask(ci, match.arg(freq))$tmin) }
 
+#' Percent of Values Below 10th Percentile Daily Maximum Temperature
+#' 
+#' This function computes the climdex index TX10p.
+#' 
+#' This function takes a climdexInput object as input and computes the
+#' monthly or annual percent of values below the 10th percentile of baseline
+#' daily maximum temperature.
+#' 
+#' @template threshold_indices_block
+#' @template threshold_indices_args
+#' @template missing_values_caveat
+#'
+#' @template generic_seealso_references
+#' @templateVar cdxvar tn10p
+#' @templateVar cdxdescription a monthly timeseries of percentage of daily maximum temperature values which fall below the 10th percentile.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.tx10p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, freq.to.factor(ci, match.arg(freq)), ci@quantiles$tmax$outbase$q10, ci@quantiles$tmax$inbase$q10, ci@base.range, "<") * freq.to.namask(ci, match.arg(freq))$tmax) }
 
+#' Percent of Values Above 90th Percentile Daily Minimum Temperature
+#' 
+#' This function computes the climdex index TN90p.
+#' 
+#' This function takes a climdexInput object as input and computes the
+#' monthly or annual percent of values above the 90th percentile of baseline
+#' daily minimum temperature.
+#' 
+#' @template threshold_indices_block
+#' @template threshold_indices_args
+#' @template missing_values_caveat
+#'
+#' @template generic_seealso_references
+#' @templateVar cdxvar tn10p
+#' @templateVar cdxdescription a monthly timeseries of percentage of daily minimum temperature values which are above the 90th percentile.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.tn90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(percent.days.op.threshold(ci@data$tmin, ci@dates, ci@jdays, freq.to.factor(ci, match.arg(freq)), ci@quantiles$tmin$outbase$q90, ci@quantiles$tmin$inbase$q90, ci@base.range, ">") * freq.to.namask(ci, match.arg(freq))$tmin) }
 
+#' Percent of Values Above 90th Percentile Daily Maximum Temperature
+#' 
+#' This function computes the climdex index TX90p.
+#' 
+#' This function takes a climdexInput object as input and computes the
+#' monthly or annual percent of values above the 90th percentile of baseline
+#' daily maximum temperature.
+#' 
+#' @template threshold_indices_block
+#' @template threshold_indices_args
+#' @template missing_values_caveat
+#'
+#' @template generic_seealso_references
+#' @templateVar cdxvar tn10p
+#' @templateVar cdxdescription a monthly timeseries of percentage of daily maximum temperature values which are above the 90th percentile.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.tx90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, freq.to.factor(ci, match.arg(freq)), ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">") * freq.to.namask(ci, match.arg(freq))$tmax) }
 
-#' Warm/Cold Spell Duration Index
-#' 
-#' These functions compute the climdex indices WSDI and CSDI.
+#' Warm Spell Duration Index
+#'
+#' This function computes the climdex index WSDI.
 #' 
 #' These functions take a climdexInput object as input and compute the climdex
-#' indices WSDI and CSDI. These are: \itemize{ \item{WSDI: }{Warm Spell Duration
-#' Index.}  \item{CSDI: }{Cold Spell Duration Index.}  }
+#' index WSDI (Warm Spell Duration Index).
 #' 
 #' The warm spell duration index is defined as the number of days each year
 #' which are part of a "warm spell". A "warm spell" is defined as a sequence of
@@ -940,64 +988,40 @@ climdex.tx90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' percentile of daily maximum temperature for a 5-day running window
 #' surrounding this day during the baseline period.
 #' 
-#' Likewise, the cold spell duration index is defined as the number of days
+#' @template wcsdi_common
+#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}},
+#' \code{\link{threshold.exceedance.duration.index}}.
+#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
+#' @keywords ts climate
+#' @templateVar cdxvar wsdi
+#' @templateVar cdxdescription an annual timeseries of the warm spell duration index.
+#' @template get_generic_example
+#' 
+#' @export
+climdex.wsdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(threshold.exceedance.duration.index(ci@data$tmax, ci@annual.factor, ci@jdays, ci@quantiles$tmax$outbase$q90, ">", spells.can.span.years=spells.can.span.years) * ci@namask.ann$tmax) }
+
+#' Cold Spell Duration Index
+#' 
+#' This function computes the climdex index CSDI.
+#' 
+#' These functions take a climdexInput object as input and compute the climdex
+#' index CSDI (Cold Spell Duration Index).
+#'
+#' The cold spell duration index is defined as the number of days
 #' each year which are part of a "cold spell". A "cold spell" is defined as a
 #' sequence of 6 or more days in which the daily minimum temperature is below
 #' the 10th percentile of daily minimum temperature for a 5-day running window
 #' surrounding this day during the baseline period.
 #' 
-#' The \code{spells.can.span.years} option specifies whether spells can cross
-#' year boundaries -- i.e., span years. The default for this is the same as
-#' fclimdex.
-#' 
-#' @aliases climdex.wsdi climdex.csdi
-#' @param ci Object of type climdexInput.
-#' @param spells.can.span.years Whether to allow spells of dry/wet days to span
-#' years.
-#' @return A vector containing the value of the index for each year.
-#' @note These functions may calculate slightly different results than
-#' fclimdex.
-#' 
-#' Behaviour of climdex.wsdi and climdex.csdi differ somewhat from fclimdex.
-#' fclimdex considers all days in a warm or cold spell to be part of the year
-#' in which the spell ended.  climdex.wsdi and climdex.csdi split the spell
-#' such that days in each spell are allocated to the separate years in the days
-#' occurred.
+#' @template wcsdi_common
 #' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}},
 #' \code{\link{threshold.exceedance.duration.index}}.
 #' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
 #' @keywords ts climate
-#' @examples
+#' @templateVar cdxvar csdi
+#' @templateVar cdxdescription an annual timeseries of the cold spell duration index.
+#' @template get_generic_example
 #' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create an annual timeseries of the warm spell duration index.
-#' wsdi <- climdex.wsdi(ci)
-#' 
-#' ## Create an annual timeseries of the cold spell duration index.
-#' csdi <- climdex.csdi(ci)
-#' 
-#' ## Print these out for testing purposes.
-#' wsdi
-#' csdi
-#' 
-#' @export
-climdex.wsdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(threshold.exceedance.duration.index(ci@data$tmax, ci@annual.factor, ci@jdays, ci@quantiles$tmax$outbase$q90, ">", spells.can.span.years=spells.can.span.years) * ci@namask.ann$tmax) }
-
 #' @export
 climdex.csdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(threshold.exceedance.duration.index(ci@data$tmin, ci@annual.factor, ci@jdays, ci@quantiles$tmin$outbase$q10, "<", spells.can.span.years=spells.can.span.years) * ci@namask.ann$tmax) }
 
@@ -1014,92 +1038,43 @@ climdex.csdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(c
 #' temperature range.
 #' @note This function creates results which may differ in the 3rd decimal
 #' place from the results from fclimdex.
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
-#' @examples
-#' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create a monthly timeseries of mean diurnal temperature range.
-#' dtr <- climdex.dtr(ci)
-#' 
-#' ## Print these out for testing purposes.
-#' dtr
+#' @template generic_seealso_references
+#' @templateVar cdxvar dtr
+#' @templateVar cdxdescription a monthly timeseries of mean diurnal temperature range.
+#' @template get_generic_example
 #' 
 #' @export
 climdex.dtr <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@data$tmax) && !is.null(ci@data$tavg)); return(mean.daily.temp.range(ci@data$tmax, ci@data$tmin, freq.to.factor(ci, match.arg(freq))) * freq.to.namask(ci, match.arg(freq))$tavg) }
 
-#' Monthly Maximum Consecutive 5- and 1-day Precipitation
+#' Monthly Maximum 1-day Precipitation
 #' 
-#' These functions compute the climdex indices Rx5day and Rx1day.
+#' This function computes the climdex index Rx1day.
 #' 
-#' These functions take a climdexInput object as input and compute the climdex
-#' indices Rx5day and Rx1day. These are: \itemize{ \item{Rx5day: }{Monthly or
-#' annual maximum 5-day consecutive precipitation.}  \item{Rx1day: }{Monthly or
-#' annual maximum 1-day precipitation.}  }
+#' This function takes a climdexInput object as input and computes the climdex
+#' index Rx1day: monthly or annual maximum 1-day precipitation.
 #' 
-#' @aliases climdex.rx5day climdex.rx1day
-#' @param ci Object of type climdexInput.
-#' @param freq Time frequency to aggregate to.
-#' @param center.mean.on.last.day Whether to center the 5-day running mean on
-#' the last day of the window, instead of the center day.
-#' @return A vector containing the value of the index for each month of each
-#' year.
-#' @note The default behaviour of climdex.rx5day differs somewhat from
-#' fclimdex, as fclimdex and climdex.pcic differ on the definition of Rx5day.
-#' The running sum series computed by fclimdex is off by 2 days, and the first
-#' day a running sum can be computed for is left out entirely. The behaviour of
-#' fclimdex can be replicated by setting center.mean.on.last.day to TRUE.
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
-#' @examples
-#' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create a timeseries of monthly maximum 5-day consecutive
-#' ## precipitation.
-#' rx5day <- climdex.rx5day(ci)
-#' 
-#' ## Create a timeseries of monthly maximum 1-day precipitation.
-#' rx1day <- climdex.rx1day(ci)
-#' 
-#' ## Print these out for testing purposes.
-#' rx5day
-#' rx1day
+#' @template rx5day_common
+#' @template generic_seealso_references
+#' @templateVar cdxvar rx1day
+#' @templateVar cdxdescription a timeseries of monthly maximum 1-day precipitation.
+#' @template get_generic_example
 #' 
 #' @export
 climdex.rx1day <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec)); return(nday.consec.prec.max(ci@data$prec, freq.to.factor(ci, match.arg(freq)), 1) * freq.to.namask(ci, match.arg(freq))$prec) }
 
+#' Monthly Maximum 5-day Consecutive Precipitation
+#' 
+#' This function computes the climdex index Rx5day.
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index Rx5day: monthly or annual maximum 5-day consecutive precipitation.
+#' 
+#' @template rx5day_common
+#' @template generic_seealso_references
+#' @templateVar cdxvar rx5day
+#' @templateVar cdxdescription a timeseries of monthly maximum 5-day consecutive precipitation.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.rx5day <- function(ci, freq=c("monthly", "annual"), center.mean.on.last.day=FALSE) { stopifnot(!is.null(ci@data$prec)); return(nday.consec.prec.max(ci@data$prec, freq.to.factor(ci, match.arg(freq)), 5, center.mean.on.last.day) * freq.to.namask(ci, match.arg(freq))$prec) }
 
@@ -1116,95 +1091,63 @@ climdex.rx5day <- function(ci, freq=c("monthly", "annual"), center.mean.on.last.
 #' @return A vector containing the value of the index for each year.
 #' @note fclimdex rounds to 1 decimal place, whereas climdex.sdii does not.
 #' This results in some small differences.
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
-#' @examples
-#' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create a timeseries of annual SDII values.
-#' sdii <- climdex.sdii(ci)
-#' 
-#' ## Print these out for testing purposes.
-#' sdii
+#' @template generic_seealso_references
+#' @templateVar cdxvar sdii
+#' @templateVar cdxdescription a timeseries of annual SDII values.
+#' @template get_generic_example
 #' 
 #' @export
 climdex.sdii <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(simple.precipitation.intensity.index(ci@data$prec, ci@annual.factor) * ci@namask.ann$prec) }
 
-#' Precipitation Exceeding 10mm, 20mm, and Specified Threshold
+#' Precipitation Exceeding 10mm Per Day
 #' 
-#' These functions compute the climdex indices R10mm, R20mm, and Rnnmm.
+#' This function computes the climdex index R10mm.
+#'
+#' This function takes a climdexInput object as input and computes the climdex
+#' index R10mm: the annual count of days where daily precipitation is more than 10mm per day.
 #' 
-#' These functions take a climdexInput object as input and compute the climdex
-#' indices R10mm, R20mm, and Rnnmm. These are: \itemize{ \item{R10mm: }{Annual
-#' count of days where daily precipitation is more than 10mm.}  \item{R20mm: }
-#' {Annual count of days where daily precipitation is more than 20mm.}
-#' \item{Rnnmm: }{Annual count of days where daily precipitation is more than the
-#' number of millimeters specified by \code{threshold}.}  }
-#' 
-#' @aliases climdex.r10mm climdex.r20mm climdex.rnnmm
 #' @param ci Object of type climdexInput.
-#' @param threshold The threshold to be used for Rnnmm.
 #' @return A vector containing the value of the index for each year.
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
-#' @examples
-#' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create an annual timeseries of the number of days where
-#' ## precipitation exceeds 10mm/day.
-#' r10mm <- climdex.r10mm(ci)
-#' 
-#' ## Create an annual timeseries of the number of days where
-#' ## precipitation exceeds 20mm/day.
-#' r20mm <- climdex.r20mm(ci)
-#' 
-#' ## Create an annual timeseries of the number of days where
-#' ## precipitation exceeds 25mm/day.
-#' r25mm <- climdex.rnnmm(ci, 25)
-#' 
-#' ## Print these out for testing purposes.
-#' r10mm
-#' r20mm
-#' r25mm
+#' @template generic_seealso_references
+#' @templateVar cdxvar r10mm
+#' @templateVar cdxdescription an annual timeseries of the number of days where precipitation exceeds 10mm/day.
+#' @template get_generic_example
 #' 
 #' @export
 climdex.r10mm <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(number.days.op.threshold(ci@data$prec, ci@annual.factor, 10, ">=") * ci@namask.ann$prec) }
 
+#' Precipitation Exceeding 20mm Per Day
+#' 
+#' This function computes the climdex index R20mm.
+#'
+#' This function takes a climdexInput object as input and computes the climdex
+#' index R20mm: the annual count of days where daily precipitation is more than 20mm per day.
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing the value of the index for each year.
+#' @template generic_seealso_references
+#' @templateVar cdxvar r20mm
+#' @templateVar cdxdescription an annual timeseries of the number of days where precipitation exceeds 20mm/day.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.r20mm <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(number.days.op.threshold(ci@data$prec, ci@annual.factor, 20, ">=") * ci@namask.ann$prec) }
 
+#' Precipitation Exceeding A Specified Amount Per Day
+#' 
+#' This function computes the climdex index Rnnmm.
+#'
+#' This function takes a climdexInput object as input and computes the climdex
+#' index Rnnmm: the annual count of days where daily precipitation is more than nn mm per day.
+#' 
+#' @param ci Object of type climdexInput.
+#' @param threshold The threshold to be used for Rnnmm.
+#' @return A vector containing the value of the index for each year.
+#' @template generic_seealso_references
+#' @templateVar cdxvar rnnmm
+#' @templateVar cdxdescription an annual timeseries of the number of days where precipitation exceeds 1 mm/day (the default).
+#' @template get_generic_example
+#' 
 #' @export
 climdex.rnnmm <- function(ci, threshold=1) {
   stopifnot(!is.null(ci@data$prec));
@@ -1213,134 +1156,92 @@ climdex.rnnmm <- function(ci, threshold=1) {
   return(number.days.op.threshold(ci@data$prec, ci@annual.factor, threshold, ">=") * ci@namask.ann$prec)
 }
 
-#' Maximum Consecutive Wet and Dry Days
+#' Maximum Consecutive Dry Days
 #' 
-#' These functions compute the climdex indices CDD and CWD.
-#' 
-#' These functions take a climdexInput object as input and compute the climdex
-#' indices CDD and CWD. These are: \itemize{ \item{CDD: }{Annual maximum length of
-#' dry spell, in days.}  \item{CWD: }{Annual maximum length of wet spell, in days.}
-#' }
-#' 
-#' Wet spells are considered to be sequences of days where daily precipitation
-#' is at least 1mm per day.
-#' 
+#' This function computes the climdex index CDD.
+#'
+#' This function computes the climdex index CDD: the annual maximum length of dry spells, in days.
 #' Dry spells are considered to be sequences of days where daily preciptation
 #' is less than 1mm per day.
 #' 
-#' The \code{spells.can.span.years} option specifies whether spells can cross
-#' year boundaries -- i.e., span years. The default for this is the same as for
-#' fclimdex.
-#' 
-#' @aliases climdex.cdd climdex.cwd
-#' @param ci Object of type climdexInput.
-#' @param spells.can.span.years Whether to allow spells of dry/wet days to span
-#' years
-#' @return A vector containing the length of the dry or wet spell for each
-#' year.
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}},
-#' \code{\link{spell.length.max}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
-#' @examples
-#' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create an annual timeseries of the number of consecutive days where
-#' ## precipitation was less than 1mm/day.
-#' cdd <- climdex.cdd(ci)
-#' 
-#' ## Create an annual timeseries of the number of consecutive days where
-#' ## precipitation was at least 1mm/day.
-#' cwd <- climdex.cwd(ci)
-#' 
-#' ## Print these out for testing purposes.
-#' cdd
-#' cwd
+#' @template cdd_common
+#' @templateVar cdxvar cdd
+#' @templateVar cdxdescription an annual timeseries of the number of consecutive days where precipitation was less than 1mm/day.
+#' @template get_generic_example
 #' 
 #' @export
 climdex.cdd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@annual.factor, 1, "<", spells.can.span.years) * ci@namask.ann$prec) }
 
+#' Maximum Consecutive Wet Days
+#' 
+#' This function computes the climdex index CWD.
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index CWD: the annual maximum length of wet spells, in days.
+#' Wet spells are considered to be sequences of days where daily precipitation
+#' is at least 1mm per day.
+#' 
+#' @template cdd_common
+#' @templateVar cdxvar cdd
+#' @templateVar cdxdescription an annual timeseries of the number of consecutive days where precipitation was less than 1mm/day.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.cwd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@annual.factor, 1, ">=", spells.can.span.years) * ci@namask.ann$prec) }
 
-#' Total Daily Precipitation Exceeding 95\%ile, 99\%ile Threshold
+#' Total Daily Precipitation Exceeding 95\%ile Threshold
 #' 
-#' These functions compute the climdex indices R95pTOT, R99pTOT, and PRCPTOT.
+#' This function computes the climdex index R95pTOT.
 #' 
-#' These functions take a climdexInput object as input and compute the climdex
-#' indices R95pTOT, R99pTOT, and PRCPTOT. These are: \itemize{ \item{R95pTOT: }
-#' {Annual sum of precipitation in days where daily precipitation exceeds the
-#' 95th percentile of daily precipitation in the base period.}  \item{R99pTOT: }
-#' {Annual sum of precipitation in days where daily precipitation exceeds the
-#' 99th percentile of daily precipitation in the base period.}  \item{PRCPTOT: }
-#' {Annual sum of precipitation in days where daily precipitation is at least
-#' 1mm/day.}  }
+#' This function takes a climdexInput object as input and computes the climdex
+#' index R95pTOT: the annual sum of precipitation in days where daily precipitation exceeds the
+#' 95th percentile of daily precipitation in the base period.
 #' 
-#' @aliases climdex.r95ptot climdex.r99ptot climdex.prcptot
 #' @param ci Object of type climdexInput.
 #' @return A vector containing an annual timeseries of precipitation exceeding
-#' the appropriate threshold.
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
-#' @examples
-#' 
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#' 
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' 
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#' 
-#' ## Create an annual timeseries of the sum of precipitation where
-#' ## precipitation exceeds the 95th percentile of precipitation in the
-#' ## base period.
-#' r95ptot <- climdex.r95ptot(ci)
-#' 
-#' ## Create an annual timeseries of the sum of precipitation where
-#' ## precipitation exceeds the 99th percentile of precipitation in the
-#' ## base period.
-#' r99ptot <- climdex.r99ptot(ci)
-#' 
-#' ## Create an annual timeseries of the sum of precipitation where
-#' ## precipitation is at least 1mm/day.
-#' prcptot <- climdex.prcptot(ci)
-#' 
-#' ## Print these out for testing purposes.
-#' r95ptot
-#' r99ptot
-#' prcptot
+#' the threshold.
+#' @template generic_seealso_references
+#' @templateVar cdxvar r95ptot
+#' @templateVar cdxdescription an annual timeseries of the sum of precipitation where it exceeds the 95th percentile of precipitation in the base period.
+#' @template get_generic_example
 #' 
 #' @export
 climdex.r95ptot <- function(ci) { stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); return(total.precip.op.threshold(ci@data$prec, ci@annual.factor, ci@quantiles$prec['q95'], ">") * ci@namask.ann$prec) }
 
+#' Total Daily Precipitation Exceeding 99\%ile Threshold
+#' 
+#' This function computes the climdex index R99pTOT.
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index R99pTOT: the annual sum of precipitation in days where daily precipitation exceeds the
+#' 99th percentile of daily precipitation in the base period.
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual timeseries of precipitation exceeding
+#' the threshold.
+#' @template generic_seealso_references
+#' @templateVar cdxvar r99ptot
+#' @templateVar cdxdescription an annual timeseries of the sum of precipitation where it exceeds the 99th percentile of precipitation in the base period.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.r99ptot <- function(ci) { stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); return(total.precip.op.threshold(ci@data$prec, ci@annual.factor, ci@quantiles$prec['q99'], ">") * ci@namask.ann$prec) }
 
+#' Total Daily Precipitation
+#' 
+#' This function computes the climdex index PRCPTOT.
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index PRCPTOT: the annual sum of precipitation in wet days
+#' (days where precipitation is at least 1mm).
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual timeseries of precipitation in wet days.
+#' @template generic_seealso_references
+#' @templateVar cdxvar prcpptot
+#' @templateVar cdxdescription an annual timeseries of the sum of precipitation in wet days.
+#' @template get_generic_example
+#' 
 #' @export
 climdex.prcptot <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(total.precip.op.threshold(ci@data$prec, ci@annual.factor, 1, ">=") * ci@namask.ann$prec) }
 
@@ -1420,7 +1321,7 @@ get.series.lengths.at.ends <- function(x, na.value=FALSE) {
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #' 
 #' ## Calculate frost days.
-#' fd <- number.days.op.threshold(ci@data$tmin, ci@annual.factor, 0, "<")
+#' fd <- number.days.op.threshold(ci@@data$tmin, ci@@annual.factor, 0, "<")
 #' 
 #' @export
 number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
@@ -1479,8 +1380,8 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #' 
 #' ## Create an annual timeseries of the growing season length in days.
-#' gsl <- growing.season.length(ci@data$tavg, ci@annual.factor, ci@dates,
-#'                              ci@northern.hemisphere, gsl.mode="GSL") * ci@namask.ann$tavg
+#' gsl <- growing.season.length(ci@@data$tavg, ci@@annual.factor, ci@@dates,
+#'                              ci@@northern.hemisphere, gsl.mode="GSL") * ci@@namask.ann$tavg
 #' 
 #' ## Print these out for testing purposes.
 #' gsl
@@ -1567,10 +1468,10 @@ psum <- function (..., na.rm = FALSE) {
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #' 
 #' ## Compute monthly tx90p.
-#' tx90p <- percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@monthly.factor,
-#'                                    ci@quantiles$tmax$outbase$q90,
-#'                                    ci@quantiles$tmax$inbase$q90,
-#'                                    ci@base.range, ">") * ci@namask.mon$tmax
+#' tx90p <- percent.days.op.threshold(ci@@data$tmax, ci@@dates, ci@@jdays, ci@@monthly.factor,
+#'                                    ci@@quantiles$tmax$outbase$q90,
+#'                                    ci@@quantiles$tmax$inbase$q90,
+#'                                    ci@@base.range, ">") * ci@@namask.mon$tmax
 #' 
 #' 
 #' @export
@@ -1699,7 +1600,7 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #' 
 #' ## Compute rx5day on a monthly basis.
-#' rx5day <- nday.consec.prec.max(ci@data$prec, ci@monthly.factor, 5)
+#' rx5day <- nday.consec.prec.max(ci@@data$prec, ci@@monthly.factor, 5)
 #' 
 #' @export
 nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.last.day=FALSE) {

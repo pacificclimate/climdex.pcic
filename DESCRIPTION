@@ -19,5 +19,5 @@ License: LGPL-2.1
 URL: http://www.r-project.org
 LazyData: yes
 Collate:
-    'climdex.pcic-package.R'
     'climdex.r'
+    'climdex.pcic-package.R'
