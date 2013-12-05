@@ -4,6 +4,21 @@ library(PCICt)
 temp.quantiles <- c(10, 90)
 prec.quantiles <- c(95, 99)
 
+#' Get the last month and day of the year
+#'
+#' Get the last month and day of the year as a character sting, separated by
+#' the specified separator.
+#'
+#' This is a utility function necessitated by 360-day calendars. Works on PCICt objects.
+#'
+#' @param d An exemplar date.
+#' @param sep Separator to use.
+#' @return A string (like "12-30", or "12-31")
+#' 
+#' @examples
+#' last.mday <- get.last.monthday.of.year(as.PCICt("2011-01-01", cal="360"))
+#' 
+#' @export
 get.last.monthday.of.year <- function(d, sep="-") {
   if(!is.null(attr(d, "months"))) paste("12", attr(d, "months")[12], sep=sep) else paste("12", "31", sep=sep)
 }
@@ -350,8 +365,12 @@ get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtil
 #' output a set of threshold quantiles. This data structure can then be passed
 #' to climdexInput.raw or climdexInput.csv.
 #'
-#' @template climdexInput_raw_help1 
-#' @template climdexInput_raw_params
+#' @param tmax Daily maximum temperature data.
+#' @param tmin Daily minimum temperature data.
+#' @param prec Daily total precipitation data.
+#' @param tmax.dates Dates for the daily maximum temperature data.
+#' @param tmin.dates Dates for the daily minimum temperature data.
+#' @param prec.dates Dates for the daily total precipitation data.
 #' @template climdexInput_common_params
 #' @param quantiles Threshold quantiles for supplied variables.
 #' @return A set of threshold quantiles
@@ -432,6 +451,7 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
 #' @template climdexInput_raw_help1 
 #' @template climdexInput_raw_params
 #' @template climdexInput_common_params
+#' @param northern.hemisphere Whether this point is in the northern hemisphere.
 #' @param quantiles Threshold quantiles for supplied variables.
 #' @return An object of class \code{\link{climdexInput-class}} for use with
 #' other climdex methods.
@@ -550,6 +570,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 #' \code{\link{read.csv}}.
 #' @param cal The calendar type used in the input files.
 #' @template climdexInput_common_params
+#' @param northern.hemisphere Whether this point is in the northern hemisphere.
 #' @param quantiles Threshold quantiles for supplied variables.
 #' @return An object of class \code{\link{climdexInput-class}} for use with
 #' other climdex methods.
@@ -1236,7 +1257,7 @@ climdex.r99ptot <- function(ci) { stopifnot(!is.null(ci@data$prec) && !is.null(c
 #' @param ci Object of type climdexInput.
 #' @return A vector containing an annual timeseries of precipitation in wet days.
 #' @template generic_seealso_references
-#' @templateVar cdxvar prcpptot
+#' @templateVar cdxvar prcptot
 #' @templateVar cdxdescription an annual timeseries of the sum of precipitation in wet days.
 #' @template get_generic_example
 #' 

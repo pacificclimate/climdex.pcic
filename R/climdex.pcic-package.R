@@ -46,6 +46,7 @@
 #' Zhang, X., 2005: Avoiding inhomogeneity in percentile-based indices of
 #' temperature extremes. Journal of Climate 18.11 (2005):1641-.
 #' @keywords climate ts
+#' @useDynLib climdex.pcic
 NULL
 
 #' EC example data
