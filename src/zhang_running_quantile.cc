@@ -9,9 +9,12 @@ using namespace Rcpp;
 
 // Implements R's type=8
 double c_quantile(double* data, const int n, const double quantile, bool sorted=false) {
-  if(n < 2 || quantile < 0 || quantile > 1) {
+  if(n == 0 || quantile < 0 || quantile > 1) {
     return(R_NaReal);
   }
+
+  if(n == 1)
+    return(data[0]);
   
   // Constants for quantiles. Can be modified if needed.
   const double a = 1.0/3.0;

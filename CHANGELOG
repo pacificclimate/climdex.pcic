@@ -3,6 +3,10 @@
    If your code relies on this or uses these features, you will need to modify it.
  - Additionally, allow lazy evaluation of quantile thresholds; only pay for what you use...
  - Transition documentation to Roxygen2
+ - Change quantile routine for the single-value case to return the value instead of NA.
+  - May cause some results to change from NA to a value; will only affect very sparse input data.
+ - Fix bug with GSL_first, GSL_max, and GSL_sum modes of gsl routine.
+  - Improper selection of periods resulted in occasionally selecting too long a period.
 
 0.7-4:
  - Fixed a bug where tavg.dates was being incorrectly checked.

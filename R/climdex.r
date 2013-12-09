@@ -1,9 +1,6 @@
 library(caTools)
 library(PCICt)
 
-temp.quantiles <- c(10, 90)
-prec.quantiles <- c(95, 99)
-
 #' Get the last month and day of the year
 #'
 #' Get the last month and day of the year as a character sting, separated by
@@ -47,6 +44,8 @@ tapply.fast <- function (X, INDEX, FUN = NULL, ..., simplify = TRUE) {
 
 ## Check that climdexInput data structure is valid.
 valid.climdexInput <- function(x) {
+  temp.quantiles <- c(10, 90)
+  prec.quantiles <- c(95, 99)
   errors <- c()
 
   separate.base <- c(tmax=T, tmin=T, tavg=T, prec=F)
@@ -1268,7 +1267,7 @@ all.indices <- c('fd', 'su', 'id', 'tr', 'gsl', 'txx', 'tnx', 'txn', 'tnn', 'tn1
                  'dtr', 'rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot')
 
 ##
-## HELPERS FINISHED. IMPLEMENTATIION BELOW.
+## HELPERS FINISHED. IMPLEMENTATION BELOW.
 ##
 
 #' Get series length at ends
@@ -1428,7 +1427,7 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
       return(ifelse(length(gs.begin) == 0, 0, ifelse(length(gs.end) == 0, ts.len - gs.begin[1] + 1, gs.end[1] - gs.begin[1] + ts.mid)))
     }))
   } else {
-    in.gsl <- select.blocks.gt.length(daily.mean.temp >= t.thresh, min.length - 1) | !select.blocks.gt.length(daily.mean.temp < t.thresh, min.length - 1, TRUE)
+    in.gsl <- !select.blocks.gt.length(!select.blocks.gt.length(daily.mean.temp >= t.thresh, min.length - 1), min.length - 1)
     warning("GSL_first, GSL_max, and GSL_sum are experimental alternative growing season length definitions. Use at your own risk.")
     
     innerfunc <- switch(gsl.mode, GSL_first=function(bl) { ifelse(any(bl > 0), (bl[bl > 0])[1], 0) }, GSL_max=max, GSL_sum=sum)

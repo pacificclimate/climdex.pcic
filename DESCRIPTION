@@ -12,8 +12,9 @@ Depends:
     methods,
     Rcpp (>= 0.10.0)
 Suggests:
-    compiler
-Description: The pcic_climdex package provides PCIC's implementation of Climdex
+    compiler,
+    RUnit
+Description: The climdex.pcic package provides PCIC's implementation of Climdex
     routines for computation of climate indices.
 License: LGPL-2.1
 URL: http://www.r-project.org
