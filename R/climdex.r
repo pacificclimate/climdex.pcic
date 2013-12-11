@@ -401,7 +401,8 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
   days.threshold <- 359
   check.basic.argument.validity(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range, n)
   
-  all.dates <- c(tmin.dates, tmax.dates, prec.dates)
+  d.list <- list(tmin.dates, tmax.dates, prec.dates)
+  all.dates <- do.call(c, d.list[!sapply(d.list, is.null)])
   last.day.of.year <- get.last.monthday.of.year(all.dates)
   cal <- attr(all.dates, "cal")
 
@@ -484,7 +485,8 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   ## Make sure all of these arguments are valid...
   check.basic.argument.validity(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range, n, tavg, tavg.dates)
 
-  all.dates <- c(tmin.dates, tmax.dates, prec.dates, tavg.dates)
+  d.list <- list(tmin.dates, tmax.dates, prec.dates, tavg.dates)
+  all.dates <- do.call(c, d.list[!sapply(d.list, is.null)])
   last.day.of.year <- get.last.monthday.of.year(all.dates)
   cal <- attr(all.dates, "cal")
 
@@ -529,7 +531,6 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
     quantiles <- environment()
     bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
     bs.date.series <- seq(bs.win.date.range[1], bs.win.date.range[2], by="day")
-    filled.list.base <- list(tmax=create.filled.series(filled.list$tmax, date.series, bs.date.series), tmin=create.filled.series(filled.list$tmin, date.series, bs.date.series))
 
     if(days.in.base['tmax'] > days.threshold)
       delayedAssign("tmax", get.temp.var.quantiles(filled.list$tmax, date.series, bs.date.series, temp.qtiles, bs.date.range, n, pad.data.with.first.last.values, TRUE), assign.env=quantiles)
@@ -1035,7 +1036,7 @@ climdex.wsdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(c
 #' @template get_generic_example
 #' 
 #' @export
-climdex.csdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(threshold.exceedance.duration.index(ci@data$tmin, ci@annual.factor, ci@jdays, ci@quantiles$tmin$outbase$q10, "<", spells.can.span.years=spells.can.span.years) * ci@namask.ann$tmax) }
+climdex.csdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(threshold.exceedance.duration.index(ci@data$tmin, ci@annual.factor, ci@jdays, ci@quantiles$tmin$outbase$q10, "<", spells.can.span.years=spells.can.span.years) * ci@namask.ann$tmin) }
 
 #' Mean Diurnal Temperature Range
 #' 
