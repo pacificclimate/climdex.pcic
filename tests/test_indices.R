@@ -56,6 +56,12 @@ climdex.pcic.test.intake.routines <- function() {
                            if(include.tmin) tmin.dates else NULL,
                            if(include.prec) prec.dates else NULL,
                            base.range=c(1971, 2000))
+
+    ci.csv <- climdexInput.csv(if(include.tmax) "1018935_MAX_TEMP.csv" else NULL,
+                               if(include.tmin) "1018935_MIN_TEMP.csv" else NULL,
+                               if(include.prec) "1018935_ONE_DAY_PRECIPITATION.csv" else NULL,
+                               data.columns=list(tmax="MAX_TEMP", tmin="MIN_TEMP", prec="ONE_DAY_PRECIPITATION"),
+                               base.range=c(1971, 2000))
     
     indices.to.check.equals <- indices.that.should.work[[i]]
     indices.to.check.error <- all.indices[!(all.indices %in% indices.to.check.equals)]
@@ -66,6 +72,7 @@ climdex.pcic.test.intake.routines <- function() {
       fun <- match.fun(paste('climdex', index, sep="."))
       valid.result <- get(paste('ec.1018935', index, sep="."))
       checkEquals(valid.result, fun(ci), paste(index, "didn't match expected result: include.tmax is", include.tmax, ", include.tmin is ", include.tmin, ", include.prec is ", include.prec))
+      checkEquals(valid.result, fun(ci.csv), paste(index, "didn't match expected result with CSV input: include.tmax is", include.tmax, ", include.tmin is ", include.tmin, ", include.prec is ", include.prec))
     }
 
     print("Checking error...")
@@ -73,6 +80,7 @@ climdex.pcic.test.intake.routines <- function() {
       print(index)
       fun <- match.fun(paste('climdex', index, sep="."))
       checkException(fun(ci), paste(index, "didn't produce error when it should have: include.tmax is", include.tmax, ", include.tmin is ", include.tmin, ", include.prec is ", include.prec))
+      checkException(fun(ci.csv), paste(index, "didn't produce error when it should have with CSV input: include.tmax is", include.tmax, ", include.tmin is ", include.tmin, ", include.prec is ", include.prec))
     }
   }
 }

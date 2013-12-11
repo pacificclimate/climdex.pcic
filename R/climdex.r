@@ -528,7 +528,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 
   ## Pad data passed as base if we're missing endpoints...
   if(!have.quantiles) {
-    quantiles <- environment()
+    quantiles <- new.env(parent=emptyenv())
     bs.win.date.range <- get.bootstrap.windowed.range(bs.date.range, n)
     bs.date.series <- seq(bs.win.date.range[1], bs.win.date.range[2], by="day")
 
@@ -611,7 +611,7 @@ climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, prec.file=NULL,
       dat <- read.csv(fn, na.strings=na.strings)
       if(!(datacol %in% names(dat)))
         stop("Data column not found in tmin data.")
-      return(list(dat=dat[!is.na(dat[,datacol]),],  dates=get.date.field(dat, cal, date.types)))
+      return(list(dat=dat[!is.na(dat[,datacol]),datacol],  dates=get.date.field(dat, cal, date.types)))
     }
     return(list(dat=NULL, dates=NULL))
   }
