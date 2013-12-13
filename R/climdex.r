@@ -417,21 +417,21 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
 
   if(!is.null(tmax)) {
     if(get.num.days.in.range(tmax.dates, bs.date.range) <= days.threshold)
-      stop(paste("There is less than a year of tmax data within the base period. Consider revising your base range and/or check your input data."))
+      stop("There is less than a year of tmax data within the base period. Consider revising your base range and/or check your input data.")
     filled.tmax <- create.filled.series(tmax, trunc(tmax.dates, "days"), date.series)
     quantiles$tmax <- get.temp.var.quantiles(filled.tmax, date.series, bs.date.series, temp.qtiles, bs.date.range, n, pad.data.with.first.last.values)
   } 
 
   if(!is.null(tmin)) {
     if(get.num.days.in.range(tmin.dates, bs.date.range) <= days.threshold)
-      stop(paste("There is less than a year of tmin data within the base period. Consider revising your base range and/or check your input data."))
+      stop("There is less than a year of tmin data within the base period. Consider revising your base range and/or check your input data.")
     filled.tmin <- create.filled.series(tmin, trunc(tmin.dates, "days"), date.series)
     quantiles$tmin <- get.temp.var.quantiles(filled.tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n, pad.data.with.first.last.values)
   }
 
   if(!is.null(prec)) {
     if(get.num.days.in.range(prec.dates, bs.date.range) <= days.threshold)
-      stop(paste("There is less than a year of prec data within the base period. Consider revising your base range and/or check your input data."))
+      stop("There is less than a year of prec data within the base period. Consider revising your base range and/or check your input data.")
     filled.prec <- create.filled.series(prec, trunc(prec.dates, "days"), date.series)
     quantiles$prec <- get.prec.var.quantiles(filled.prec, date.series, bs.date.range, prec.qtiles)
   }
@@ -1294,6 +1294,7 @@ all.indices <- c('fd', 'su', 'id', 'tr', 'gsl', 'txx', 'tnx', 'txn', 'tnn', 'tn1
 #' 
 #' @export
 get.series.lengths.at.ends <- function(x, na.value=FALSE) {
+  stopifnot(is.logical(x) && is.logical(na.value))
   n <- length(x)
   if(n == 1)
     return(as.numeric(x))
@@ -1344,7 +1345,7 @@ get.series.lengths.at.ends <- function(x, na.value=FALSE) {
 #' 
 #' @export
 number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
-  stopifnot(is.numeric(c(temp, threshold)))
+  stopifnot(is.numeric(temp) && is.numeric(threshold) && is.factor(date.factor))
   return(tapply.fast(match.fun(op)(temp, threshold), date.factor, sum, na.rm=TRUE))
 }
 
@@ -1436,18 +1437,6 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
   }
 }
 
-## Sums up all of the arguments passed in
-psum <- function (..., na.rm = FALSE) {
-  args <- list(...)
-  if(length(args) == 1 & is.list(args[[1]]))
-    args <- args[[1]]
-  stopifnot(length(unique(sapply(args, length))) == 1)
-  if (na.rm)
-    return(Reduce(function(x, y) { y[is.na(y)] <- 0; return(x + y); }, args, rep(0, length(args[[1]]))))
-  else
-    return(Reduce('+', args))
-}
-
 #' Lengths of strings of TRUE values
 #' 
 #' Computes fraction of days above or below the baseline threshold for each
@@ -1516,7 +1505,7 @@ percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold
     dim(f.result) <- c(length(yday.byr.indices), bdim[3])
 
     ## Chop up data along the 2nd dim into a list; sum elements of the list
-    dat[inset] <- psum(lapply(1:dim(f.result)[2], function(x) { f.result[,x] }), na.rm=TRUE) / (byrs - 1)
+    dat[inset] <- rowSums(f.result, na.rm=TRUE) / (byrs - 1)
   }
   
   ret <- tapply.fast(dat, date.factor, function(x) { return(sum(x, na.rm=TRUE) / sum(!is.na(x))); }) * 100

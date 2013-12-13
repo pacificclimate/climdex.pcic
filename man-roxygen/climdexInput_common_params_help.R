@@ -37,9 +37,10 @@
 #' For precipitation variables, there is a named vector of quantiles, consisting
 #' of at least q95 and q99. 
 #'
-#' The \code{temp.qtiles} and \code{prec.qtiles} allow the user to modify the
-#' quantiles calculated; for example, to include the median temperature
-#' quantile.
+#' The \code{temp.qtiles} and \code{prec.qtiles} arguments allow the user to
+#' modify the quantiles calculated. For example, specifying
+#' temp.qtiles=c(0.10, 0.50, 0.90) would calculate the 10th, 50th, and 90th
+#' percentiles for temperature.
 #' 
 #' @seealso \code{\link{climdex.pcic-package}}, \code{\link{strptime}}.
 #' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
