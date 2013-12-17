@@ -78,10 +78,10 @@ climdex.pcic.test.threshold.exceedance.duration.index <- function() {
   min.length <- 2
   
   ## With spells spanning years...
-  alttedi <- threshold.exceedance.duration.index(prec.dat, phony.date.factor, phony.jdays, thresholds, op, min.length, TRUE)
+  alttedi <- threshold.exceedance.duration.index(prec.dat, phony.date.factor, phony.jdays, thresholds, op, min.length, TRUE, 1)
 
   ## Without spells spanning years...
-  tedi <- threshold.exceedance.duration.index(prec.dat, phony.date.factor, phony.jdays, thresholds, op, min.length, FALSE)
+  tedi <- threshold.exceedance.duration.index(prec.dat, phony.date.factor, phony.jdays, thresholds, op, min.length, FALSE, 1)
 
   checkEquals(c(4, 3), as.numeric(alttedi))
   checkEquals(c(4, 2), as.numeric(tedi))
@@ -112,7 +112,7 @@ climdex.pcic.test.percent.days.op.threshold <- function() {
   ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
  
   ## Compute monthly tx90p on example data.
-  tx90p <- percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@monthly.factor, ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">") * ci@namask.mon$tmax
+  tx90p <- percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors$monthly, ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">", ci@max.missing.days['monthly']) * ci@namasks$monthly$tmax
 
   ## Check this against the known-valid data.
   checkEquals(ec.1018935.tx90p, tx90p)
@@ -130,7 +130,7 @@ climdex.pcic.test.growing.season.length <- function() {
  ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
  
  ## Create an annual timeseries of the growing season length in days.
- gsl <- growing.season.length(ci@data$tavg, ci@annual.factor, ci@dates, ci@northern.hemisphere, gsl.mode="GSL") * ci@namask.ann$tavg
+ gsl <- growing.season.length(ci@data$tavg, ci@date.factors$annual, ci@dates, ci@northern.hemisphere, gsl.mode="GSL") * ci@namasks$annual$tavg
 
  ## Check this against known-valid data.
  checkEquals(ec.1018935.gsl, gsl)

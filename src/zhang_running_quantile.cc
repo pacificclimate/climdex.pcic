@@ -7,6 +7,8 @@
 using namespace std;
 using namespace Rcpp;
 
+static const double min_data_fraction = 0.1;
+
 // Implements R's type=8
 double c_quantile(double* data, const int n, const double quantile, bool sorted=false) {
   if(n == 0 || quantile < 0 || quantile > 1) {
@@ -256,9 +258,10 @@ RcppExport SEXP c_quantile2(SEXP data_, SEXP quantile_) {
   return res;
 }
 
-RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_, SEXP dpy_) {
+RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_, SEXP dpy_, SEXP min_fraction_) {
   const int win_size = as<int>(n_);
   const int days_per_year = as<int>(dpy_);
+  const double min_fraction = as<double>(min_fraction_);
   const NumericVector q(q_);
   const NumericVector data(data_);
   const int nq = q.size();
@@ -268,6 +271,7 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
   const int win_border = win_size / 2;
   const int true_data_length = data_length - 2 * win_border;
   const int num_years = (int)ceil((double)true_data_length / (double)days_per_year);
+  const int slab_size = win_size * num_years;
   
   const int day_mul = 1;
   const int rmyr_mul = days_per_year;
@@ -280,7 +284,7 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
   
   // Comment for preservation of sanity...
   // The input data does not stay on day 'day'; it starts on day 'day' - win_border. This gets around the problem of an off-by-two error.
-  vector<double> rep_dat(win_size * num_years);
+  vector<double> rep_dat(slab_size);
   for(int day = 0; day < days_per_year; ++day) {
     vector<DatYrTuple> win_tuples(bs.extract_window_with_year(day));
     std::sort(win_tuples.begin(), win_tuples.end());
@@ -296,8 +300,12 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
 	  bs.replace_data_year(win_dat, rep_dat, yrs_index, rm_year, dup_year, day);
 	  const int off_day_rmyr_dupyr = off_day_rmyr + dup_idx * dupyr_mul;
 	  const int nq_day = nq * day;
-	  for(int q_idx = 0; q_idx < nq; ++q_idx)
-	    quantiles[off_day_rmyr_dupyr + q_idx * q_mul] = c_quantile(&rep_dat[0], rep_dat.size(), q[q_idx], true);
+	  if(((double)rep_dat.size() / (double)slab_size) < min_fraction)
+	    for(int q_idx = 0; q_idx < nq; ++q_idx)
+	      quantiles[off_day_rmyr_dupyr + q_idx * q_mul] = R_NaReal;
+	  else
+	    for(int q_idx = 0; q_idx < nq; ++q_idx)
+	      quantiles[off_day_rmyr_dupyr + q_idx * q_mul] = c_quantile(&rep_dat[0], rep_dat.size(), q[q_idx], true);
 	  ++dup_idx;
 	}
       }
@@ -309,9 +317,10 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
 
 // Expects data in date sequence
 //void running_quantile_windowed_365day(const double* data, double* quantiles, const int* n, const double* q, const int* data_length, const int* num_quantiles) {
-RcppExport SEXP running_quantile_windowed(SEXP data_, SEXP n_, SEXP q_, SEXP dpy_) {
+RcppExport SEXP running_quantile_windowed(SEXP data_, SEXP n_, SEXP q_, SEXP dpy_, SEXP min_fraction_) {
   const int win_size = as<int>(n_);
   const int days_per_year = as<int>(dpy_);
+  const double min_fraction = as<double>(min_fraction_);
   const NumericVector q(q_);
   const NumericVector data(data_);
   const int nq = q.size();
@@ -321,11 +330,12 @@ RcppExport SEXP running_quantile_windowed(SEXP data_, SEXP n_, SEXP q_, SEXP dpy
   const int win_border = win_size / 2;
   const int true_data_length = data_length - 2 * win_border;
   const int num_years = (int)ceil((double)true_data_length / (double)days_per_year);
-  
+  const int slab_size = win_size * num_years;
+
   NumericVector quantiles(nq * days_per_year);
   
   // This data will be 2 dimensional, row major, with the major dimension being the day of the year
-  double* buf = new double[num_years * win_size];
+  double* buf = new double[slab_size];
   
   LogicalVector notna_map = !is_na(data);
   
@@ -345,8 +355,12 @@ RcppExport SEXP running_quantile_windowed(SEXP data_, SEXP n_, SEXP q_, SEXP dpy
     }
     // Quantiles on said buffer
     const int nq_day = nq * day;
-    for(int q_idx = 0; q_idx < nq; ++q_idx)
-      quantiles[nq_day + q_idx] = c_quantile(buf, count, q[q_idx]);
+    if(((double)count / (double)slab_size) < min_fraction)
+      for(int q_idx = 0; q_idx < nq; ++q_idx)
+	quantiles[nq_day + q_idx] = R_NaReal;
+    else
+      for(int q_idx = 0; q_idx < nq; ++q_idx)
+	quantiles[nq_day + q_idx] = c_quantile(buf, count, q[q_idx]);
   }
   delete[] buf;
   
