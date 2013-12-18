@@ -1595,7 +1595,9 @@ threshold.exceedance.duration.index <- function(daily.temp, date.factor, jdays, 
 ## Computes mean diurnal temperature range in each period (as specified by date.factor).
 ## Max and min temps are assumed to be same length
 mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
-  return(tapply.fast(daily.max.temp - daily.min.temp, date.factor, mean, na.rm=TRUE))
+  dat <- tapply.fast(daily.max.temp - daily.min.temp, date.factor, mean, na.rm=TRUE)
+  dat[is.nan(dat)] <- NA
+  dat
 }
 
 #' Number of days (less than, greater than, etc) a threshold
@@ -1637,7 +1639,7 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 #' @export
 nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.last.day=FALSE) {
   if(ndays == 1) {
-    return(tapply.fast(daily.prec, date.factor, max, na.rm=TRUE))
+    return(suppressWarnings(tapply.fast(daily.prec, date.factor, max, na.rm=TRUE)))
   } else {
     ## Ends of the data will be de-emphasized (padded with zero precip data); NAs replaced with 0
     new.series <- c(rep(0, floor(ndays / 2)), daily.prec, rep(0, floor(ndays / 2)))

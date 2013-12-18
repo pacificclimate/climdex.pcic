@@ -14,7 +14,7 @@ climdex.pcic.test.intake.routines <- function() {
   tmin.indices <- c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi')
   tmax.tmin.indices <- c('gsl', 'dtr')
   prec.indices <- c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot')
-  
+
   indices.that.should.work <- list(tmax.indices, tmin.indices, c(tmax.indices, tmin.indices, tmax.tmin.indices), prec.indices, c(prec.indices, tmax.indices), c(prec.indices, tmin.indices), c(prec.indices, tmax.indices, tmin.indices, tmax.tmin.indices))
   
   for(i in 1:7) {
@@ -43,10 +43,10 @@ climdex.pcic.test.intake.routines <- function() {
                                if(include.prec) "1018935_ONE_DAY_PRECIPITATION.csv" else NULL,
                                data.columns=list(tmax="MAX_TEMP", tmin="MIN_TEMP", prec="ONE_DAY_PRECIPITATION"),
                                base.range=c(1971, 2000))
-    
+
     indices.to.check.equals <- indices.that.should.work[[i]]
     indices.to.check.error <- all.indices[!(all.indices %in% indices.to.check.equals)]
-
+    
     print("Checking success...")
     for(index in indices.to.check.equals) {
       print(index)
@@ -74,7 +74,5 @@ climdex.pcic.test.climdex.gsl <- function() {
   ## Load the data in.
   ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000), northern.hemisphere=FALSE)
 
-  climdex.gsl(ci)
-
-  ## FIXME: Need test data, need to verify against test data.
+  checkEquals(get('ec.1018935.gsl.sh'), climdex.gsl(ci))
 }
