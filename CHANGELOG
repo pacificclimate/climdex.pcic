@@ -1,12 +1,28 @@
-0.8-1: Allow computation of indices without supplying all data
- - WARNING: The internal data structures, as well as the format of supplied and generated out-of-base quantile data, have changed somewhat.
-   If your code relies on this or uses these features, you will need to modify it.
- - Additionally, allow lazy evaluation of quantile thresholds; only pay for what you use...
- - Transition documentation to Roxygen2
+1.0-1: Allow computation of indices without supplying data for all variables; improve NA (missing value) handling.
+ SUMMARY:
+ - Code now allows you to only supply the data you have; formerly forced you to supply tmin, tmax, prec.
+ - NA (missing value) handling has changed; output will only change if NA values were present, and will be limited to presence/absence of NA values.
+ - Data structures have changed; however, If you are not supplying thresholds to be used when calculating TN/TX 10/90p AND you are not poking at the internals of the climdexInput structure, you will not need to change your code.
+ MAJOR CHANGES:
+ - NA (mising value) handling in the code has been revamped. 
+  - Fixed bug in TXx/TNx/TXn/TNn/DTR/RX1day where a single NA value would change the result for a month/year to NA.
+  - Changed data presence criteria to mask data with NA for annual if any month has more than 3 NA values or the year has more than 15.
+   - Previous behaviour: The year had to have more than 15 NA values.
+  - Add a configurable threshold for the minimum amount of data that must be present for a particular 5-day window in order for quantile-based indices to be calculated for that day.
+   - Previous behaviour: If any data was present, a quantile was calculated.
+ - The internal data structures, as well as the format of supplied and generated out-of-base quantile data, have changed.
+  - Documentation has been updated to reflect new formats (climdexInput.raw) and data structures (climdexInput-class)
+ - The climdexInput.raw, climdexInput.csv, and get.outofbase.quantiles functions no longer require you to supply tmin, tmax, and prec data; supply any one of those, any two, or all of them.
+  - Availability of indices will be dependent upon data availability.
+ MINOR CHANGES:
+ - Allow lazy evaluation of quantile thresholds.
+  - Improves performance if not using TN/TX 10/90p or W/CSDI.
  - Change quantile routine for the single-value case to return the value instead of NA.
   - May cause some results to change from NA to a value; will only affect very sparse input data.
  - Fix bug with GSL_first, GSL_max, and GSL_sum modes of gsl routine.
   - Improper selection of periods resulted in occasionally selecting too long a period.
+ - Fix minor bug where tx/tn 10/90p and (likely) w/csdi will not work with a 1- or 2-year base period.
+ - Transition documentation to Roxygen2
 
 0.7-4:
  - Fixed a bug where tavg.dates was being incorrectly checked.
