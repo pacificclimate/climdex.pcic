@@ -23,6 +23,7 @@
   - Improper selection of periods resulted in occasionally selecting too long a period.
  - Fix minor bug where tx/tn 10/90p and (likely) w/csdi will not work with a 1- or 2-year base period.
  - Transition documentation to Roxygen2
+ - Added a test suite to test the code.
 
 0.7-4:
  - Fixed a bug where tavg.dates was being incorrectly checked.
