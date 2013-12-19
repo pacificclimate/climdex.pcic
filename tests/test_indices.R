@@ -66,6 +66,24 @@ climdex.pcic.test.intake.routines <- function() {
   }
 }
 
+climdex.pcic.test.thresholds.edge.cases <- function() {
+  ci <- climdexInput.raw(tmax=c(rep(1:10, 10), rep(NA, 53), rep(1:4, 53)), tmax.dates=seq(from=as.PCICt("1970-01-01", cal=365), to=as.PCICt("1970-12-31", cal=365), by="days"), base.range=c(1970, 1970))
+  ci2 <- climdexInput.raw(tmax=rep(c(rep(1:10, 10), rep(NA, 53), rep(1:4, 53)), 2), tmax.dates=seq(from=as.PCICt("1970-01-01", cal=365), to=as.PCICt("1971-12-31", cal=365), by="days"), base.range=c(1970, 1971))
+
+  checkEquals(dim(ci@quantiles$tmax$inbase$q10), c(365, 1, 0))
+  checkEquals(dim(ci2@quantiles$tmax$inbase$q10), c(365, 2, 1))
+
+  tx90p.ci.valid <- structure(c(0, 0, 0, NA, NA, 0, 0, 0, 0, 0, 0, 0),
+                              .Names = c("1970-01", "1970-02", "1970-03", "1970-04", "1970-05", "1970-06", "1970-07", "1970-08", "1970-09", "1970-10", "1970-11", "1970-12"))
+  
+  tx90p.ci2.valid <- structure(c(0, 0, 0, NA, NA, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, NA, NA, 0, 0, 0, 0, 0, 0, 0),
+                               .Names = c("1970-01", "1970-02", "1970-03", "1970-04", "1970-05", "1970-06", "1970-07", "1970-08", "1970-09", "1970-10", "1970-11", "1970-12", "1971-01", "1971-02", "1971-03", "1971-04", "1971-05", "1971-06", "1971-07", "1971-08", "1971-09", "1971-10", "1971-11", "1971-12"))
+  
+  checkEquals(tx90p.ci.valid, climdex.tx90p(ci))
+  checkEquals(tx90p.ci2.valid, climdex.tx90p(ci2))
+  
+}
+
 climdex.pcic.test.climdex.gsl <- function() {
   tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year", "jday")]), format="%Y %j", cal="gregorian")
   tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year", "jday")]), format="%Y %j", cal="gregorian")

@@ -268,7 +268,7 @@ zhang.running.qtile <- function(x, dates.base, qtiles, bootstrap.range, include.
   if(get.bootstrap.data) {
     d <- .Call("running_quantile_windowed_bootstrap", bs.data, n, qtiles, dpy, min.fraction.present, DUP=FALSE, PACKAGE='climdex.pcic')
     dim(d) <- c(dpy, nyears, nyears - 1, length(qtiles))
-    qdat <- lapply(1:length(qtiles), function(x) { d[,,,x] })
+    qdat <- lapply(1:length(qtiles), function(x) { r <- d[,,,x, drop=FALSE]; dim(r) <- dim(r)[1:3]; r })
   } else {
     res <- running.quantile(bs.data, n, qtiles, dpy, min.fraction.present)
     qdat <- lapply(1:length(qtiles), function(x) { res[,x] })
@@ -1507,7 +1507,8 @@ percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold
   dat <- f(temp, threshold.outside.base[jdays])
   
   inset <- dates >= base.range[1] & dates <= base.range[2]
-  if(sum(inset) > 0) {
+  ## Don't use in-base thresholds with data shorter than two years; no years to replace with.
+  if(sum(inset) > 0 && length(dates) >= 360 * 2) {
     jdays.base <- jdays[inset]
     years.base <- get.years(dates[inset])
 
@@ -1527,8 +1528,8 @@ percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold
     dat[inset] <- rowSums(f.result, na.rm=TRUE) / (byrs - 1)
   }
   dat[is.nan(dat)] <- NA
-  na.mask <- get.na.mask(is.na(dat), date.factor, max.missing.days)
-  ##ret <- tapply.fast(dat, date.factor, function(x) { return(sum(x, na.rm=TRUE) / sum(!is.na(x))); }) * 100 * na.mask
+  na.mask <- get.na.mask(dat, date.factor, max.missing.days)
+  ## FIXME: Need to monthly-ize the NA mask calculation, which will be ugly.
   ret <- tapply.fast(dat, date.factor, mean, na.rm=TRUE) * 100 * na.mask
   ret[is.nan(ret)] <- NA
   return(ret)
