@@ -67,12 +67,24 @@ climdex.pcic.test.intake.routines <- function() {
 }
 
 climdex.pcic.test.thresholds.edge.cases <- function() {
-  ci <- climdexInput.raw(tmax=c(rep(1:10, 10), rep(NA, 53), rep(1:4, 53)), tmax.dates=seq(from=as.PCICt("1970-01-01", cal=365), to=as.PCICt("1970-12-31", cal=365), by="days"), base.range=c(1970, 1970))
-  ci2 <- climdexInput.raw(tmax=rep(c(rep(1:10, 10), rep(NA, 53), rep(1:4, 53)), 2), tmax.dates=seq(from=as.PCICt("1970-01-01", cal=365), to=as.PCICt("1971-12-31", cal=365), by="days"), base.range=c(1970, 1971))
+  dat1 <- c(rep(1:10, 10), rep(NA, 53), rep(1:4, 53))
+  dat1.dates <- seq(from=as.PCICt("1970-01-01", cal=365), to=as.PCICt("1970-12-31", cal=365), by="days")
+  dat2 <- rep(c(rep(1:10, 10), rep(NA, 53), rep(1:4, 53)), 2)
+  dat2.dates <- seq(from=as.PCICt("1970-01-01", cal=365), to=as.PCICt("1971-12-31", cal=365), by="days")
+  dat3 <- rep(c(rep(1:38, 4), rep(NA, 5), rep(1:4, 52)), 3)
+  dat3.dates <- seq(from=as.PCICt("1970-01-01", cal=365), to=as.PCICt("1972-12-31", cal=365), by="days")
+  dat3[c(155 + 365 * 2 + c(0:1))] <- 12
+  
+  ci <- climdexInput.raw(tmax=dat1, tmin=dat1, tmax.dates=dat1.dates, tmin.dates=dat1.dates, base.range=c(1970, 1970))
+  ci2 <- climdexInput.raw(tmax=dat2, tmin=dat2, tmax.dates=dat2.dates, tmin.dates=dat2.dates, base.range=c(1970, 1971))
+  ci3 <- climdexInput.raw(tmax=dat3, tmin=dat3, tmax.dates=dat3.dates, tmin.dates=dat3.dates, base.range=c(1970, 1971))
 
-  checkEquals(dim(ci@quantiles$tmax$inbase$q10), c(365, 1, 0))
-  checkEquals(dim(ci2@quantiles$tmax$inbase$q10), c(365, 2, 1))
+  checkEquals(c(365, 1, 0), dim(ci@quantiles$tmax$inbase$q10))
+  checkEquals(c(365, 2, 1), dim(ci2@quantiles$tmax$inbase$q10))
 
+  ## Specifically test the adding and masking of NA values with threshold-based indices.
+  checkEquals(structure(NA_real_, .Names = "1972-06"), climdex.tx10p(ci3)[30])
+  
   tx90p.ci.valid <- structure(c(0, 0, 0, NA, NA, 0, 0, 0, 0, 0, 0, 0),
                               .Names = c("1970-01", "1970-02", "1970-03", "1970-04", "1970-05", "1970-06", "1970-07", "1970-08", "1970-09", "1970-10", "1970-11", "1970-12"))
   
