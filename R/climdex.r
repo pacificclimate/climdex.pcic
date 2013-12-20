@@ -940,7 +940,7 @@ climdex.tnn <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci
 #'
 #' @template generic_seealso_references
 #' @templateVar cdxvar tn10p
-#' @templateVar cdxdescription a monthly timeseries of percentage of daily minimum temperature values which fall below the 10th percentile.
+#' @templateVar cdxdescription a monthly timeseries of the TN10p index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -959,8 +959,8 @@ climdex.tn10p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' @template missing_values_caveat
 #'
 #' @template generic_seealso_references
-#' @templateVar cdxvar tn10p
-#' @templateVar cdxdescription a monthly timeseries of percentage of daily maximum temperature values which fall below the 10th percentile.
+#' @templateVar cdxvar tx10p
+#' @templateVar cdxdescription a monthly timeseries of the TX10p index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -979,8 +979,8 @@ climdex.tx10p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' @template missing_values_caveat
 #'
 #' @template generic_seealso_references
-#' @templateVar cdxvar tn10p
-#' @templateVar cdxdescription a monthly timeseries of percentage of daily minimum temperature values which are above the 90th percentile.
+#' @templateVar cdxvar tn90p
+#' @templateVar cdxdescription a monthly timeseries of the TN90p index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -999,8 +999,8 @@ climdex.tn90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' @template missing_values_caveat
 #'
 #' @template generic_seealso_references
-#' @templateVar cdxvar tn10p
-#' @templateVar cdxdescription a monthly timeseries of percentage of daily maximum temperature values which are above the 90th percentile.
+#' @templateVar cdxvar tx90p
+#' @templateVar cdxdescription a monthly timeseries of the TX90p index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -1019,11 +1019,11 @@ climdex.tx90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' percentile of daily maximum temperature for a 5-day running window
 #' surrounding this day during the baseline period.
 #' 
+#' The \code{spells.can.span.years} option specifies whether spells can cross
+#' year boundaries -- i.e., span years. The default for this is the same as
+#' fclimdex.
+#' 
 #' @template wcsdi_common
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}},
-#' \code{\link{threshold.exceedance.duration.index}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
 #' @templateVar cdxvar wsdi
 #' @templateVar cdxdescription an annual timeseries of the warm spell duration index.
 #' @template get_generic_example
@@ -1044,11 +1044,11 @@ climdex.wsdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(c
 #' the 10th percentile of daily minimum temperature for a 5-day running window
 #' surrounding this day during the baseline period.
 #' 
+#' The \code{spells.can.span.years} option specifies whether spells can cross
+#' year boundaries -- i.e., span years. The default for this is the same as
+#' fclimdex.
+#' 
 #' @template wcsdi_common
-#' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}},
-#' \code{\link{threshold.exceedance.duration.index}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
-#' @keywords ts climate
 #' @templateVar cdxvar csdi
 #' @templateVar cdxdescription an annual timeseries of the cold spell duration index.
 #' @template get_generic_example
@@ -1147,7 +1147,7 @@ climdex.sdii <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(simple.
 #' @return A vector containing the value of the index for each year.
 #' @template generic_seealso_references
 #' @templateVar cdxvar r10mm
-#' @templateVar cdxdescription an annual timeseries of the number of days where precipitation exceeds 10mm/day.
+#' @templateVar cdxdescription an annual timeseries of the R10mm index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -1164,7 +1164,7 @@ climdex.r10mm <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(number
 #' @return A vector containing the value of the index for each year.
 #' @template generic_seealso_references
 #' @templateVar cdxvar r20mm
-#' @templateVar cdxdescription an annual timeseries of the number of days where precipitation exceeds 20mm/day.
+#' @templateVar cdxdescription an annual timeseries of the R20mm index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -1175,14 +1175,14 @@ climdex.r20mm <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(number
 #' This function computes the climdex index Rnnmm.
 #'
 #' This function takes a climdexInput object as input and computes the climdex
-#' index Rnnmm: the annual count of days where daily precipitation is more than nn mm per day.
+#' index Rnnmm: the annual count of days where daily precipitation is more than \code{nn} mm per day.
 #' 
 #' @param ci Object of type climdexInput.
 #' @param threshold The threshold to be used for Rnnmm.
 #' @return A vector containing the value of the index for each year.
 #' @template generic_seealso_references
 #' @templateVar cdxvar rnnmm
-#' @templateVar cdxdescription an annual timeseries of the number of days where precipitation exceeds 1 mm/day (the default).
+#' @templateVar cdxdescription an annual timeseries of the R1mm index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -1203,7 +1203,7 @@ climdex.rnnmm <- function(ci, threshold=1) {
 #' 
 #' @template cdd_common
 #' @templateVar cdxvar cdd
-#' @templateVar cdxdescription an annual timeseries of the number of consecutive days where precipitation was less than 1mm/day.
+#' @templateVar cdxdescription an annual timeseries of the CDD index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -1220,7 +1220,7 @@ climdex.cdd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@
 #' 
 #' @template cdd_common
 #' @templateVar cdxvar cdd
-#' @templateVar cdxdescription an annual timeseries of the number of consecutive days where precipitation was less than 1mm/day.
+#' @templateVar cdxdescription an annual timeseries of the CWD index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -1239,7 +1239,7 @@ climdex.cwd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@
 #' the threshold.
 #' @template generic_seealso_references
 #' @templateVar cdxvar r95ptot
-#' @templateVar cdxdescription an annual timeseries of the sum of precipitation where it exceeds the 95th percentile of precipitation in the base period.
+#' @templateVar cdxdescription an annual timeseries of the R95pTOT index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -1258,7 +1258,7 @@ climdex.r95ptot <- function(ci) { stopifnot(!is.null(ci@data$prec) && !is.null(c
 #' the threshold.
 #' @template generic_seealso_references
 #' @templateVar cdxvar r99ptot
-#' @templateVar cdxdescription an annual timeseries of the sum of precipitation where it exceeds the 99th percentile of precipitation in the base period.
+#' @templateVar cdxdescription an annual timeseries of the R99pTOT index.
 #' @template get_generic_example
 #' 
 #' @export
@@ -1348,8 +1348,8 @@ climdex.get.available.indices <- function(ci, function.names=TRUE) {
 #' @examples
 #' 
 #' ## Get lengths of sequences of TRUE values in a sequence
-#' series.lengths <- get.series.lengths.at.ends(c(TRUE, TRUE, TRUE, FALSE, TRUE, FALSE, TRUE, TRUE,
-#' TRUE, TRUE, FALSE))
+#' series.lengths <- get.series.lengths.at.ends(c(TRUE, TRUE, TRUE, FALSE,
+#' TRUE, FALSE, TRUE, TRUE, TRUE, TRUE, FALSE))
 #' 
 #' 
 #' @export
@@ -1401,7 +1401,8 @@ get.series.lengths.at.ends <- function(x, na.value=FALSE) {
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #' 
 #' ## Calculate frost days.
-#' fd <- number.days.op.threshold(ci@@data$tmin, ci@@date.factors$annual, 0, "<")
+#' fd <- number.days.op.threshold(ci@@data$tmin,
+#'                                ci@@date.factors$annual, 0, "<")
 #' 
 #' @export
 number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
@@ -1461,7 +1462,8 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 #' 
 #' ## Create an annual timeseries of the growing season length in days.
 #' gsl <- growing.season.length(ci@@data$tavg, ci@@date.factors$annual, ci@@dates,
-#'                              ci@@northern.hemisphere, gsl.mode="GSL") * ci@@namasks$annual$tavg
+#'                              ci@@northern.hemisphere, gsl.mode="GSL") * 
+#'        ci@@namasks$annual$tavg
 #' 
 #' ## Print these out for testing purposes.
 #' gsl
@@ -1537,11 +1539,13 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #' 
 #' ## Compute monthly tx90p.
-#' tx90p <- percent.days.op.threshold(ci@@data$tmax, ci@@dates, ci@@jdays, ci@@date.factors$monthly,
+#' tx90p <- percent.days.op.threshold(ci@@data$tmax, ci@@dates, ci@@jdays,
+#'                                    ci@@date.factors$monthly,
 #'                                    ci@@quantiles$tmax$outbase$q90,
 #'                                    ci@@quantiles$tmax$inbase$q90,
-#'                                    ci@@base.range, ">", ci@@max.missing.days['monthly']) * ci@@namasks$monthly$tmax
-#' 
+#'                                    ci@@base.range, ">",
+#'                                    ci@@max.missing.days['monthly']) *
+#'          ci@@namasks$monthly$tmax
 #' 
 #' @export
 percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold.outside.base, base.thresholds, base.range, op='<', max.missing.days) {

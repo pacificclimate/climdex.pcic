@@ -1,3 +1,5 @@
+1.0-2: Eliminate long lines and spurious directories/files from documentation.
+
 1.0-1: Allow computation of indices without supplying data for all variables; improve NA (missing value) handling.
  SUMMARY:
  - Code now allows you to only supply the data you have; formerly forced you to supply tmin, tmax, prec.
