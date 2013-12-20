@@ -24,6 +24,7 @@
  - Fix minor bug where tx/tn 10/90p and (likely) w/csdi will not work with a 1- or 2-year base period.
  - Transition documentation to Roxygen2
  - Added a test suite to test the code.
+ - Added function to return list of available indices for a climdexInput object.
 
 0.7-4:
  - Fixed a bug where tavg.dates was being incorrectly checked.

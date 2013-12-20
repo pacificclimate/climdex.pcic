@@ -10,18 +10,11 @@ climdex.pcic.test.intake.routines <- function() {
   prec.dat <- ec.1018935.prec$ONE_DAY_PRECIPITATION
   all.indices <- c('fd', 'su', 'id', 'tr', 'gsl', 'txx', 'tnx', 'txn', 'tnn', 'tn10p', 'tx10p', 'tn90p', 'tx90p', 'wsdi', 'csdi',
                    'dtr', 'rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot')
-  tmax.indices <- c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi')
-  tmin.indices <- c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi')
-  tmax.tmin.indices <- c('gsl', 'dtr')
-  prec.indices <- c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot')
-
-  indices.that.should.work <- list(tmax.indices, tmin.indices, c(tmax.indices, tmin.indices, tmax.tmin.indices), prec.indices, c(prec.indices, tmax.indices), c(prec.indices, tmin.indices), c(prec.indices, tmax.indices, tmin.indices, tmax.tmin.indices))
   
   for(i in 1:7) {
     include.tmax <- i %% 2
     include.tmin <- floor(i / 2) %% 2
     include.prec <- floor(i / 4) %% 2
-    print(i)
     ci <- climdexInput.raw(if(include.tmax) tmax.dat else NULL,
                            if(include.tmin) tmin.dat else NULL,
                            if(include.prec) prec.dat else NULL,
@@ -44,7 +37,7 @@ climdex.pcic.test.intake.routines <- function() {
                                data.columns=list(tmax="MAX_TEMP", tmin="MIN_TEMP", prec="ONE_DAY_PRECIPITATION"),
                                base.range=c(1971, 2000))
 
-    indices.to.check.equals <- indices.that.should.work[[i]]
+    indices.to.check.equals <- climdex.get.available.indices(ci, function.names=FALSE)
     indices.to.check.error <- all.indices[!(all.indices %in% indices.to.check.equals)]
     
     print("Checking success...")
