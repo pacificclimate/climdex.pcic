@@ -10,7 +10,7 @@ using namespace Rcpp;
 static const double min_data_fraction = 0.1;
 
 // Implements R's type=8
-double c_quantile(double* data, const int n, const double quantile, bool sorted=false) {
+double c_quantile(double* data, const int n, const double quantile, const bool sorted=false) {
   if(n == 0 || quantile < 0 || quantile > 1) {
     return(R_NaReal);
   }
@@ -21,7 +21,7 @@ double c_quantile(double* data, const int n, const double quantile, bool sorted=
   // Constants for quantiles. Can be modified if needed.
   const double a = 1.0/3.0;
   const double b = 1.0/3.0;
-  double* data_end = data + n;
+  double* const data_end = data + n;
   
   const double fuzz = 4 * numeric_limits<double>::epsilon();
   const double nppm = a + quantile * (n + 1 - a - b) - 1;
@@ -84,7 +84,7 @@ public:
   const int* notna_map;
   const int half_win;
 
-  ClimdexBootstrapper(const double* dat, const int* notna_map, const int win_size, const int nyr, const int dpy): dat(dat), notna_map(notna_map), win_size(win_size), nyr(nyr), dpy(dpy), half_win(win_size / 2) { }
+  ClimdexBootstrapper(const double* dat, const int* notna_map, const int win_size, const int nyr, const int dpy): win_size(win_size), nyr(nyr), dpy(dpy), dat(dat), notna_map(notna_map), half_win(win_size / 2) { }
   
   // NOTE: Takes data with floor(win_size / 2) elements attached to beginning and end.
   // Extracts an n-day window into the data, removing NAs and generating a 2-tuple.
@@ -231,15 +231,15 @@ public:
       last_in_idx = idx;
     }
 
-    if(last_in_idx + 1 < in_data.size()) {
+    if((unsigned int)(last_in_idx + 1) < in_data.size()) {
       copy(&in_data[last_in_idx + 1], &in_data[in_data.size()], &out[next_out_idx]);
     }
   }
 
   vector<double> get_data_only(const vector<DatYrTuple>& in_dat) {
     vector<double> out_dat(in_dat.size());
-    const int dat_size = in_dat.size();
-    for(int i = 0; i < in_dat.size(); ++i)
+    const unsigned int dat_size = in_dat.size();
+    for(unsigned int i = 0; i < dat_size; ++i)
       out_dat[i] = in_dat[i].dat;
     return out_dat;
   }
@@ -299,7 +299,6 @@ RcppExport SEXP running_quantile_windowed_bootstrap(SEXP data_, SEXP n_, SEXP q_
 	if(dup_year != rm_year) {
 	  bs.replace_data_year(win_dat, rep_dat, yrs_index, rm_year, dup_year, day);
 	  const int off_day_rmyr_dupyr = off_day_rmyr + dup_idx * dupyr_mul;
-	  const int nq_day = nq * day;
 	  if(((double)rep_dat.size() / (double)slab_size) < min_fraction)
 	    for(int q_idx = 0; q_idx < nq; ++q_idx)
 	      quantiles[off_day_rmyr_dupyr + q_idx * q_mul] = R_NaReal;

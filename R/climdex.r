@@ -1521,6 +1521,7 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
 #' @param max.missing.days Maximum number of NA values per time period.
 #' @return A vector consisting of the mean fraction of days above or below the
 #' supplied set of thresholds.
+#' @note If date.factor is omitted, daily series will be returned.
 #' @seealso \link{climdexInput-class}.
 #' @keywords ts climate
 #' @examples
@@ -1574,6 +1575,8 @@ percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold
     dat[inset] <- rowSums(f.result, na.rm=TRUE) / (byrs - 1)
   }
   dat[is.nan(dat)] <- NA
+  if(missing(date.factor))
+    return(dat)
   na.mask <- get.na.mask(dat, date.factor, max.missing.days)
   ## FIXME: Need to monthly-ize the NA mask calculation, which will be ugly.
   ret <- tapply.fast(dat, date.factor, mean, na.rm=TRUE) * 100 * na.mask

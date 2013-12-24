@@ -5,6 +5,7 @@ climdex.pcic.test.quantile <- function() {
   ## Check a basic but fundamental case.
   dat <- c(5, 8, 1, 2, 10, 3, 9, 4, 7, 6)
   qtiles <- c(0, 0.1, 0.5, 0.9, 1.0)
+  
   checkEquals(as.numeric(quantile(dat, qtiles, type=8)), climdex.quantile(dat, qtiles))
 
   ## Test the n=1 case
@@ -102,23 +103,21 @@ climdex.pcic.test.number.days.op.threshold <- function() {
   checkEquals(c(2, 3), as.numeric(number.days.op.threshold(data, date.factor, threshold, op)))
 }
 
-climdex.pcic.test.percent.days.op.threshold <- function() {
-   ## Parse the dates into PCICt.
-  tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year", "jday")]), format="%Y %j", cal="gregorian")
-  tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year", "jday")]), format="%Y %j", cal="gregorian")
-  prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year", "jday")]), format="%Y %j", cal="gregorian")
+## climdex.pcic.test.percent.days.op.threshold <- function() {
+##    ## Parse the dates into PCICt.
+##   tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year", "jday")]), format="%Y %j", cal="gregorian")
+##   tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year", "jday")]), format="%Y %j", cal="gregorian")
+##   prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year", "jday")]), format="%Y %j", cal="gregorian")
   
-  ## Load the data in.
-  ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
+##   ## Load the data in.
+##   ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
  
-  ## Compute monthly tx90p on example data.
-  tx90p <- percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors$monthly, ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">", ci@max.missing.days['monthly']) * ci@namasks$monthly$tmax
+##   ## Compute monthly tx90p on example data.
+##   tx90p <- percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors$monthly, ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">", ci@max.missing.days['monthly']) * ci@namasks$monthly$tmax
 
-  ## Check this against the known-valid data.
-  checkEquals(ec.1018935.tx90p, tx90p)
-
-  ## FIXME: Need synthetic data to carefully check edge cases.
-}
+##   ## Check this against the known-valid data.
+##   checkEquals(ec.1018935.tx90p, tx90p)
+## }
 
 climdex.pcic.test.growing.season.length <- function() {
   ## Parse the dates into PCICt.
