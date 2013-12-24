@@ -369,7 +369,7 @@ get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtil
 #' For more details on arguments, see \code{link{climdexInput.raw}}.
 #'
 #' @seealso \code{\link{climdex.pcic-package}}, \code{\link{climdexInput.raw}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
+#' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
 #' @keywords ts climate
 #'
 #' @param tmax Daily maximum temperature data.
@@ -515,7 +515,7 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
 #' the test, the corresponding year will be omitted.
 #' 
 #' @seealso \code{\link{climdex.pcic-package}}, \code{\link{strptime}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
+#' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
 #' @keywords ts climate
 #'
 #' @template climdexInput_raw_help1 
@@ -652,7 +652,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 #' For more details on arguments, see \code{link{climdexInput.raw}}.
 #'
 #' @seealso \code{\link{climdex.pcic-package}}, \code{\link{climdexInput.raw}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
+#' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
 #' @keywords ts climate
 #' 
 #' @param tmax.file Name of file containing daily maximum temperature data.
@@ -819,7 +819,7 @@ climdex.tr <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 #' this parameter being present in future versions of climdex.pcic.
 #' @seealso \code{\link{growing.season.length}},
 #' \code{\link{climdexInput.csv}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
+#' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
 #' @keywords ts climate
 #' @templateVar cdxvar gsl
 #' @templateVar cdxdescription an annual timeseries of the growing season length in days.

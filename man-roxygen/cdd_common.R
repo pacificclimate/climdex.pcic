@@ -7,5 +7,5 @@
 #' @return A vector containing the length of the spell for each year.
 #' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}},
 #' \code{\link{spell.length.max}}.
-#' @references \url{http://cccma.seos.uvic.ca/ETCCDMI/list_27_indices.shtml}
+#' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
 #' @keywords ts climate
