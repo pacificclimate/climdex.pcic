@@ -47,6 +47,7 @@
 #' temperature extremes. Journal of Climate 18.11 (2005):1641-.
 #' @keywords climate ts
 #' @useDynLib climdex.pcic
+#' @import PCICt Rcpp methods caTools
 NULL
 
 #' EC example data

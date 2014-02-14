@@ -1,4 +1,5 @@
 #' @examples
+#' library(PCICt)
 #' 
 #' ## Create a climdexInput object from some data already loaded in and
 #' ## ready to go.

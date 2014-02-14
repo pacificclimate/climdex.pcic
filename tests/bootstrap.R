@@ -1,4 +1,5 @@
 load("exemplar_data.rda")
+library(PCICt)
 
 if(require("RUnit", quietly=TRUE)) {
   ## Run all the tests

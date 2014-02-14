@@ -1,6 +1,3 @@
-library(caTools)
-library(PCICt)
-
 #' Get the last month and day of the year
 #'
 #' Get the last month and day of the year as a character sting, separated by
@@ -13,6 +10,7 @@ library(PCICt)
 #' @return A string (like "12-30", or "12-31")
 #' 
 #' @examples
+#' library(PCICt)
 #' last.mday <- get.last.monthday.of.year(as.PCICt("2011-01-01", cal="360"))
 #' 
 #' @export
@@ -157,6 +155,7 @@ valid.climdexInput <- function(x) {
 #' @seealso \code{\link{climdexInput.csv}}, \code{\link{climdexInput.raw}}.
 #' @keywords climate ts
 #' @examples
+#' library(PCICt)
 #' 
 #' ## Parse the dates into PCICt.
 #' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
@@ -385,6 +384,7 @@ get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtil
 #' for temperature. No units conversion is performed internally.
 #' 
 #' @examples
+#' library(PCICt)
 #' 
 #' ## Create a climdexInput object from some data already loaded in and
 #' ## ready to go.
@@ -531,7 +531,8 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
 #' for temperature. No units conversion is performed internally.
 #' 
 #' @examples
-#' 
+#' library(PCICt)
+#'
 #' ## Create a climdexInput object from some data already loaded in and
 #' ## ready to go.
 #' 
@@ -1295,6 +1296,7 @@ climdex.prcptot <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(tota
 #' @return A vector containing an annual timeseries of precipitation in wet days.
 #'
 #' @examples
+#' library(PCICt)
 #'
 #' ## Create a climdexInput object from some data already loaded in and
 #' ## ready to go.
@@ -1386,7 +1388,8 @@ get.series.lengths.at.ends <- function(x, na.value=FALSE) {
 #' in the given time period (as specified by \code{date.factor}).
 #' @keywords ts climate
 #' @examples
-#' 
+#' library(PCICt)
+#'
 #' ## Parse the dates into PCICt.
 #' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
 #' "jday")]), format="%Y %j", cal="gregorian")
@@ -1443,6 +1446,7 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 #' @seealso \code{\link{climdex.gsl}}, \code{\link{climdexInput.csv}}.
 #' @keywords ts climate
 #' @examples
+#' library(PCICt)
 #' 
 #' ## Create a climdexInput object from some data already loaded in and
 #' ## ready to go.
@@ -1525,6 +1529,7 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
 #' @seealso \link{climdexInput-class}.
 #' @keywords ts climate
 #' @examples
+#' library(PCICt)
 #' 
 #' ## Parse the dates into PCICt.
 #' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
@@ -1669,6 +1674,7 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 #' time interval.
 #' @keywords ts climate
 #' @examples
+#' library(PCICt)
 #' 
 #' ## Parse the dates into PCICt.
 #' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
@@ -1871,3 +1877,5 @@ select.blocks.gt.length <- function(d, n, na.value=FALSE) {
 climdex.quantile <- function(x, q=c(0, 0.25, 0.5, 0.75, 1)) {
   return(.Call("c_quantile2", as.double(x), q, PACKAGE='climdex.pcic'))
 }
+
+
