@@ -66,7 +66,7 @@ valid.climdexInput <- function(x) {
     if(is.null(quantiles[n]))
       return(NULL)
     if(!(n %in% ls(envir=x@quantiles)))
-      return(paste("Quantiles for", n, "are missing.", sep=""))
+      return(paste("Quantiles for", n, "are missing."))
     return(NULL)
   })))
 
@@ -611,6 +611,8 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
       delayedAssign("tmin", get.temp.var.quantiles(filled.list$tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n, pad.data.with.first.last.values, TRUE, min.base.data.fraction.present), assign.env=quantiles)
     if(days.in.base['prec'] > days.threshold)
       delayedAssign("prec", get.prec.var.quantiles(filled.list$prec, date.series, bs.date.range, prec.qtiles), assign.env=quantiles)
+  } else {
+    quantiles <- as.environment(quantiles)
   }
   
   return(new("climdexInput", data=filled.list, quantiles=quantiles, namasks=namasks, dates=date.series, jdays=jdays, base.range=bs.date.range, date.factors=date.factors, northern.hemisphere=northern.hemisphere, max.missing.days=max.missing.days))
