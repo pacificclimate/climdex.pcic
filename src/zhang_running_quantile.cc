@@ -19,17 +19,17 @@ double c_quantile(double* data, const int n, const double quantile, const bool s
     return(data[0]);
   
   // Constants for quantiles. Can be modified if needed.
-  const double a = 1.0/3.0;
-  const double b = 1.0/3.0;
+  static const double a = 1.0/3.0;
+  static const double b = 1.0/3.0;
   double* const data_end = data + n;
   
-  const double fuzz = 4 * numeric_limits<double>::epsilon();
+  static const double fuzz = 4 * numeric_limits<double>::epsilon();
   const double nppm = a + quantile * (n + 1 - a - b) - 1;
-  const int j = (int)floor(nppm + fuzz);
+  const double j = floor(nppm + fuzz);
   // Variance from R: Should probably be <= not < here.
-  const double h = (fabs(nppm - (double)j) <= fuzz) ? 0 : nppm - (double)j;
-  double* right_elem = max(data, min(data + j + 1, data_end - 1));
-  double* left_elem = max(data, min(data + j, data_end - 1));
+  const double h = (fabs(nppm - j) <= fuzz) ? 0 : nppm - j;
+  double* right_elem = max(data, min(data + (int)j + 1, data_end - 1));
+  double* left_elem = max(data, min(data + (int)j, data_end - 1));
   
   if(h == 1) {
     if(!sorted)
@@ -164,7 +164,7 @@ public:
     for(vector<IdxDayPair>::const_iterator i = yrs_index[rm_year].begin(); i != yrs_index[rm_year].end(); ++i, ++df_idx)
       df_pairs[df_idx].idx = (*i).idx;
 
-    // This runs if we need to ensure that only stuff within the OK range is copied (the other stuff is simply preserved. Viva le WTF!
+    // This runs if we need to ensure that only stuff within the OK range is copied (the other stuff is simply preserved). Viva le WTF!
     if(need_dup_omit) {
       const int ok_range_min = max(min_day, day - half_win);
       const int ok_range_max = min(max_day, day + half_win);
