@@ -1,3 +1,9 @@
+1.1-1: Bug fixes for temperature-based threshold indices; CHANGES RESULTS.
+ MAJOR CHANGES:
+  - Changes code to reflect improved definition of day selection for first and last two (for a five-day window) days. Specifically, removes padding values from ends of series, and wraps the day around for each year at the edges instead of wrapping around into the next year. This changes results for both in-base and out-of-base quantiles for these days by a small amount.
+ MINOR CHANGES:
+  - Removes pad.data.with.first.last.values option, as it is no longer needed.
+
 1.0-4: Fix up namespace problems; correct egregious bug where quantiles could not be specified to climdexInput.raw.
 
 1.0-3: Eliminate compiler warnings; fix tests 32-bit platforms.
