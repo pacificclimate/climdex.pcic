@@ -5,8 +5,8 @@
   - Removes pad.data.with.first.last.values option, as it is no longer needed.
  MINOR CHANGES:
   - Improve test framework to consume less memory and properly test bootstrap quantiles vs reference implementation.
-
-1.0-4: Fix up namespace problems; correct egregious bug where quantiles could not be specified as a list to climdexInput.raw.
+  - Fix a bug where quantiles couldn't be specified to climdexInput.raw .
+  - Change namespace usage and declarations to not be broken.
 
 1.0-3: Eliminate compiler warnings; fix tests 32-bit platforms.
  - NOTE: Results for TN/TX 10/90p and W/CSDI may differ between ia32 and x86-64 platforms. This is due to SSE math being used by default on x86-64, and 387 math being used by default on ia32. Identical results to the x86-64 results can be achieved by adding -mfpmath=sse to CXXFLAGS.
