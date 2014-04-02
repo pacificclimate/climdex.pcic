@@ -112,7 +112,7 @@ climdex.pcic.test.percent.days.op.threshold <- function() {
   prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year", "jday")]), format="%Y %j", cal="gregorian")
   
   ## Load the data in.
-  ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
+  ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1981, 1990))
  
   ## Compute monthly tx90p on example data.
   tx90p <- percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors$monthly, ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">", ci@max.missing.days['monthly']) * ci@namasks$monthly$tmax
@@ -129,7 +129,7 @@ climdex.pcic.test.growing.season.length <- function() {
  prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year", "jday")]), format="%Y %j", cal="gregorian")
  
  ## Load the data in.
- ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
+ ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1981, 1990))
  
  ## Create an annual timeseries of the growing season length in days.
  gsl <- growing.season.length(ci@data$tavg, ci@date.factors$annual, ci@dates, ci@northern.hemisphere, gsl.mode="GSL") * ci@namasks$annual$tavg
@@ -159,4 +159,56 @@ climdex.pcic.test.growing.season.length <- function() {
                              221, 51, 161, 233, 353, 27, 271, 298),
                            .Dim = c(4L, 2L, 5L),
                            .Dimnames = list(c("GSL.1961", "GSL_first.1961", "GSL_max.1961", "GSL_sum.1961"), c("t1", "t2"), c("1", "3", "5", "7", "9")))
+}
+
+climdex.pcic.test.bootstrap.quantiles <- function() {
+  ## Calculates quantiles for days with an n-day window, with or without year replacement (leave out rm.yr.idx and dup.yr.idx to not do year replacement).
+  get.quantile.for.day <- function(ci, win.size, q, var, day, rm.yr.idx, dup.yr.idx, dpy=365) {
+    dat <- ci@data[[var]][climdex.pcic:::get.bootstrap.set(ci@dates, ci@base.range, win.size)]
+    dim(dat) <- c(day=dpy, yr=length(dat) / dpy)
+    half.win <- floor(win.size / 2);
+    day.idx <- ((-half.win):half.win + (day - 1) + dpy) %% dpy + 1
+    num.yrs <- dim(dat)["yr"]
+    yr.idx <- if(missing(rm.yr.idx) || missing(dup.yr.idx)) 1:num.yrs else c((1:num.yrs)[-rm.yr.idx], dup.yr.idx)
+    return(quantile(dat[day.idx, yr.idx], probs=q, type=8, na.rm=TRUE))
+  }
+  
+  ## Checks that climdex.pcic in-base quantiles exactly match the (mostly) independent implementation above.
+  check.inbase.quantiles.for.day <- function(ci, pctile, var, day) {
+    climdex.pcic.data <- ci@quantiles[[var]]$inbase[[paste("q", pctile, sep="")]][day,,]
+    nyr <- dim(climdex.pcic.data)[1]
+    comparison.data <- t(sapply(1:nyr, function(x) { sapply((1:nyr)[-x], function(y) { get.quantile.for.day(ci, 5, pctile / 100, var, day, x, y) }) }))
+    dimnames(comparison.data) <- NULL
+    names(comparison.data) <- NULL
+    checkEquals(climdex.pcic.data, comparison.data)
+  }
+  
+  ## Checks that climdex.pcic out-of-base quantiles exactly match the (mostly) independent implementation above.
+  check.outbase.quantiles <- function(ci, pctile, var) {
+    climdex.pcic.data <- ci@quantiles[[var]]$outbase[[paste("q", pctile, sep="")]]
+    comparison.data <- sapply(1:length(climdex.pcic.data), function(x) { get.quantile.for.day(ci, 5, pctile / 100, var, x) })
+    dimnames(comparison.data) <- NULL
+    names(comparison.data) <- NULL
+    checkEquals(climdex.pcic.data, comparison.data)
+  }
+  
+  ## Read in data, create climdexInput data structure.
+  tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year", "jday")]), format="%Y %j", cal="gregorian")
+  tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year", "jday")]), format="%Y %j", cal="gregorian")
+  prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year", "jday")]), format="%Y %j", cal="gregorian")
+  
+  ## Load the data in.
+  ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP, ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION, tmax.dates, tmin.dates, prec.dates, base.range=c(1981, 1990))
+  
+  ## Check quantiles for 10/90 for tmin/tmax
+  for(var in c("tmin", "tmax")) {
+    for(pctile in c(10, 90)) {
+      for(day in c(1, 2, 185, 364, 365)) {
+        cat(paste("Checking in base for ", var, ", ", pctile, "th percentile, day ", day, "\n", sep=""))
+        check.inbase.quantiles.for.day(ci, pctile, var, day)
+      }
+      cat(paste("Checking out base for ", var, ", ", pctile, "th percentile\n", sep=""))
+      check.outbase.quantiles(ci, pctile, var)
+    }
+  }
 }

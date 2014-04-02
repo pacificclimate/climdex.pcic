@@ -1,10 +1,12 @@
 1.1-1: Bug fixes for temperature-based threshold indices; CHANGES RESULTS.
  MAJOR CHANGES:
   - Changes code to reflect improved definition of day selection for first and last two (for a five-day window) days. Specifically, removes padding values from ends of series, and wraps the day around for each year at the edges instead of wrapping around into the next year. This changes results for both in-base and out-of-base quantiles for these days by a small amount.
- MINOR CHANGES:
+ API CHANGES:
   - Removes pad.data.with.first.last.values option, as it is no longer needed.
+ MINOR CHANGES:
+  - Improve test framework to consume less memory and properly test bootstrap quantiles vs reference implementation.
 
-1.0-4: Fix up namespace problems; correct egregious bug where quantiles could not be specified to climdexInput.raw.
+1.0-4: Fix up namespace problems; correct egregious bug where quantiles could not be specified as a list to climdexInput.raw.
 
 1.0-3: Eliminate compiler warnings; fix tests 32-bit platforms.
  - NOTE: Results for TN/TX 10/90p and W/CSDI may differ between ia32 and x86-64 platforms. This is due to SSE math being used by default on x86-64, and 387 math being used by default on ia32. Identical results to the x86-64 results can be achieved by adding -mfpmath=sse to CXXFLAGS.

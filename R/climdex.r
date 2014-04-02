@@ -250,7 +250,7 @@ zhang.running.qtile <- function(x, dates.base, qtiles, bootstrap.range, include.
 
   qdat <- NULL
   if(get.bootstrap.data) {
-    d <- .Call("running_quantile_windowed_bootstrap", bs.data, n, qtiles, dpy, min.fraction.present, DUP=FALSE, PACKAGE='climdex.pcic')
+    d <- .Call("running_quantile_windowed_bootstrap", bs.data, n, qtiles, dpy, min.fraction.present, PACKAGE='climdex.pcic')
     dim(d) <- c(dpy, nyears, nyears - 1, length(qtiles))
     qdat <- lapply(1:length(qtiles), function(x) { r <- d[,,,x, drop=FALSE]; dim(r) <- dim(r)[1:3]; r })
   } else {
@@ -1790,7 +1790,7 @@ total.precip.op.threshold <- function(daily.prec, date.factor, threshold, op) {
 
 ## Returns an n-day running quantile for each day of data (dimensions c(dpy, q))
 running.quantile <- function(data, n, q, dpy, min.fraction) {
-  ret <- .Call("running_quantile_windowed", data, n, q, dpy, min.fraction, DUP=FALSE, PACKAGE='climdex.pcic')
+  ret <- .Call("running_quantile_windowed", data, n, q, dpy, min.fraction, PACKAGE='climdex.pcic')
   dim(ret) <- c(length(q), dpy)
   return(t(ret))
 }
