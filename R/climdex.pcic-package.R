@@ -28,9 +28,6 @@
 #' @name climdex.pcic
 #' @aliases climdex.pcic-package
 #' @docType package
-#' @note Please note that the 360-day calendar used by this package does not
-#' consist of 12 months of 30 days; see the documentation for the PCICt package
-#' for more details.
 #' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}},
 #' \code{\link{climdexInput-class}}.
 #' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
