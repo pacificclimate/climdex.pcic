@@ -25,11 +25,11 @@ You don't need much to get started for development. You'll need to have installe
 That's it!
 
 Once you have the required software installed, create a local clone of the repository.
-
+::
     $ git clone https://github.com/[your_user]/climdex.pcic.git
 
 Make sure that everything builds out of the box
-
+::
     $ R CMD build climdex.pcic/
 
 .. _CRAN package checking: http://cran.r-project.org/web/checks/check_flavors.html
@@ -37,10 +37,12 @@ Make sure that everything builds out of the box
 How to run the tests
 --------------------
 
+Running the tests can be done with one command:
+::
     hiebert@medusa:/home/data/projects/R_packages$ R CMD check climdex.pcic
 
 You'll see a bunch of package building spew that has nothing to do with the tests. But towards the end, you see something like this:
-
+::
     * checking tests ...
     Running ‘bootstrap.R’
     Running ‘test_indices.R’
@@ -66,7 +68,7 @@ Then please follow these guidelines for writing your report:
   - What did happen?
 
 - Include *all* output from the terminal.
-- Run R's 'sessionInfo()' function and include the full output.
+- Run R's ``sessionInfo()`` function and include the full output.
 
 I cannot stress enough how important it is to contrast what you expected to happen, with what actually happened. When executing the code does not produce the *advertised* result, there is a bug in the package. When the code does not produce the result that you *wished* it had, this is *not* a bug. We receive far too many reports in the latter category.
 
@@ -75,8 +77,8 @@ I cannot stress enough how important it is to contrast what you expected to happ
 How to build the docs
 ---------------------
 
-The package documentation is inline in the code. All of the manual pages are built by using roxygen2. Make sure that you have roxygen2 installed and loaded: ::
-
+The package documentation is inline in the code. All of the manual pages are built by using ``roxygen2``. Make sure that you have ``roxygen2`` installed and loaded:
+::
     hiebert@medusa:/home/data/projects/R_packages/climdex.pcic$ R
 
     R version 3.0.2 (2013-09-25) -- "Frisbee Sailing"
@@ -99,8 +101,8 @@ The package documentation is inline in the code. All of the manual pages are bui
 
     > library(roxygen2)
 
-Then call roxygenize() to build the docs. ::
-
+Then call ``roxygenize()`` to build the docs.
+::
     > roxygen2::roxygenize(clean=T)
     NOTE: arguments in definition for validity method for class 'climdexInput' changed from (x) to (object)
     Writing NAMESPACE
