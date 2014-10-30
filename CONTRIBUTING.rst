@@ -130,3 +130,17 @@ We would love help from the greater climate community in developing the package 
 - In short, please make sure that all of the tests pass.
 
 After you are *positive* that everything is completely tested with passing test suite, we would love to see your pull request. If you are not familiar with the process, please follow the GitHub's help page for submitting `pull request`_.
+
+Don't code? No problem!
+-----------------------
+
+Even if you don't program for a living there are plenty of ways to help. Not only is the code open and collaborative, but so is the documentation and issue tracking. Anyone can help with these. If you can't program, consider helping with the following:
+
+- If the documentation doesn't answer your questions, it probably doesn't answer many people's questions. Help us all out and write something that does.
+- Take a look through the outstanding `"help wanted" issues`_, and see if you know any of the answers.
+- If there are `open bug reports`_, see if you can reproduce the problem and verify that it exists. Having bug reports validated and/or clarified by multiple parties is extremely valuable.
+- Tell us your story. If ``climdex.pcic`` has helped your project to better understand climate extremes, we would love to hear about it. Write a blog post and/or send an e-mail to the `package maintainer`_.
+
+.. _"help wanted" issues: https://github.com/pacificclimate/climdex.pcic/labels/help%20wanted
+.. _open bug reports: https://github.com/pacificclimate/climdex.pcic/labels/bug
+.. _package maintainer: mailto:hiebert@uvic.ca
