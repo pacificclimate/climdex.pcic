@@ -291,7 +291,7 @@ check.basic.argument.validity <- function(tmax, tmin, prec, tmax.dates, tmin.dat
   check.var(tavg, tavg.dates, "tavg")
   check.var(prec, prec.dates, "prec")
 
-  if(sum(c(is.null(tmax), is.null(tmin), is.null(prec), is.null(tavg))) == 0)
+  if(all(c(is.null(tmax), is.null(tmin), is.null(prec), is.null(tavg))))
     stop("Must supply at least one variable to calculate indices upon.")
 
   if(!(length(base.range) == 2 && is.numeric(base.range)))
