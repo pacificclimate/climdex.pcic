@@ -1,5 +1,8 @@
 .hgtags
 .hg
+.git
 oldman
 man-roxygen
 comparison
+README.rst
+CONTRIBUTING.rst

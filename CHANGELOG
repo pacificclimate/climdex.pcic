@@ -1,3 +1,5 @@
+1.1-4: Metadata changes required by Uwe Ligges <ligges@statistik.tu-dortmund.de>
+
 1.1-3: Bug fix; check.basic.argument.validity() used an incorrect test for checking the presence of the input time series
   - Thanks to Rebekka Posselt from MeteoSwiss for this bug fix.
 
