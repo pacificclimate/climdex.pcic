@@ -188,7 +188,7 @@ RcppExport SEXP c_quantile2(SEXP data_, SEXP quantile_) {
   NumericVector res(nq);
   
   for(int i = 0; i < nq; ++i)
-    res[i] = c_quantile(data.begin(), n, q[i]);
+    res[i] = c_quantile(const_cast<NumericVector&>(data).begin(), n, q[i]);
   
   return res;
 }
