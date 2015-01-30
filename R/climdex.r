@@ -655,7 +655,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 #' @examples
 #' ## This would create a climdexInput object from a set of filenames (already
 #' ## stored as variables), with a different date format.
-#' \donttest{ci.csv <- climdexInput.csv(tmax.filename, tmin.filename,
+#' \dontrun{ci.csv <- climdexInput.csv(tmax.filename, tmin.filename,
 #' prec.filename, date.types=list(list(fields=c("date"), format="%Y-%m-%d")))}
 #'
 #' @export
