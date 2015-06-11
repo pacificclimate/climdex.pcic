@@ -81,11 +81,13 @@ valid.climdexInput <- function(x) {
 }
 
 ## Class definition declaration
-#' climdexInput
+#' @title climdexInput
 #' 
+#' @description
 #' The climdexInput class contains all the data necessary to compute the
 #' climdex indices.
 #' 
+#' @details
 #' The \code{climdexInput} class consists of all the data necessary to compute
 #' the climdex indices. Users will not need to modify any of the slots in this
 #' class. That being said, users may want or need to repurpose this data for
@@ -342,11 +344,13 @@ get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtil
   return(pq)
 }
 
-#' Method for getting threshold quantiles for use in computing indices
+#' @title Method for getting threshold quantiles for use in computing indices
 #' 
+#' @description
 #' This function creates threshold quantiles for use with climdexInput.raw
 #' or climdexInput.csv.
 #' 
+#' @details
 #' This function takes input climate data at daily resolution, and produces as
 #' output a set of threshold quantiles. This data structure can then be passed
 #' to climdexInput.raw or climdexInput.csv.
@@ -428,11 +432,13 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
   return(quantiles)
 }
 
-#' Method for creating climdexInput object from vectors of data
+#' @title Method for creating climdexInput object from vectors of data
 #' 
+#' @description
 #' This function creates a climdexInput object from data already ingested into
 #' R.
 #' 
+#' @details
 #' This function takes input climate data at daily resolution, and produces as
 #' output a ClimdexInput data structure. This data structure can then be passed
 #' to any of the routines used to compute the Climdex indices. The indices
@@ -594,10 +600,12 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   return(new("climdexInput", data=filled.list, quantiles=quantiles, namasks=namasks, dates=date.series, jdays=jdays, base.range=bs.date.range, date.factors=date.factors, northern.hemisphere=northern.hemisphere, max.missing.days=max.missing.days))
 }
 
-#' Method for creating climdexInput object from CSV files
+#' @title Method for creating climdexInput object from CSV files
 #' 
+#' @description
 #' This function creates a climdexInput object from data in CSV files.
 #' 
+#' @details
 #' This function takes input climate data in CSV files at daily resolution,
 #' and produces as output a ClimdexInput data structure. This data structure
 #' can then be passed to any of the routines used to compute the Climdex
@@ -760,10 +768,12 @@ climdex.id <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.da
 #' @export
 climdex.tr <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.days.op.threshold(ci@data$tmin, ci@date.factors$annual, 20, ">") * ci@namasks$annual$tmin) }
 
-#' Growing Season Length
+#' @title Growing Season Length
 #' 
+#' @description
 #' This function computes the growing season length (GSL) given the input.
 #' 
+#' @details
 #' This function takes a climdexInput object as input and computes the growing
 #' season length based on this data.
 #' 
@@ -985,10 +995,11 @@ climdex.tn90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' @export
 climdex.tx90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmax) }
 
-#' Warm Spell Duration Index
+#' @title Warm Spell Duration Index
 #'
-#' This function computes the climdex index WSDI.
+#' @description This function computes the climdex index WSDI.
 #' 
+#' @details
 #' This function takes a climdexInput object as input and computes the climdex
 #' index WSDI (Warm Spell Duration Index).
 #' 
@@ -1010,10 +1021,11 @@ climdex.tx90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' @export
 climdex.wsdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(threshold.exceedance.duration.index(ci@data$tmax, ci@date.factors$annual, ci@jdays, ci@quantiles$tmax$outbase$q90, ">", spells.can.span.years=spells.can.span.years, max.missing.days=ci@max.missing.days['annual']) * ci@namasks$annual$tmax) }
 
-#' Cold Spell Duration Index
+#' @title Cold Spell Duration Index
 #' 
-#' This function computes the climdex index CSDI.
+#' @description This function computes the climdex index CSDI.
 #' 
+#' @details
 #' This function takes a climdexInput object as input and computes the climdex
 #' index CSDI (Cold Spell Duration Index).
 #'
@@ -1391,11 +1403,13 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
   return(tapply.fast(match.fun(op)(temp, threshold), date.factor, sum, na.rm=TRUE))
 }
 
-#' Flexible GSL function
+#' @title Flexible GSL function
 #' 
+#' @description
 #' This function computes the growing season length (GSL) given the input,
 #' which is allowed to vary considerably from the ETCCDI definitions.
 #' 
+#' @details
 #' This function is the function used to implement \code{\link{climdex.gsl}}.
 #' It's designed to be flexible to allow for experimentation and testing of new
 #' thresholds and methods.
@@ -1567,11 +1581,13 @@ percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold
   return(ret)
 }
 
-#' Sum of spell lengths exceeding daily threshold
+#' @title Sum of spell lengths exceeding daily threshold
 #' 
+#' @description
 #' This function returns the number of spells of more than \code{min.length}
 #' days which exceed or are below the given threshold.
 #' 
+#' @details
 #' This routine compares data to the thresholds using the given operator,
 #' generating a series of TRUE or FALSE values; these values are then filtered
 #' to remove any sequences of less than \code{min.length} days of TRUE values.
@@ -1633,10 +1649,12 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
   dat
 }
 
-#' Number of days (less than, greater than, etc) a threshold
+#' @title Number of days (less than, greater than, etc) a threshold
 #' 
+#' @description
 #' Produces sums of values that exceed (or are below) the specified threshold.
 #' 
+#' @details
 #' This function takes a data series, the number of days in the running window,
 #' a date factor to aggregate by, and an optional modifier parameter
 #' (center.mean.on.last.day). It computes the n-day running sum of
@@ -1710,11 +1728,13 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
   return(tapply.fast(daily.prec, date.factor, function(prec) { idx <- prec >= 1 & !is.na(prec); if(sum(idx) == 0) { return(0); } else { return(sum(prec[idx], na.rm=TRUE) / sum(idx)) } } ))
 }
 
-#' Maximum spell length
+#' @title Maximum spell length
 #' 
+#' @description
 #' This function returns the longest string of days which exceed or are below
 #' the given threshold.
 #' 
+#' @details
 #' This routine compares data to the threshold using the given operator,
 #' generating a series of TRUE or FALSE values. It then computes the lengths of
 #' sequences of TRUE values (spells) and chooses the longest spell in each
