@@ -355,7 +355,7 @@ get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtil
 #' output a set of threshold quantiles. This data structure can then be passed
 #' to climdexInput.raw or climdexInput.csv.
 #'
-#' For more details on arguments, see \code{link{climdexInput.raw}}.
+#' For more details on arguments, see \code{\link{climdexInput.raw}}.
 #'
 #' @seealso \code{\link{climdex.pcic-package}}, \code{\link{climdexInput.raw}}.
 #' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
@@ -636,7 +636,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 #' of names consisting of the columns to be concatenated together with spaces.
 #' The \code{format} item is a date format as taken by \code{strptime}.
 #'
-#' For more details on arguments, see \code{link{climdexInput.raw}}.
+#' For more details on arguments, see \code{\link{climdexInput.raw}}.
 #'
 #' @seealso \code{\link{climdex.pcic-package}}, \code{\link{climdexInput.raw}}.
 #' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
