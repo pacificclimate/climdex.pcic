@@ -138,6 +138,11 @@ valid.climdexInput <- function(x) {
 #' length is the growing season starting in the beginning of July of the year
 #' indicated, running to the end of June of the following year.
 #' 
+#' The \code{max.missing.days} slot is a vector consisting of 'annual'
+#' (the number of days that can be missing in a year) and 'monthly' (the
+#' number of days that can be missing in a month. If one month in a year fails
+#' the test, the corresponding year will be omitted.
+#' 
 #' @name climdexInput
 #' @aliases climdexInput-class
 #' @docType class
