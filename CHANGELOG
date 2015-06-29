@@ -1,4 +1,8 @@
-1.1-6:
+1.1-6: Bug fixes and documentation improvements
+  - Fixed bug where nday.consec.prec.max() failed for even values of parameter "ndays".
+  - Fixed bug in get.temp.var.quantiles where "qtiles" parameter was not being passed through to delegates.
+  - Fixed bugs in documentation where multiparagraph descriptions were not being included.
+  - Thanks to Nick Herold (UNSW) for his valuable feedback that was incorporated into this release.
 
 1.1-5: Updated package to use Rcpp's new 'const correct' Vector::const\_iterator
 
