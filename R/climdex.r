@@ -1697,15 +1697,16 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.last.day=FALSE) {
   if(ndays == 1) {
     return(suppressWarnings(tapply.fast(daily.prec, date.factor, max, na.rm=TRUE)))
-  } else {
-    ## Ends of the data will be de-emphasized (padded with zero precip data); NAs replaced with 0
-    new.series <- c(rep(0, floor(ndays / 2)), daily.prec, rep(0, floor(ndays / 2)))
-    new.series[is.na(new.series)] <- 0
-    prec.runsum <- runmean(new.series, k=ndays, endrule="trim") * ndays
-    if(center.mean.on.last.day)
-      prec.runsum <- c(rep(0, floor(ndays / 2)), prec.runsum[1:(length(prec.runsum) - floor(ndays / 2))])
-    return(tapply.fast(prec.runsum, date.factor, max))
   }
+  ## Ends of the data will be de-emphasized (padded with zero precip data); NAs replaced with 0
+  daily.prec[is.na(daily.prec)] <- 0
+  prec.runsum <- runmean(daily.prec, k=ndays, endrule="NA")
+  prec.runsum[is.na(prec.runsum)] <- 0
+  if(center.mean.on.last.day) {
+      k2 = ndays %/% 2
+      prec.runsum <- c(rep(0, k2), prec.runsum[1:(length(prec.runsum) - k2)])
+  }
+  return(tapply.fast(prec.runsum, date.factor, max) * ndays)
 }
 
 #' Simple Precipitation Intensity Index

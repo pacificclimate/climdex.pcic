@@ -64,10 +64,12 @@ climdex.pcic.test.nday.consec.prec.max <- function() {
   result.1day <- c(30, 50)
   result.5day.center <- c(48, 50)
   result.5day.end <- c(39, 50)
+  result.6day <- c(48, 70)
 
   checkEquals(result.1day, as.numeric(nday.consec.prec.max(prec.dat, phony.date.factor, 1)))
   checkEquals(result.5day.center, as.numeric(nday.consec.prec.max(prec.dat, phony.date.factor, 5)))
   checkEquals(result.5day.end, as.numeric(nday.consec.prec.max(prec.dat, phony.date.factor, 5, TRUE)))
+  checkEquals(result.6day, as.numeric(nday.consec.prec.max(prec.dat, phony.date.factor, 6)))
 }
 
 climdex.pcic.test.threshold.exceedance.duration.index <- function() {
