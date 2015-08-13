@@ -201,7 +201,7 @@ get.date.field <- function(input.data, cal, date.types) {
   }
 
   date.type <- date.types[[which(valid.date.types)[1]]]
-  date.strings <- do.call(paste, input.data[,date.type$fields])
+  date.strings <- do.call(paste, input.data[,date.type$fields,drop=FALSE])
   return(as.PCICt(date.strings, format=date.type$format, cal=cal))
 }
 
