@@ -704,7 +704,7 @@ climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, prec.file=NULL,
 #' @template get_generic_example
 #' 
 #' @export
-climdex.fd <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.days.op.threshold(ci@data$tmin, ci@date.factors$annual, 0, "<") * ci@namasks$annual$tmin) }
+climdex.fd <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin)); return(number.days.op.threshold(ci@data$tmin, ci@date.factors[[match.arg(freq)]], 0, "<") * ci@namasks[[match.arg(freq)]]$tmin) }
 
 #' Summer Days
 #' 
@@ -722,7 +722,7 @@ climdex.fd <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 #' @template get_generic_example
 #' 
 #' @export
-climdex.su <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.days.op.threshold(ci@data$tmax, ci@date.factors$annual, 25, ">") * ci@namasks$annual$tmax) }
+climdex.su <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax)); return(number.days.op.threshold(ci@data$tmax, ci@date.factors[[match.arg(freq)]], 25, ">") * ci@namasks[[match.arg(freq)]]$tmax) }
 
 #' Icing Days
 #' 
@@ -740,7 +740,7 @@ climdex.su <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.da
 #' @template get_generic_example
 #' 
 #' @export
-climdex.id <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.days.op.threshold(ci@data$tmax, ci@date.factors$annual, 0, "<") * ci@namasks$annual$tmax) }
+climdex.id <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax)); return(number.days.op.threshold(ci@data$tmax, ci@date.factors[[match.arg(freq)]], 0, "<") * ci@namasks[[match.arg(freq)]]$tmax) }
 
 #' Tropical Nights
 #' 
@@ -758,7 +758,7 @@ climdex.id <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.da
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tr <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.days.op.threshold(ci@data$tmin, ci@date.factors$annual, 20, ">") * ci@namasks$annual$tmin) }
+climdex.tr <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin)); return(number.days.op.threshold(ci@data$tmin, ci@date.factors[[match.arg(freq)]], 20, ">") * ci@namasks[[match.arg(freq)]]$tmin) }
 
 #' Growing Season Length
 #' 
@@ -1113,7 +1113,7 @@ climdex.rx5day <- function(ci, freq=c("monthly", "annual"), center.mean.on.last.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.sdii <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(simple.precipitation.intensity.index(ci@data$prec, ci@date.factors$annual) * ci@namasks$annual$prec) }
+climdex.sdii <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec)); return(simple.precipitation.intensity.index(ci@data$prec, ci@date.factors[[match.arg(freq)]]) * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Precipitation Exceeding 10mm Per Day
 #' 
@@ -1130,7 +1130,7 @@ climdex.sdii <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(simple.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.r10mm <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(number.days.op.threshold(ci@data$prec, ci@date.factors$annual, 10, ">=") * ci@namasks$annual$prec) }
+climdex.r10mm <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec)); return(number.days.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], 10, ">=") * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Precipitation Exceeding 20mm Per Day
 #' 
@@ -1147,7 +1147,7 @@ climdex.r10mm <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(number
 #' @template get_generic_example
 #' 
 #' @export
-climdex.r20mm <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(number.days.op.threshold(ci@data$prec, ci@date.factors$annual, 20, ">=") * ci@namasks$annual$prec) }
+climdex.r20mm <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec)); return(number.days.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], 20, ">=") * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Precipitation Exceeding A Specified Amount Per Day
 #' 
@@ -1165,11 +1165,11 @@ climdex.r20mm <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(number
 #' @template get_generic_example
 #' 
 #' @export
-climdex.rnnmm <- function(ci, threshold=1) {
+climdex.rnnmm <- function(ci, threshold=1, freq=c("monthly", "annual")) {
   stopifnot(!is.null(ci@data$prec));
   if(!is.numeric(threshold) || length(threshold) != 1) stop("Please specify a single numeric threshold value.");
 
-  return(number.days.op.threshold(ci@data$prec, ci@date.factors$annual, threshold, ">=") * ci@namasks$annual$prec)
+  return(number.days.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], threshold, ">=") * ci@namasks[[match.arg(freq)]]$prec)
 }
 
 #' Maximum Consecutive Dry Days
@@ -1222,7 +1222,7 @@ climdex.cwd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@
 #' @template get_generic_example
 #' 
 #' @export
-climdex.r95ptot <- function(ci) { stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors$annual, ci@quantiles$prec['q95'], ">") * ci@namasks$annual$prec) }
+climdex.r95ptot <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q95'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Total Daily Precipitation Exceeding 99\%ile Threshold
 #' 
@@ -1241,7 +1241,7 @@ climdex.r95ptot <- function(ci) { stopifnot(!is.null(ci@data$prec) && !is.null(c
 #' @template get_generic_example
 #' 
 #' @export
-climdex.r99ptot <- function(ci) { stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors$annual, ci@quantiles$prec['q99'], ">") * ci@namasks$annual$prec) }
+climdex.r99ptot <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q99'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Total Daily Precipitation
 #' 
@@ -1259,7 +1259,7 @@ climdex.r99ptot <- function(ci) { stopifnot(!is.null(ci@data$prec) && !is.null(c
 #' @template get_generic_example
 #' 
 #' @export
-climdex.prcptot <- function(ci) { stopifnot(!is.null(ci@data$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors$annual, 1, ">=") * ci@namasks$annual$prec) }
+climdex.prcptot <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=") * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Get available indices by name
 #'
