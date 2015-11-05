@@ -1326,6 +1326,26 @@ climdex.hd17 <- function(ci, freq=c("monthly","annual")) {
 }
 
 
+#' make monthly sums for Standardize Precipitation Index (SPI)
+monthly_sums_spi <- function(temp,date.factor) {
+  stopifnot(is.numeric(temp) && is.factor(date.factor))
+  return(tapply(temp,date.factor,sum,na.rm=TRUE))
+}
+#' calcualte monthly sums for Standardize Precipitation Index (SPI)
+eca_sums_mon <- function(ci,freq=c("monthly")){
+  stopifnot(!is.null(ci@data$prec))
+  return(monthly_sums_spi(ci@data$prec,ci@date.factors$monthly) * ci@namasks$monthly$prec)
+}
+## Makes multi-month averages depending on k (here k=3,6). For spi3 k=3
+# precipitation is a vector of monthly precipitation sums
+# returns monthly precipation averaged over current month and prior k-1 months
+getPrecOnTimescale <- function(precipitation,k){
+  Nt <- length(precipitation)
+  prec.k <- as.vector(sapply(seq(from=1, to=Nt),function(t) {tm <- max(t-k+1,1); sum(as.vector(precipitation[tm:t]))}))
+  return(prec.k)
+}
+
+
 #' Get available indices by name
 #'
 #' This function returns a vector of (function) names of available indices.
