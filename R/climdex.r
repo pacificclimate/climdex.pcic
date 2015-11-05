@@ -1261,6 +1261,71 @@ climdex.r99ptot <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.nul
 #' @export
 climdex.prcptot <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=") * ci@namasks[[match.arg(freq)]]$prec) }
 
+
+
+#' Consecutive Summer days
+#' 
+#' This function computes the climdex index csu
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index csu: the annual(monthly) count of consecutive summer days (tx >25C)
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual(monthly) timeseries of maximum temperature.
+#' @template generic_seealso_references
+#' @templateVar cdxvar csu
+#' @templateVar cdxdescription an annual(monthly) timeseries of consecutive summer days.
+#' @template get_generic_example
+#' 
+#' @export
+climdex.csu <- function(ci,freq=c("monthly","annual"),spells.can.span.years=FALSE) {
+  stopifnot(!is.null(ci@data$tmax));
+  return(spell.length.max(ci@data$tmax, ci@date.factors[[match.arg(freq)]], 25, ">", spells.can.span.years) * ci@namasks[[match.arg(freq)]]$tmax)
+}
+
+
+#' Consecutive Frost days
+#' 
+#' This function computes the climdex index cfd
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index cfd: the annual(monthly) count of consecutive summer days
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual(monthly) timeseries of minimum temperature.
+#' @template generic_seealso_references
+#' @templateVar cdxvar cfd
+#' @templateVar cdxdescription an annual(monthly) timeseries of consecutive frost days.
+#' @template get_generic_example
+#' 
+#' @export
+climdex.cfd <- function(ci,freq=c("monthly","annual"),spells.can.span.years=FALSE) {
+  stopifnot(!is.null(ci@data$tmin));
+  return(spell.length.max(ci@data$tmin, ci@date.factors[[match.arg(freq)]], 0, "<", spells.can.span.years) * ci@namasks[[match.arg(freq)]]$tmin) }
+
+
+
+#' Heating Degree Days
+#' 
+#' This function computes the climdex index hd17
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index hd17: the annual(monthly) sum of heating degree days (17-tavg)
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual(monthly) timeseries of average temperature.
+#' @template generic_seealso_references
+#' @templateVar cdxvar hd17
+#' @templateVar cdxdescription an annual(monthly) timeseries of heating degree days.
+#' @template get_generic_example
+#' 
+#' @export
+climdex.hd17 <- function(ci, freq=c("monthly","annual")) {
+  stopifnot(!is.null(ci@data$tavg));
+  return(tapply((17 -  ci@data$tavg), ci@date.factors[[match.arg(freq)]], sum)* ci@namasks[[match.arg(freq)]]$tavg)
+}
+
+
 #' Get available indices by name
 #'
 #' This function returns a vector of (function) names of available indices.
@@ -1296,9 +1361,9 @@ climdex.prcptot <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.nul
 #' func.names <- climdex.get.available.indices(ci)
 #' @export
 climdex.get.available.indices <- function(ci, function.names=TRUE) {
-  available.indices <- list(tmax=c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi'),
-                            tmin=c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi'),
-                            tavg=c('gsl', 'dtr'),
+  available.indices <- list(tmax=c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi', 'csu'),
+                            tmin=c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi', 'cfd'),
+                            tavg=c('gsl', 'dtr', 'hd17'),
                             prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot'))
   if(function.names) {
     return(paste("climdex", unlist(available.indices[names(ci@data)]), sep="."))
