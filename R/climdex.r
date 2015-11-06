@@ -1345,6 +1345,23 @@ getPrecOnTimescale <- function(precipitation,k){
   return(prec.k)
 }
 
+#' empirical Standard Precipitation Index 3 (k in getPrecOnTimescale is 3)
+climdex.spi3 <- function(ci,freq=c("monthly")){
+  dat_mon <- eca_sums_mon(ci, freq=c("monthly"))
+  dat <- getPrecOnTimescale(dat_mon,3)
+  #if(dataLeadsToNAindex(dat)) return(NA)
+  if(all(is.na(dat))) return(NA)
+  
+  fit.cdf <- ecdf(dat)
+  cdfs <- fit.cdf(dat)
+  spi.t <- qnorm(cdfs)
+  spi.sym <- spi.t
+  # drop Inf
+  spi.sym[which(spi.t == Inf)] <- NA
+  spi.sym[which(spi.t == -Inf)] <-NA
+  return(spi.sym)
+}
+
 
 #' Get available indices by name
 #'
@@ -1384,7 +1401,7 @@ climdex.get.available.indices <- function(ci, function.names=TRUE) {
   available.indices <- list(tmax=c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi', 'csu'),
                             tmin=c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi', 'cfd'),
                             tavg=c('gsl', 'dtr', 'hd17'),
-                            prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot'))
+                            prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot', 'spi3'))
   if(function.names) {
     return(paste("climdex", unlist(available.indices[names(ci@data)]), sep="."))
   } else {
