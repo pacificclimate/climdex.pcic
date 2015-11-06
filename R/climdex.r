@@ -1393,7 +1393,8 @@ climdex.spi3 <- function(ci,freq=c("monthly")){
 #' @templateVar cdxdescription an monthly timeseries of standardize precipitation index.
 #' @template get_generic_example
 #' 
-#' @exportclimdex.spi6 <- function(ci,freq=c("monthly")){
+#' @export
+climdex.spi6 <- function(ci,freq=c("monthly")){
   dat_mon <- eca_sums_mon(ci, freq=c("monthly"))
   dat <- getPrecOnTimescale(dat_mon,6)
   if(all(is.na(dat))) return(NA)
