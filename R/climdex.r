@@ -1345,11 +1345,26 @@ getPrecOnTimescale <- function(precipitation,k){
   return(prec.k)
 }
 
-#' empirical Standard Precipitation Index 3 (k in getPrecOnTimescale is 3)
+
+#' Empirical Standard Precipitation Index 3 (k in getPrecOnTimescale is 3)
+#' 
+#' This function computes the climdex index spi3
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index spi3: a probability index based on precipitation. Referes to precipitation 
+#' in the previous 3-month period
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an monthly timeseries of precipitation
+#' @template generic_seealso_references
+#' @templateVar cdxvar spi3
+#' @templateVar cdxdescription an monthly timeseries of standardize precipitation index.
+#' @template get_generic_example
+#' 
+#' @export
 climdex.spi3 <- function(ci,freq=c("monthly")){
   dat_mon <- eca_sums_mon(ci, freq=c("monthly"))
   dat <- getPrecOnTimescale(dat_mon,3)
-  #if(dataLeadsToNAindex(dat)) return(NA)
   if(all(is.na(dat))) return(NA)
   
   fit.cdf <- ecdf(dat)
@@ -1362,6 +1377,36 @@ climdex.spi3 <- function(ci,freq=c("monthly")){
   return(spi.sym)
 }
 
+
+#' Empirical Standard Precipitation Index 6 (k in getPrecOnTimescale is 6)
+#' 
+#' This function computes the climdex index spi6
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index spi6: a probability index based on precipitation. Referes to precipitation 
+#' in the previous 3-month period
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an monthly timeseries of precipitation
+#' @template generic_seealso_references
+#' @templateVar cdxvar spi3
+#' @templateVar cdxdescription an monthly timeseries of standardize precipitation index.
+#' @template get_generic_example
+#' 
+#' @exportclimdex.spi6 <- function(ci,freq=c("monthly")){
+  dat_mon <- eca_sums_mon(ci, freq=c("monthly"))
+  dat <- getPrecOnTimescale(dat_mon,6)
+  if(all(is.na(dat))) return(NA)
+  
+  fit.cdf <- ecdf(dat)
+  cdfs <- fit.cdf(dat)
+  spi.t <- qnorm(cdfs)
+  spi.sym <- spi.t
+  # drop Inf
+  spi.sym[which(spi.t == Inf)] <- NA
+  spi.sym[which(spi.t == -Inf)] <-NA
+  return(spi.sym)
+}
 
 #' Get available indices by name
 #'
