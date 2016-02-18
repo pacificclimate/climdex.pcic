@@ -283,21 +283,11 @@ get.num.days.in.range <- function(x, date.range) {
 
 
 ## Check that arguments to climdexInput.raw et al are complete enough and valid enough.
-check.basic.argument.validity <- function(tmax=NULL, tmax.dates=NULL,
-                                          tmin=NULL, tmin.dates=NULL, 
-                                          tavg=NULL, tavg.dates=NULL,
-                                          prec=NULL, prec.dates=NULL,
-                                          snow=NULL, snow.dates=NULL,
-                                          snow_new=NULL, snow_new.dates=NULL,
-                                          wind=NULL, wind.dates=NULL,
-                                          wind_gust=NULL, wind_gust.dates=NULL,
-                                          wind_dir=NULL, wind_dir.dates=NULL,
-                                          cloud=NULL, cloud.dates=NULL,
-                                          sun=NULL, sun.dates=NULL,
-                                          sun_rel=NULL, sun_rel.dates=NULL,
-                                          base.range=c(1961, 1990), 
-                                          n=5) {
+check.basic.argument.validity <- function(tmax, tmin, tavg, prec, snow,  snow_new, wind, wind_gust, wind_dir, cloud, sun, sun_rel, 
+                                          tmax.dates, tmin.dates, tavg.dates, prec.dates, snow.dates, snow_new.dates, wind.dates, wind_gust.dates,
+                                          wind_dir.dates, cloud.dates, sun.dates, sun_rel.dates,base.range=c(1961, 1990), n=5) {
   
+
   check.var <- function(var, var.dates, var.name) {
     if(is.null(var) != is.null(var.dates))
       stop(paste("If passing in", var, ", must pass in", var, "dates too.."))
@@ -1487,61 +1477,10 @@ climdex.hd17 <- function(ci, freq=c("monthly","annual", "halfyear", "seasonal"))
   return(tapply((17 -  ci@data$tavg), ci@date.factors[[match.arg(freq)]], sum)* ci@namasks[[match.arg(freq)]]$tavg)
 }
 
-#' Monthly sums
-## -- introduced by C. Photiadou (KNMI), September 2015
-monthly.sums <- function(ci,freq=c("monthly")){
-  stopifnot(!is.null(ci@data$prec))
-  return(tapply.fast(ci@data$prec,ci@date.factors$monthly,sum,na.rm=TRUE) * ci@namasks$monthly$prec)
-}
-
-## Multi monthly sums
-## -- introduced by C. Photiadou (KNMI), September 2015
-## Makes multi-month sums depending on k (here k=3,6).
-# precipitation is a vector of monthly precipitation sums
-# returns monthly precipation averaged over current month and prior k-1 months
-multimonths.sum <- function(temp,k){
-  N.len <- length(temp)
-  prec.k <- as.vector(sapply(seq(from=1, to=N.len),function(t) {tm <- max(t-k+1,1); sum(as.vector(temp[tm:t]))}))
-  return(prec.k)
-}
-
-
-#' Empirical Standard Precipitation Index 3 (k in getPrecOnTimescale is 3)
-## -- introduced by C. Photiadou (KNMI), September 2015
-#' 
-#' This function computes the climdex index spi3
-#' 
-#' This function takes a climdexInput object as input and computes the climdex
-#' index spi3: a probability index based on precipitation. Referes to precipitation 
-#' in the previous 3-month period
-#' 
-#' @param ci Object of type climdexInput.
-#' @return A vector containing an monthly timeseries of precipitation
-#' @template generic_seealso_references
-#' @templateVar cdxvar spi3
-#' @templateVar cdxdescription an monthly timeseries of standardize precipitation index.
-#' @template get_generic_example
-#' 
-#' @export
-climdex.spi <- function(ci,freq=c("monthly"), k){
-  dat_mon <- monthly.sums(ci, freq=c("monthly"))
-  dat <- multimonths.sum(dat_mon,k)
-  if(all(is.na(dat))) return(NA)
-  
-  fit.cdf <- ecdf(dat)
-  cdfs <- fit.cdf(dat)
-  spi.t <- qnorm(cdfs)
-  spi.sym <- spi.t
-  # drop Inf
-  spi.sym[which(spi.t == Inf)] <- NA
-  spi.sym[which(spi.t == -Inf)] <-NA
-  return(spi.sym)
-}
-
 
 
 #' Lengths of strings of TRUE (1 & 0) values
-#' 
+## -- introduced by C. Photiadou (KNMI), September 2015
 #' Computes which days are above or below the baseline threshold.
 #' 
 #' This function computes which days are above or below baseline thresholds.
@@ -2348,7 +2287,7 @@ eca.input <- function(filename, var.name, date.name){
 climdex.get.available.indices <- function(ci, function.names=TRUE) {
   available.indices <- list(tmax=c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi', 'csu', 'txndaymin','txndaymax'),
                             tmin=c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi', 'cfd', 'tnndaymin','tnndaymax'),
-                            tavg=c('gsl', 'dtr', 'hd17', 'tmndaymin','tmndaymax'),
+                            tavg=c('gsl', 'dtr', 'hd17', 'tmndaymin','tmndaymax', 'cd'),
                             prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot', 'spi'),
                             snow=c('snow_days','snow_max','snow_mean'),
                             snow_new=c('snow_daysnew','snow_maxnew','snow_sumnew'),
