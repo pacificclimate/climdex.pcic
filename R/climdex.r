@@ -1413,21 +1413,65 @@ climdex.r99ptot <- function(ci, freq=c("monthly", "annual", "halfyear", "seasona
 #' @export
 climdex.prcptot <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")) { stopifnot(!is.null(ci@data$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=") * ci@namasks[[match.arg(freq)]]$prec) }
 
-
-
-#' Consecutive Summer days
-## -- introduced by C. Photiadou (KNMI), September 2015
-#' This function computes the climdex index csu
+#' Standardized Precipitation Index 
+#' @description Adapted by ClimPACT2 and SPEI (arguments taken from here) libraries.
+#' Given a timeseries of daily precipitation amounts [mm], the function calculates the Standardized Precipitation Index (SPI) as it is created and defined by the SPEI library.
+#' This function computes the climdex index spi at multiple scales.
 #' 
+#' @param ci Object of type climdexInput (representing the daily precipitation [mm])
+#' @param freq Time frequency to aggregate to. Allowed only monthly
+#' @param scale an integer, representing the time scale at which the SPI will be computed. Default is 3
+#' @param distribution name of the distribution function to be used for computing the SPI (default ’Gamma’)
+#' @param fit name of the method used for computing the distribution function parameters (default 'ub-pwm')
+#' @param kernel optional, a list defining the type of kernel used for computing the SPI atscales higher than one. Defaults to unshifted rectangular kernel.
+#' @param ref.start optional, starting point of the reference period used for computing the index. Defaults to NULL, indicating that the first value in data will be used as starting point.
+#' @param ref.end optional, ending  point  of  the  reference  period  used  for  computing  the index. Defaults to NULL, indicating that the last value in data will be used as ending point.
+#' @param ... For more details please refer to the SPEI
+#' @return A vector containing a monthly SPI at the selected scale
+#' @author Christiana Photiadou (KNMI)
+#' @references \url{http://www.ecad.eu/documents/atbd.pdf}
+#' @references \url{https://cran.r-project.org/web/packages/SPEI/SPEI.pdf}
+#' @importFrom SPEI spi
+#' 
+#' @export
+climdex.spi <- function(ci, freq=c("monthly"), scale=3, distribution="Gamma", fit="ub-pwm", kernel=list(type="rectangular",shift=1), ref.start=NULL, ref.end=NULL){
+  
+  spiprec <- ci@data$prec
+  spifactor <- ci@date.factors$monthly
+  prec_sum <- as.numeric(tapply.fast(spiprec, spifactor, sum, na.rm=TRUE))
+  
+  ts.start <- c(as.numeric(format(ci@dates[1],format="%Y")),1)
+  ts.end <- c(as.numeric(format(ci@dates[length(ci@dates)],format="%Y")),12)
+  
+  data.spi <- ts(prec_sum,freq=12,start=ts.start,end=ts.end)
+  
+  spi_col <- spi(data.spi, scale=scale,ref.start=ref.start,ref.end=ref.end,
+                        distribution=distribution,fit=fit,kernal=kernal,na.rm=TRUE)
+  
+  tmpvar <- (spi_col$fitted)
+  tmpvar <- ifelse(tmpvar=="-Inf",NA,tmpvar)
+  tmpvar <- ifelse(tmpvar=="Inf",NA,tmpvar)
+  
+  tmpvar <- ifelse(tmpvar=="NaNf",NA,tmpvar)
+  tmpvar <- ifelse(tmpvar=="NaN",NA,tmpvar)
+  
+  x <- as.numeric(tmpvar)
+  names(x) <- unique(spifactor)
+  return(x)
+}
+
+
+#' Consecutive Summer Days
+#' @description 
 #' This function takes a climdexInput object as input and computes the climdex
-#' index csu: the annual(monthly) count of consecutive summer days (tx >25C)
+#' index csu: the annual (or at different periods) count of consecutive summer days (TX >25C)
 #' 
-#' @param ci Object of type climdexInput.
-#' @return A vector containing an annual(monthly) timeseries of maximum temperature.
-#' @template generic_seealso_references
-#' @templateVar cdxvar csu
-#' @templateVar cdxdescription an annual(monthly) timeseries of consecutive summer days.
-#' @template get_generic_example
+#' @param ci Object of type climdexInput. Here the daily maximum temperature.
+#' @param freq Time frequency to aggregate to. Allowed only monthly, annual, halfyear, seasonal.
+#' @param spells.can.span.years Default FALSE
+#' @return A vector containing a timeseries of the number of consecutive summer days in a given period (freq).
+#' @author Christiana Photiadou (KNMI)
+#' @references \url{http://www.ecad.eu/documents/atbd.pdf}
 #' 
 #' @export
 climdex.csu <- function(ci,freq=c("monthly","annual", "halfyear", "seasonal"),spells.can.span.years=FALSE) {
@@ -1436,19 +1480,17 @@ climdex.csu <- function(ci,freq=c("monthly","annual", "halfyear", "seasonal"),sp
 }
 
 
-#' Consecutive Frost days
-## -- introduced by C. Photiadou (KNMI), September 2015
-#' This function computes the climdex index cfd
-#' 
+#' Consecutive Frost Days
+#' @description 
 #' This function takes a climdexInput object as input and computes the climdex
-#' index cfd: the annual(monthly) count of consecutive summer days
+#' index cfd: the annual (or at different periods) count of consecutive frost days (TN < 0C)
 #' 
-#' @param ci Object of type climdexInput.
-#' @return A vector containing an annual(monthly) timeseries of minimum temperature.
-#' @template generic_seealso_references
-#' @templateVar cdxvar cfd
-#' @templateVar cdxdescription an annual(monthly) timeseries of consecutive frost days.
-#' @template get_generic_example
+#' @param ci Object of type climdexInput. Here the daily maximum temperature.
+#' @param freq Time frequency to aggregate to. Allowed only monthly, annual, halfyear, seasonal.
+#' @param spells.can.span.years Default FALSE
+#' @return A vector containing a timeseries of the number of consecutive summer days in a given period (freq).
+#' @author Christiana Photiadou (KNMI)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 climdex.cfd <- function(ci,freq=c("monthly","annual", "halfyear", "seasonal"),spells.can.span.years=FALSE) {
@@ -1458,26 +1500,21 @@ climdex.cfd <- function(ci,freq=c("monthly","annual", "halfyear", "seasonal"),sp
 
 
 #' Heating Degree Days
-## -- introduced by C. Photiadou (KNMI), September 2015
-#' This function computes the climdex index hd17
-#' 
+#' @description 
 #' This function takes a climdexInput object as input and computes the climdex
-#' index hd17: the annual(monthly) sum of heating degree days (17-tavg)
-#' 
-#' @param ci Object of type climdexInput.
-#' @return A vector containing an annual(monthly) timeseries of average temperature.
-#' @template generic_seealso_references
-#' @templateVar cdxvar hd17
-#' @templateVar cdxdescription an annual(monthly) timeseries of heating degree days.
-#' @template get_generic_example
+#' index hd17: the annual (or at different periods) sum of heating degree days (17-tavg)
+#' @param ci Object of type climdexInput. Here the daily maximum temperature.
+#' @param freq Time frequency to aggregate to. Allowed only monthly, annual, halfyear, seasonal.
+#' @param spells.can.span.years Default FALSE
+#' @return A vector containing a timeseries of the number of consecutive summer days in a given period (freq).
+#' @author Christiana Photiadou (KNMI)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 climdex.hd17 <- function(ci, freq=c("monthly","annual", "halfyear", "seasonal")) {
   stopifnot(!is.null(ci@data$tavg));
   return(tapply((17 -  ci@data$tavg), ci@date.factors[[match.arg(freq)]], sum)* ci@namasks[[match.arg(freq)]]$tavg)
 }
-
-
 
 #' Lengths of strings of TRUE (1 & 0) values
 ## -- introduced by C. Photiadou (KNMI), September 2015
@@ -1500,7 +1537,6 @@ climdex.hd17 <- function(ci, freq=c("monthly","annual", "halfyear", "seasonal"))
 #' @note If date.factor is omitted, daily series will be returned.
 #' @seealso \link{climdexInput-class}.
 #' @keywords ts climate
-#' @export
 days.op.threshold <- function(temp, dates, jdays, date.factor, threshold.outside.base, base.thresholds, base.range, op='<') {
   f <- match.fun(op)
   dat <- f(temp, threshold.outside.base[jdays])
@@ -1540,12 +1576,9 @@ days.op.threshold <- function(temp, dates, jdays, date.factor, threshold.outside
 #' This function takes a climdexInput object as input and computes the climdex
 #' index CD: the number of days where TG<25 & RR<25 (for wet days: days where precipitation is at least 1mm).
 #'
-#' @param ci Object of type climdexInput.
+#' @param ci Object of type climdexInput (representing the daily precipitation [mm] and the averaged daily temperature [C])
 #' @return A vector containing an annual timeseries of precipitation in wet days.
 #' @template generic_seealso_references
-#' @templateVar cdxvar prcptot
-#' @templateVar cdxdescription an annual timeseries of the sum of precipitation & average temperature in wet days.
-#' @template get_generic_example
 #'
 #' @export
 climdex.cd <- function(ci, freq=c("annual", "monthly", "halfyear", "seasonal"), precip.thresh="q25", precip.op="<", temp.thresh="q25", temp.op="<") {
@@ -1567,66 +1600,149 @@ climdex.cd <- function(ci, freq=c("annual", "monthly", "halfyear", "seasonal"), 
   return(unlist(result))
 }
 
+#' Cold-wet days
+#'
+#' This function computes the climdex index CW.
+#'
+#' This function takes a climdexInput object as input and computes the climdex
+#' index CW: the number of days where TG<25 & RR>75 (for wet days: days where precipitation is at least 1mm).
+#'
+#' @param ci Object of type climdexInput (representing the daily precipitation [mm] and the averaged daily temperature [C])
+#' @return A vector containing an annual timeseries of precipitation in wet days.
+#' @template generic_seealso_references
+#'
+#' @export
+climdex.cw <- function(ci, freq=c("annual", "monthly", "halfyear", "seasonal"), precip.thresh="q75", precip.op=">", temp.thresh="q25", temp.op="<") {
+  
+  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec) && !is.null(ci@data$tavg) && !is.null(ci@quantiles$tavg))
+  daily.prec <- ci@data$prec
+  daily.temp <- ci@data$tavg
+  q.precip <- ci@quantiles$prec[[precip.thresh]]
+  f.prec <- match.fun(precip.op)
+  f.temp<- days.op.threshold(daily.temp, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], 
+                             ci@quantiles$tavg$outbase[[temp.thresh]],
+                             ci@quantiles$tavg$inbase[[temp.thresh]], ci@base.range, temp.op)
+  #Convert from 1/0 to TRUE/FALSE
+  logic.f.temp <- f.temp==1
+  df.for.data <- data.frame(daily.prec, logic.f.temp, date.factor = ci@date.factors[[match.arg(freq)]])
+  result <- lapply(split(df.for.data, df.for.data$date.factor), function(chunk) {
+    sum(f.prec(chunk$daily.prec, q.precip) & chunk$logic.f.temp, na.rm=FALSE)
+  })
+  return(unlist(result))
+}
+
+#' Warm-dry days
+#'
+#' This function computes the climdex index WD.
+#'
+#' This function takes a climdexInput object as input and computes the climdex
+#' index WD: the number of days where TG>75 & RR<25 (for wet days: days where precipitation is at least 1mm).
+#'
+#' @param ci Object of type climdexInput (representing the daily precipitation [mm] and the averaged daily temperature [C])
+#' @return A vector containing an annual timeseries of precipitation in wet days.
+#' @template generic_seealso_references
+#'
+#' @export
+climdex.wd <- function(ci, freq=c("annual", "monthly", "halfyear", "seasonal"), precip.thresh="q25", precip.op="<", temp.thresh="q75", temp.op=">") {
+  
+  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec) && !is.null(ci@data$tavg) && !is.null(ci@quantiles$tavg))
+  daily.prec <- ci@data$prec
+  daily.temp <- ci@data$tavg
+  q.precip <- ci@quantiles$prec[[precip.thresh]]
+  f.prec <- match.fun(precip.op)
+  f.temp<- days.op.threshold(daily.temp, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], 
+                             ci@quantiles$tavg$outbase[[temp.thresh]],
+                             ci@quantiles$tavg$inbase[[temp.thresh]], ci@base.range, temp.op)
+  #Convert from 1/0 to TRUE/FALSE
+  logic.f.temp <- f.temp==1
+  df.for.data <- data.frame(daily.prec, logic.f.temp, date.factor = ci@date.factors[[match.arg(freq)]])
+  result <- lapply(split(df.for.data, df.for.data$date.factor), function(chunk) {
+    sum(f.prec(chunk$daily.prec, q.precip) & chunk$logic.f.temp, na.rm=FALSE)
+  })
+  return(unlist(result))
+}
+
+#' Warm-wet days
+#'
+#' This function computes the climdex index WW
+#'
+#' This function takes a climdexInput object as input and computes the climdex
+#' index WW: the number of days where TG>75 & RR>75 (for wet days: days where precipitation is at least 1mm).
+#'
+#' @param ci Object of type climdexInput (representing the daily precipitation [mm] and the averaged daily temperature [C])
+#' @return A vector containing an annual timeseries of precipitation in wet days.
+#' @template generic_seealso_references
+#'
+#' @export
+climdex.ww <- function(ci, freq=c("annual", "monthly", "halfyear", "seasonal"), precip.thresh="q75", precip.op=">", temp.thresh="q75", temp.op=">") {
+  
+  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec) && !is.null(ci@data$tavg) && !is.null(ci@quantiles$tavg))
+  daily.prec <- ci@data$prec
+  daily.temp <- ci@data$tavg
+  q.precip <- ci@quantiles$prec[[precip.thresh]]
+  f.prec <- match.fun(precip.op)
+  f.temp<- days.op.threshold(daily.temp, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], 
+                             ci@quantiles$tavg$outbase[[temp.thresh]],
+                             ci@quantiles$tavg$inbase[[temp.thresh]], ci@base.range, temp.op)
+  #Convert from 1/0 to TRUE/FALSE
+  logic.f.temp <- f.temp==1
+  df.for.data <- data.frame(daily.prec, logic.f.temp, date.factor = ci@date.factors[[match.arg(freq)]])
+  result <- lapply(split(df.for.data, df.for.data$date.factor), function(chunk) {
+    sum(f.prec(chunk$daily.prec, q.precip) & chunk$logic.f.temp, na.rm=FALSE)
+  })
+  return(unlist(result))
+}
+
 ## Climate indices involving wind timeseries
 ## -- introduced by R. Posselt (MeteoSwiss), July 2015
 
 #' Mean wind
-#' 
-#' This function computes the climdex index WIND_MEAN.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_MEAN index: The mean wind speed measured within a period.
+#' @description 
+#' This function computes the climdex index FG: the mean wind speed measured within a period.
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean wind speed in [m/s])
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the time series of mean wind speed.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/documents/atbd.pdf}
 #' 
 #' @export
-#' 
-climdex.wind_mean <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.fg <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind))
   return(tapply.fast(ci@data$wind, ci@date.factors[[match.arg(freq)]], mean, na.rm=TRUE) * ci@namasks[[match.arg(freq)]]$wind)
 }
 
 #' Calm days
-#' 
-#' This function computes the climdex index WIND_CALMDAYS.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_CALMDAYS index: The number of days with mean wind lower than or equal 2 m/s.
+#' @description
+#' This function computes the climdex index FGcalm days: The number of days with mean wind lower than or equal 2 m/s.
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean wind speed in [m/s])
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the number of calm days.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.wind_calmdays <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.fgcalm <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind))
   return(number.days.op.threshold(temp=ci@data$wind, date.factor=ci@date.factors[[match.arg(freq)]], 
                                   threshold=2, op="<=") * ci@namasks[[match.arg(freq)]]$wind)
 }
 
 #' Windy days
-#' 
-#' This function computes the climdex index WIND_WINDYDAYS.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_WINDYDAYS index: The number of days with mean wind greater than or equal 10.8 m/s (~6 Bft).
+#' @description 
+#' This function computes the climdex index FG6bft: The number of days with mean wind greater than or equal 10.8 m/s (~6 Bft).
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean wind speed in [m/s])
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the number of calm days.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.wind_windydays <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.fg6bft <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind))
   return(number.days.op.threshold(temp=ci@data$wind, date.factor=ci@date.factors[[match.arg(freq)]], 
                                   threshold=10.8, op=">=") * ci@namasks[[match.arg(freq)]]$wind)
@@ -1634,20 +1750,17 @@ climdex.wind_windydays <- function(ci,freq=c("annual","halfyear","seasonal","mon
 
 #' Storm days
 #' 
-#' This function computes the climdex index WIND_STORMDAYS.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_STORMDAYS index: The number of days with wind gusts greater than or equal 20.8 m/s (75 km/h).
+#' This function computes the climdex index FXstorm: The number of days with wind gusts greater than or equal 20.8 m/s (75 km/h).
 #' 
 #' @param ci Object of type climdexInput (representing the daily maximum wind gust in [m/s])
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the number of storm days.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.wind_stormdays <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.fxstorm <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind_gust))
   return(number.days.op.threshold(temp=ci@data$wind_gust, date.factor=ci@date.factors[[match.arg(freq)]], 
                                   threshold=20.8, op=">=") * ci@namasks[[match.arg(freq)]]$wind_gust)
@@ -1655,41 +1768,35 @@ climdex.wind_stormdays <- function(ci,freq=c("annual","halfyear","seasonal","mon
 
 #' Maximum wind gust
 #' 
-#' This function computes the climdex index WIND_MAXGUST.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_MAXGUST index: The maximum of the maximum daily wind gust.
+#' This function computes the climdex index FXx: The maximum of the maximum daily wind gust.
 #' 
 #' @param ci Object of type climdexInput (representing the daily maximum wind gust in [m/s])
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the maximum of the maximum daily wind gust.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.wind_maxgust <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.fxx <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind_gust))
   return(tapply.fast(ci@data$wind_gust, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE) * 
            ci@namasks[[match.arg(freq)]]$wind_gust)
 }
 
 #' Northerly winds
-#' 
-#' This function computes the climdex index WIND_NORTHERLY.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_NORTHERLY index: Days with northerly wind (-45deg (315deg) < wind_dir <= 45deg).
+#' @description 
+#' This function computes the climdex index DDnorth: Days with northerly wind (-45deg (315deg) < wind_dir <= 45deg).
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean wind direction in [deg] with 0deg being wind from north)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the time series of days with northerly winds.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.wind_northerly <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.ddnorth <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind_dir))
   wind_northerly <- (number.days.op.threshold(temp=ci@data$wind_dir, date.factor=ci@date.factors[[match.arg(freq)]], 
                                               threshold=315, op=">") +
@@ -1698,22 +1805,19 @@ climdex.wind_northerly <- function(ci,freq=c("annual","halfyear","seasonal","mon
   return(wind_northerly)
 }
 
-#' easterly winds
-#' 
-#' This function computes the climdex index WIND_EASTERLY.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_EASTERLY index: Days with easterly wind (45deg < wind_dir <= 135deg).
+#' Easterly winds
+#' @description 
+#' This function computes the climdex index DDeast: Days with easterly wind (45deg < wind_dir <= 135deg).
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean wind direction in [deg] with 90deg being wind from east)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the time series of days with easterly winds.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.wind_easterly <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.ddeast <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind_dir))
   wind_easterly <- (number.days.op.threshold(temp=ci@data$wind_dir, date.factor=ci@date.factors[[match.arg(freq)]], 
                                              threshold=45, op=">") -
@@ -1722,22 +1826,19 @@ climdex.wind_easterly <- function(ci,freq=c("annual","halfyear","seasonal","mont
   return(wind_easterly)
 }
 
-#' southerly winds
-#' 
-#' This function computes the climdex index WIND_SOUTHERLY.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_SOUTHERLY index: Days with southerly wind (135deg < wind_dir <= 225deg).
+#' Southerly winds
+#' @description 
+#' This function computes the climdex index DDsouth: Days with southerly wind (135deg < wind_dir <= 225deg).
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean wind direction in [deg] with 180deg being wind from south)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the time series of days with southerly winds.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.wind_southerly <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.ddsouth <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind_dir))
   wind_southerly <- (number.days.op.threshold(temp=ci@data$wind_dir, date.factor=ci@date.factors[[match.arg(freq)]], 
                                               threshold=135, op=">") -
@@ -1746,22 +1847,19 @@ climdex.wind_southerly <- function(ci,freq=c("annual","halfyear","seasonal","mon
   return(wind_southerly)
 }
 
-#' westerly winds
-#' 
-#' This function computes the climdex index WIND_WESTERLY
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' WIND_WESTERLY index: Days with westerly wind (225deg < wind_dir <= 315deg).
+#' Westerly winds
+#' @description 
+#' This function computes the climdex index DDwest: Days with westerly wind (225deg < wind_dir <= 315deg).
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean wind direction in [deg] with 270deg being wind from west)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the time series of days with westerly winds.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.wind_westerly <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.ddwest <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$wind_dir))
   wind_westerly <- (number.days.op.threshold(temp=ci@data$wind_dir, date.factor=ci@date.factors[[match.arg(freq)]], 
                                              threshold=225, op=">") -
@@ -1772,8 +1870,6 @@ climdex.wind_westerly <- function(ci,freq=c("annual","halfyear","seasonal","mont
 
 
 ## Climate indices involving temperature timeseries
-## -- introduced by R. Posselt (MeteoSwiss), July 2015
-
 #' Min/Max of mean n-day Min/Avg/Max.-Temperature
 #' 
 #' This functions compute the climdex indeces Txndaymax, Txndaymin, 
@@ -1794,6 +1890,7 @@ climdex.wind_westerly <- function(ci,freq=c("annual","halfyear","seasonal","mont
 #' @templateVar cdxvar txndaymax
 #' @templateVar cdxdescription a time series of the max of average maximum n-day temperature.
 #' @template get_generic_example
+#' @author Rebekka Posselt (MeteoSwiss)
 #' 
 #' @name climdex.tnday
 NULL
@@ -1917,23 +2014,19 @@ climdex.tnnp <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")
 }
 
 ## Climate indices involving sun timeseries
-## -- introduced by R. Posselt (MeteoSwiss), July 2015
-
 #' Sunshine duration
 #' 
-#' This function computes the climdex index SUN_DURATION.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' SUN_DURATION index: The sum of the sunshine duration hours within a period.
+#' This function computes the climdex index SS: The sum of the sunshine duration hours within a period.
 #' 
 #' @param ci Object of type climdexInput (representing the daily sunshine duration in [h])
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the time series of sunshine duration.
 #' 
 #' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss) 
 #' 
 #' @export
-climdex.sun_duration <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.ss <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$sun))
   return(tapply.fast(ci@data$sun, ci@date.factors[[match.arg(freq)]], sum, na.rm=TRUE) * ci@namasks[[match.arg(freq)]]$sun)
 }
@@ -1998,26 +2091,20 @@ climdex.sun_sunny <- function(ci,freq=c("annual","halfyear","seasonal","monthly"
 }
 
 ## Climate indices involving snow timeseries
-## -- introduced by R. Posselt (MeteoSwiss), July 2015
-
 #' Number of snow days
 #' 
-#' This function computes the climdex index SNOW_DAYS.
-#' 
-#' This function takes a climdexInput object as input and computes the climdex
-#' index SNOW_DAYS: The number of days with a snow depth > Y cm.
+#' This function computes the climdex index SDD: The number of days with a snow depth > Y cm.
 #' 
 #' @param ci Object of type climdexInput (representing the daily snow depth timeseries in [cm]).
 #' @param threshold Snow depth threshhold [in cm]. (Default: 1)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear" or "seasonal". Default: "annual".
 #' @return A vector containing an annual timeseries of the number of snow days.
-#' 
-#' @template generic_seealso_references
-#' 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.snow_days <- function(ci,threshold=1,freq=c("annual","halfyear","seasonal")) { 
+climdex.sdd <- function(ci,threshold=1,freq=c("annual", "monthly", "halfyear","seasonal")) { 
   stopifnot(!is.null(ci@data$snow))
   return(number.days.op.threshold(temp=ci@data$snow, date.factor=ci@date.factors[[match.arg(freq)]], 
                                   threshold=threshold, op=">=") * ci@namasks[[match.arg(freq)]]$snow) 
@@ -2025,21 +2112,16 @@ climdex.snow_days <- function(ci,threshold=1,freq=c("annual","halfyear","seasona
 
 #' Maximum snow depth
 #' 
-#' This function computes the climdex index SNOW_MAX.
-#' 
-#' This function takes a climdexInput object as input and computes the climdex
-#' index SNOW_MAX: The maximum snow depth measured within a year.
+#' This function computes the climdex index SDx: The maximum snow depth measured within a year.
 #' 
 #' @param ci Object of type climdexInput (representing the daily snow depth timeseries in [cm]).
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear" or "seasonal". Default: "annual".
 #' @return A vector containing an annual timeseries of the maximum snow depth.
-#' 
-#' @template generic_seealso_references
-#' 
+#' @author Rebekka Posselt (MeteoSwiss)
 #' 
 #' @export
 #' 
-climdex.snow_max <- function(ci,freq=c("annual","halfyear","seasonal")) { 
+climdex.sdx <- function(ci,freq=c("annual","monthly", "halfyear","seasonal")) { 
   stopifnot(!is.null(ci@data$snow))
   return(tapply.fast(ci@data$snow, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE) * 
            ci@namasks[[match.arg(freq)]]$snow)
@@ -2047,20 +2129,17 @@ climdex.snow_max <- function(ci,freq=c("annual","halfyear","seasonal")) {
 
 #' Mean snow depth
 #' 
-#' This function computes the climdex index SNOW_MEAN.
-#' 
-#' This function takes a climdexInput object as input and computes the climdex
-#' index SNOW_MEAN: The mean snow depth measured within a period.
+#' This function computes the climdex index SD: The mean snow depth measured within a period.
 #' 
 #' @param ci Object of type climdexInput (representing the daily snow depth timeseries in [cm]).
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear" or "seasonal". Default: "annual".
 #' @return A vector containing the timeseries of the mean snow depth.
-#' 
-#' @template generic_seealso_references
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
 #' 
-climdex.snow_mean <- function(ci,freq=c("annual","halfyear","seasonal")) { 
+climdex.sd <- function(ci,freq=c("annual","monthly", "halfyear","seasonal")) { 
   stopifnot(!is.null(ci@data$snow))
   return(tapply.fast(ci@data$snow, ci@date.factors[[match.arg(freq)]], mean, na.rm=TRUE) * 
            ci@namasks[[match.arg(freq)]]$snow)
@@ -2068,21 +2147,17 @@ climdex.snow_mean <- function(ci,freq=c("annual","halfyear","seasonal")) {
 
 #' Number of new snow days
 #' 
-#' This function computes the climdex index SNOW_DAYSNEW.
-#' 
-#' This function takes a climdexInput object as input and computes the climdex
-#' index SNOW_DAYSNEW: The number of days with a (new) snowfall > Y cm.
+#' This function computes the climdex index NSD: The number of days with a (new) snowfall > Y cm.
 #' 
 #' @param ci Object of type climdexInput (representing the daily snowfall timeseries in [cm]).
 #' @param threshold Snow depth threshhold [in cm]. (Default: 1)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear" or "seasonal". Default: "annual".
 #' @return A vector containing the timeseries of the number of new snow days.
-#' 
-#' @template generic_seealso_references
+#' @author Rebekka Posselt (MeteoSwiss)
 #' 
 #' @export
 #' 
-climdex.snow_daysnew <- function(ci,threshold=1,freq=c("annual","halfyear","seasonal")) { 
+climdex.nsd <- function(ci,threshold=1,freq=c("annual","monthly", "halfyear","seasonal")) { 
   stopifnot(!is.null(ci@data$snow_new))
   return(number.days.op.threshold(temp=ci@data$snow_new, date.factor=ci@date.factors[[match.arg(freq)]], 
                                   threshold=threshold, op=">=") * ci@namasks[[match.arg(freq)]]$snow_new) 
@@ -2090,20 +2165,16 @@ climdex.snow_daysnew <- function(ci,threshold=1,freq=c("annual","halfyear","seas
 
 #' Maximum new snow
 #' 
-#' This function computes the climdex index SNOW_MAXNEW.
-#' 
-#' This function takes a climdexInput object as input and computes the climdex
-#' index SNOW_MAXNEW: The maximum snowfall measured within a year.
+#' This function computes the climdex index NSX: The maximum snowfall measured within a year.
 #' 
 #' @param ci Object of type climdexInput (representing the daily snowfall timeseries in [cm]).
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear" or "seasonal". Default: "annual".
 #' @return A vector containing the timeseries of the maximum snowfall.
-#' 
-#' @template generic_seealso_references
+#' @author Rebekka Posselt (MeteoSwiss)
 #' 
 #' @export
 #' 
-climdex.snow_maxnew <- function(ci,freq=c("annual","halfyear","seasonal")) { 
+climdex.nsx <- function(ci,freq=c("annual","monthly", "halfyear","seasonal")) { 
   stopifnot(!is.null(ci@data$snow_new))
   return(tapply.fast(ci@data$snow_new, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE) * 
            ci@namasks[[match.arg(freq)]]$snow_new)
@@ -2111,31 +2182,25 @@ climdex.snow_maxnew <- function(ci,freq=c("annual","halfyear","seasonal")) {
 
 #' New snow sum
 #' 
-#' This function computes the climdex index SNOW_SUMNEW.
-#' 
-#' This function takes a climdexInput object as input and computes the climdex
-#' index SNOW_SUMNEW: The sum of all snowfall measured within a year.
+#' This function computes the climdex index NSS: The sum of all snowfall measured within a year.
 #' 
 #' @param ci Object of type climdexInput (representing the daily snowfall timeseries in [cm]).
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear" or "seasonal". Default: "annual".
 #' @return A vector containing the timeseries of the snowfall sum.
-#' 
-#' @template generic_seealso_references
+#' @author Rebekka Posselt (MeteoSwiss)
 #' 
 #' @export
 #' 
-climdex.snow_sumnew <- function(ci,freq=c("annual","halfyear","seasonal")) { 
+climdex.nss <- function(ci,freq=c("annual","monthly", "halfyear","seasonal")) { 
   stopifnot(!is.null(ci@data$snow_new))
   return(tapply.fast(ci@data$snow_new, ci@date.factors[[match.arg(freq)]], sum, na.rm=TRUE) * 
            ci@namasks[[match.arg(freq)]]$snow_new)
 }
 
 ## Climate indices involving cloud timeseries
-## -- introduced by R. Posselt (MeteoSwiss), July 2015
-
 #' Mean cloud cover
 #' 
-#' This function computes the climdex index CLOUD_MEAN.
+#' This function computes the climdex index CC
 #' 
 #' This function takes a climdexInput object as input and computes the 
 #' CLOUD_MEAN index: The mean cloud cover measured within a period.
@@ -2143,31 +2208,28 @@ climdex.snow_sumnew <- function(ci,freq=c("annual","halfyear","seasonal")) {
 #' @param ci Object of type climdexInput (representing the daily mean cloud cover in octa or percent)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @return A vector containing the time series of mean cloud cover.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
-climdex.cloud_mean <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
+climdex.cc <- function(ci,freq=c("annual","halfyear","seasonal","monthly")) { 
   stopifnot(!is.null(ci@data$cloud))
   return(tapply.fast(ci@data$cloud, ci@date.factors[[match.arg(freq)]], mean, na.rm=TRUE) * ci@namasks[[match.arg(freq)]]$cloud)
 }
 
 #' Mostly cloudy days
 #' 
-#' This function computes the climdex index CLOUD_CLOUDY.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' CLOUD_CLOUDY index: The number of mostly cloudy days (Cloud cover >= 6octa / 80%) within a period.
+#' This function computes the climdex index CC6: The number of mostly cloudy days (Cloud cover >= 6octa / 80%) within a period.
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean cloud cover in octa or percent)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @param unit unit of the cloud cover. Allowed are: "octa" or "percent". Default: "octa".
 #' @return A vector containing the number of mostly cloudy days.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
-climdex.cloud_cloudy <- function(ci,freq=c("annual","halfyear","seasonal","monthly"),unit="octa") { 
+climdex.cc6 <- function(ci,freq=c("annual","halfyear","seasonal","monthly"),unit="octa") { 
   stopifnot(!is.null(ci@data$cloud))
   if (unit=="octa"){
     threshold=6
@@ -2182,20 +2244,17 @@ climdex.cloud_cloudy <- function(ci,freq=c("annual","halfyear","seasonal","month
 
 #' Mostly sunny days
 #' 
-#' This function computes the climdex index CLOUD_SUNNY.
-#' 
-#' This function takes a climdexInput object as input and computes the 
-#' CLOUD_SUNNY index: The number of mostly sunny days (Cloud cover <= 2octa / 20%) within a period.
+#' This function computes the climdex index CC2: The number of mostly sunny days (Cloud cover <= 2octa / 20%) within a period.
 #' 
 #' @param ci Object of type climdexInput (representing the daily mean cloud cover in octa or percent)
 #' @param freq Time frequency to aggregate to. Allowed are: "annual","halfyear", "seasonal" or "monthly". Default: "annual".
 #' @param unit unit of the cloud cover. Allowed are: "octa" or "percent". Default: "octa".
 #' @return A vector containing the number of mostly sunny days.
-#' 
-#' @template generic_seealso_references 
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
 #' 
 #' @export
-climdex.cloud_sunny <- function(ci,freq=c("annual","halfyear","seasonal","monthly"),unit="octa") { 
+climdex.cc2 <- function(ci,freq=c("annual","halfyear","seasonal","monthly"),unit="octa") { 
   stopifnot(!is.null(ci@data$cloud))
   if (unit=="octa"){
     threshold=2
@@ -2222,17 +2281,18 @@ find.start.of.data.index = function(fname) {
 }
 
 ## Functions for eca\&d station files
-## -- introduced by C. Photiadou (KNMI), November 2015
-#' ECA\&D station data files 
+#' ECA &D station data files 
 #' 
-#' This function reads and prepares the station data files for use in climdex
+#' This function reads and prepares the station data files from the European Climate Assessment and Dataset (ECA&D) for use in climdex
 #' 
 #' @param filename File name and path of station data file.
 #' @param var.name A varialbe name from the ECA\&D variavle list: prec (RR), tavg (TG), tmax (TX), tmin(TN), sun (SS),
-#'        wind_gust (FX), wind (FG), 
+#'        wind_gust (FX), wind (FG).
+#' @param data.name Always DATE
 #' @return A data frame containing two columns: DATE with dates in PCICt format and "var.name" the varialbe name.
 #' @template get_generic_example
-#' 
+#' @author Christiana Photiadou (KNMI)
+#' @references \url{http://www.ecad.eu/}
 #' @export
 eca.input <- function(filename, var.name, date.name){
   
@@ -2287,15 +2347,15 @@ eca.input <- function(filename, var.name, date.name){
 climdex.get.available.indices <- function(ci, function.names=TRUE) {
   available.indices <- list(tmax=c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi', 'csu', 'txndaymin','txndaymax'),
                             tmin=c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi', 'cfd', 'tnndaymin','tnndaymax'),
-                            tavg=c('gsl', 'dtr', 'hd17', 'tmndaymin','tmndaymax', 'cd'),
+                            tavg=c('gsl', 'dtr', 'hd17', 'tmndaymin','tmndaymax', 'cd', 'cw', 'wd', 'ww'),
                             prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot', 'spi'),
-                            snow=c('snow_days','snow_max','snow_mean'),
-                            snow_new=c('snow_daysnew','snow_maxnew','snow_sumnew'),
-                            wind=c("wind_mean","wind_calmdays","wind_windydays"),
-                            wind_gust=c('wind_stormdays','wind_maxgust'),
-                            wind_dir=c('wind_northerly','wind_easterly','wind_southerly','wind_westerly'),
-                            cloud=c('cloud_mean','cloud_cloudy','cloud_sunny'),
-                            sun=c("sun_duration"),
+                            snow=c('sdd','sdx','sd'),
+                            snow_new=c('nsd','nsx','nss'),
+                            wind=c("fg","fgcalm","fg6bft"),
+                            wind_gust=c('fxstorm','fxx'),
+                            wind_dir=c('ddnorth','ddeast','ddsouth','ddwest'),
+                            cloud=c('cc','cc6','cc2'),
+                            sun=c("ss"),
                             sun_rel=c("sun_cloudy","sun_sunny","sun_relmean"))
   if(function.names) {
     return(paste("climdex", unlist(available.indices[names(ci@data)]), sep="."))
@@ -2687,6 +2747,64 @@ nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.
     prec.runsum <- c(rep(0, k2), prec.runsum[1:(length(prec.runsum) - k2)])
   }
   return(tapply.fast(prec.runsum, date.factor, max) * ndays)
+}
+#' @title Number of days (less than, greater than, etc) a threshold
+#' 
+#' @description
+#' Produces means of values that exceed (or are below) the specified threshold.
+#' 
+#' @details
+#' This function takes a data series, the number of days in the running window,
+#' a date factor to aggregate by, and an optional modifier parameter
+#' (center.mean.on.last.day). It computes the n-day running mean of
+#' temperature and returns the mean n-day temperature per unit
+#' time, as defined by \code{date.factor}.
+#' 
+#' @param daily.temp Daily timeseries of temperature (tmax, tavg or tmin).
+#' @param date.factor Factor to aggregate by.
+#' @param ndays Number of days in the running window.
+#' @param freq.fun Function to apply on the choosen period (e.g., max, min, ...)
+#' @param center.mean.on.last.day Whether to center the n-day running mean on
+#' the last day of the series, instead of the middle day.
+#' @return A vector consisting of the mean n-day temp per
+#' time interval.
+#' @keywords ts climate
+#' 
+#' @examples
+#' library(PCICt)
+#' 
+#' ## Parse the dates into PCICt.
+#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year","jday")]), format="%Y %j", cal="gregorian")
+#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year","jday")]), format="%Y %j", cal="gregorian")
+#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year","jday")]), format="%Y %j", cal="gregorian")
+#' 
+#' ## Load the data in.
+#' ci <- climdexInput.raw(tmax=ec.1018935.tmax$MAX_TEMP,
+#'                        tmin=ec.1018935.tmin$MIN_TEMP, 
+#'                        prec=ec.1018935.prec$ONE_DAY_PRECIPITATION,
+#'                        tmax.dates=tmax.dates, 
+#'                        tmin.dates=tmin.dates, 
+#'                        prec.dates=prec.dates, 
+#'                        base.range=c(1971, 2000))
+#'
+#' ## Compute txnday on a monthly basis.
+#' tx5daymax <- nday.consec.temp.mean(ci@@data$tmax, ci@@date.factors$monthly, freq.fun="max", ndays=5)
+#' 
+#' @export
+#' 
+nday.consec.temp.mean <- function(daily.temp, date.factor, ndays, freq.fun="max", center.mean.on.last.day=FALSE) {
+  if(ndays == 1) {
+    return(suppressWarnings(tapply.fast(daily.temp, date.factor, mean, na.rm=TRUE)))
+  }
+  ## Ends of the data will be de-emphasized (padded with zero precip data); NAs replaced with 0
+  daily.temp[is.na(daily.temp)] <- 0
+  temp.runmean <- runmean(daily.temp, k=ndays, endrule="NA")
+  temp.runmean[is.na(temp.runmean)] <- 0
+  if(center.mean.on.last.day) {
+    k2 = ndays %/% 2
+    temp.runmean <- c(rep(0, k2), temp.runmean[1:(length(temp.runmean) - k2)])
+  }
+  return(tapply.fast(temp.runmean, date.factor, match.fun(freq.fun)))
 }
 
 #' Simple Precipitation Intensity Index
