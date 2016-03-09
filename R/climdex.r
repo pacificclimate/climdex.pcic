@@ -1338,7 +1338,7 @@ climdex.rnnmm <- function(ci, threshold=1, freq=c("monthly", "annual", "halfyear
 #' @template get_generic_example
 #' 
 #' @export
-climdex.cdd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, "<", spells.can.span.years) * ci@namasks$annual$prec) }
+climdex.cdd <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal"), spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, "<", spells.can.span.years) * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Maximum Consecutive Wet Days
 #' 
@@ -1355,7 +1355,8 @@ climdex.cdd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@
 #' @template get_generic_example
 #' 
 #' @export
-climdex.cwd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, ">=", spells.can.span.years) * ci@namasks$annual$prec) }
+climdex.cwd <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal"), spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=", spells.can.span.years) * ci@namasks[[match.arg(freq)]]$prec) }
+
 
 #' Total Daily Precipitation Exceeding 95\%ile Threshold
 #' 
@@ -2267,6 +2268,73 @@ climdex.cc2 <- function(ci,freq=c("annual","halfyear","seasonal","monthly"),unit
                                   threshold=threshold, op="<=") * ci@namasks[[match.arg(freq)]]$cloud)
 }
 
+# ######################################################################################################################
+# #' HUGLIN INDEX (only for climdex.pcic.ncdf)
+#' Introduces by C.Photiadou (KNMI)
+# #' This function is not ready yet. It is uses coefficient based on the latitude
+# #' For this index I had to curry the cdx.funcs to be able to include the subset. Later I realised 
+# #' I need also to include the latitude. This would be used in compute.indices.for.stripe together with get.lat 
+# #' to retrieve subset & latitude 
+# #' I didn't proceed with finisheing the eca.HI function. I thought to ask you first if its possible 
+# #' to adapt compute.indices.for.stripe so it can include the currying and the latitude. Or if you had a better idea on this 
+# #' please let me know. 
+# 
+# #' Function to Curry a cxd.funcs for subset (now at cur_sub)
+# #' used only for Huglin Index
+curry_in_subset_for_huglin <- function(cdx.funcs, cur_sub){
+  cdx.names = names(cdx.funcs)
+  cdx.funcs <- lapply(cdx.names, function(function_name) {
+    f = cdx.funcs[[function_name]]
+    if(grepl('^hi', function_name)) {
+      return(functional::Curry(f, cur_sub = cur_sub))
+    } else {
+      return(f)
+    }
+  })
+  names(cdx.funcs) = cdx.names
+  return(cdx.funcs)
+}
+
+### Get latitude function 
+get.lat <- function(open_file_list, variable.name.map) {
+  #var.name <- variable.name.map[[names(v.f.idx)[1]]]
+  y.dim <- ncdf4.helpers::nc.get.dim.for.axis(open_file_list[[1]], variable.name.map, "Y")
+  return(y.dim$vals)
+}
+
+#' Huglin Index
+#' 
+#' This function computes the climdex index HI:
+#' @param ci Object of type climdexInput (representing the daily mean and daily max temperature)
+#' @param freq Time frequency to aggregate to. Allowed are only "annual"
+#' @param unit. Allowed are only deg C.
+#' @return A vector containing the HI
+#' @author Rebekka Posselt (MeteoSwiss)
+#' @references \url{http://www.ecad.eu/indicesextremes/indicesdictionary.php}
+#' 
+#' @export
+climdex.HI <- function(ci,freq=c("annual"),cur_sub){
+  
+  tempavg <- ci@data$tavg
+  tempmax <- ci@data$tmax  
+  
+  month.series <- get.months(ci@dates)
+  year.series <- get.years(ci@dates)
+  valid.months <- month.series >=4 & month.series <=9
+  hi_coef <-  if (cur_sub <=40) {hi_coeff <- 1 
+  }else if(cur_sub >40 & cur_sub <42) {hi_coef <- 1.02
+  }else if(cur_sub >42 & cur_sub <44) {hi_coef <- 1.03
+  }else if(cur_sub >44 & cur_sub <48) {hi_coef <- 1.04
+  }else if(cur_sub >46 & cur_sub <48) {hi_coef <- 1.05
+  }else if(cur_sub >48 & cur_sub <50) {hi_coef <- 1.06 
+  }else if(cur_sub >=50){hi_coef <- 1}
+  valid.sel<- year.series[valid.months]
+  tempdata <- ((((tempavg -10) + (tempmax -10)) /2) * hi_coef)
+  dat_final <- tempdata[valid.months]
+
+  return(tapply(dat_final,valid.sel,sum))
+}
+####################################################################33
 ## Functions for eca\&d station files
 ## -- introduced by C. Photiadou (KNMI), November 2015
 # Secondary function for eca.input
