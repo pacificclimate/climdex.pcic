@@ -1357,6 +1357,25 @@ climdex.cdd <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal"),
 #' @export
 climdex.cwd <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal"), spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=", spells.can.span.years) * ci@namasks[[match.arg(freq)]]$prec) }
 
+#' Total Daily Precipitation Exceeding 75\%ile Threshold
+#' 
+#' This function computes the climdex index R75pTOT.
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index R75pTOT: the annual sum of precipitation in days where daily precipitation exceeds the
+#' 75th percentile of daily precipitation in the base period.
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual timeseries of precipitation exceeding
+#' the threshold.
+#' @template generic_seealso_references
+#' @templateVar cdxvar r75ptot
+#' @templateVar cdxdescription an annual timeseries of the R75pTOT index.
+#' @template get_generic_example
+#' 
+#' @export
+climdex.r75ptot <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")) { stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q75'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
+
 
 #' Total Daily Precipitation Exceeding 95\%ile Threshold
 #' 
@@ -2416,7 +2435,7 @@ climdex.get.available.indices <- function(ci, function.names=TRUE) {
   available.indices <- list(tmax=c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi', 'csu', 'txndaymin','txndaymax'),
                             tmin=c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi', 'cfd', 'tnndaymin','tnndaymax'),
                             tavg=c('gsl', 'dtr', 'hd17', 'tmndaymin','tmndaymax', 'cd', 'cw', 'wd', 'ww'),
-                            prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot', 'spi'),
+                            prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r75ptot', 'r95ptot', 'r99ptot', 'prcptot', 'spi'),
                             snow=c('sdd','sdx','sd'),
                             snow_new=c('nsd','nsx','nss'),
                             wind=c("fg","fgcalm","fg6bft"),
