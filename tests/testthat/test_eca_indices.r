@@ -24,11 +24,14 @@ test_that("Precipitation indices annual", {
   expect_equal_to_reference(ci, "./outputTests/ci_rr_deBilt.rds")
   
   ## Test new indices for precipitation
-  ci_spi3   <- climdex.spi(ci, freq=c("monthly"), scale=3)
-  ci_spi6   <- climdex.spi(ci, freq=c("monthly"), scale=6)
+  ci_spi3   <- climdex.spi3(ci, freq=c("monthly"), scale=3)
+  ci_spi6   <- climdex.spi6(ci, freq=c("monthly"), scale=6)
+  ci_r75ptot <- climdex.r75ptot(ci, freq=c("monthly"))
   
   expect_equal_to_reference(ci_spi3, "./outputTests/spi3_deBilt.rds")
   expect_equal_to_reference(ci_spi6, "./outputTests/spi6_deBilt.rds")
+  expect_equal_to_reference(ci_r75ptot, "./outputTests/r75ptot_deBilt.rds")
+  
 
 })
 
@@ -91,8 +94,8 @@ test_that("tavg indices annual & monthly", {
   tg <- eca.input('~/Documents/deBilt_tavg/TG_STAID000162.txt', 'TG', 'DATE')
   prec <- eca.input('~/Documents/deBilt_prec/RR_STAID000162.txt', 'RR', 'DATE')
   
-  ci_temp <- climdexInput.raw(tmin = tn$TN, tavg=tg$TG, prec=prec$RR, 
-                              tmin.dates = tn$DATE, prec.dates = prec$DATE, tavg.dates = tg$DATE,
+  ci_temp <- climdexInput.raw(tmin = tn$TN, tavg = tg$TG, prec = prec$RR, 
+                              tmin.dates = tmin$DATE, prec.dates = prec$DATE, tavg.dates = tg$DATE,
                               base.range=c(1961, 1991))
   
   ##tavg
