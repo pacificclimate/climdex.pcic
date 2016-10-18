@@ -42,8 +42,8 @@ tapply.fast <- function (X, INDEX, FUN = NULL, ..., simplify = TRUE) {
 
 ## Check that climdexInput data structure is valid.
 valid.climdexInput <- function(x) {
-  temp.quantiles <- c(10, 25, 75, 90)
-  prec.quantiles <- c(25, 75, 95, 99)
+  temp.quantiles <- c(10, 90)
+  prec.quantiles <- c(75, 95, 99)
   errors <- c()
 
   separate.base <- c(tmax=T, tmin=T, tavg=T, prec=F)
@@ -52,6 +52,7 @@ valid.climdexInput <- function(x) {
   length.check.members <- c("date.factors", "data")
   data.lengths <- c(sapply(x@data, length), sapply(length.check.slots, function(y) length(slot(x, y))), unlist(sapply(length.check.members, function(y) { sapply(slot(x, y), length) })))
   quantiles <- list(tmax=temp.quantiles, tmin=temp.quantiles, tavg=temp.quantiles, prec=prec.quantiles)
+  #quantiles <- list(tmax=temp.quantiles, tmin=temp.quantiles, prec=prec.quantiles)
   
   if(!all(data.lengths == max(data.lengths)))
     errors <- c(errors, "Data fields, dates, and date factors must all be of the same length")
@@ -64,7 +65,8 @@ valid.climdexInput <- function(x) {
   
   ## Check that appropriate thresholds are present.
   need.base.data <- get.num.days.in.range(x@dates, x@base.range) > 0
-  errors <- do.call(c, c(list(errors), lapply(intersect(present.data.vars, c("tmax", "tmin", "tavg", "prec")), function(n) {
+  #errors <- do.call(c, c(list(errors), lapply(intersect(present.data.vars, c("tmax", "tmin", "prec")), function(n) {
+   errors <- do.call(c, c(list(errors), lapply(intersect(present.data.vars, c("tmax", "tmin", "tavg", "prec")), function(n) {
     if(is.null(quantiles[n]))
       return(NULL)
     ## FIXME: This test isn't necessarily valid and prevents calculating indices when no base period data is available.
@@ -283,8 +285,11 @@ get.num.days.in.range <- function(x, date.range) {
 
 
 ## Check that arguments to climdexInput.raw et al are complete enough and valid enough.
-check.basic.argument.validity <- function(tmax, tmin, tavg, prec, snow,  snow_new, wind, wind_gust, wind_dir, cloud, sun, sun_rel, 
-                                          tmax.dates, tmin.dates, tavg.dates, prec.dates, snow.dates, snow_new.dates, wind.dates, wind_gust.dates,
+#check.basic.argument.validity <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), 
+                              #             n=5, tavg=NULL, tavg.dates=NULL) {
+check.basic.argument.validity <- function(tmax, tmin, tavg, prec, snow,  snow_new, wind, wind_gust, wind_dir, cloud, sun, sun_rel,
+                                          tmax.dates, tmin.dates, tavg.dates, prec.dates, snow.dates, snow_new.dates, wind.dates, 
+                                          wind_gust.dates,
                                           wind_dir.dates, cloud.dates, sun.dates, sun_rel.dates,base.range=c(1961, 1990), n=5) {
   
 
@@ -312,10 +317,10 @@ check.basic.argument.validity <- function(tmax, tmin, tavg, prec, snow,  snow_ne
   check.var(sun, sun.dates, "sun")
   check.var(sun_rel, sun_rel.dates, "sun_rel")
 
-  if(all(c(is.null(tmax), is.null(tmin), is.null(tavg), 
-           is.null(prec), 
+  if(all(c(is.null(tmax), is.null(tmin), is.null(tavg),
+           is.null(prec),
            is.null(snow), is.null(snow_new),
-           is.null(wind), is.null(wind_gust), is.null(wind_dir), 
+           is.null(wind), is.null(wind_gust), is.null(wind_dir),
            is.null(cloud),
            is.null(sun),is.null(sun_rel))))
     stop("Must supply at least one variable to calculate indices upon.")
@@ -341,14 +346,14 @@ check.quantile.validity <- function(quantiles, present.vars, days.in.base) {
   if(!all(present.vars %in% names(quantiles)))
     stop("Quantiles must be present for all variables provided.\n")
 
-  if(!all(sapply(quantiles[names(quantiles) %in% intersect(present.vars, c("tmax", "tmin", "tavg"))], function(x) { "outbase" %in% names(x) && all(c("q10", "q25", "q75", "q90") %in% names(x$outbase)) })))
+  if(!all(sapply(quantiles[names(quantiles) %in% intersect(present.vars, c("tmax", "tmin"))], function(x) { "outbase" %in% names(x) && all(c("q10", "q90") %in% names(x$outbase)) })))
     stop("Temperature out-of-base quantiles must contain 10th and 90th percentiles.\n")
 
-  if(any(days.in.base > 0) && !all(sapply(quantiles[names(quantiles) %in% intersect(intersect(present.vars, c("tmax", "tmin", "tavg")), names(days.in.base)[days.in.base > 0])], function(x) { "inbase" %in% names(x) && all(c("q10", "q25", "q75", "q90") %in% names(x$inbase)) })))
-    stop("Temperature in-base quantiles must contain 10th, 25th, 75th, and 90th percentiles.\n")
+  if(any(days.in.base > 0) && !all(sapply(quantiles[names(quantiles) %in% intersect(intersect(present.vars, c("tmax", "tmin")), names(days.in.base)[days.in.base > 0])], function(x) { "inbase" %in% names(x) && all(c("q10", "q90") %in% names(x$inbase)) })))
+    stop("Temperature in-base quantiles must contain 10th and 90th percentiles.\n")
 
-  if("prec" %in% names(quantiles) && !all(c("q25", "q75", "q95", "q99") %in% names(quantiles$prec)))
-    stop("Precipitation quantiles must contain 25th, 75th, 95th and 99th percentiles.\n")
+  if("prec" %in% names(quantiles) && !all(c("q75", "q95", "q99") %in% names(quantiles$prec)))
+    stop("Precipitation quantiles must contain 75th, 95th and 99th percentiles.\n")
 }
 
 get.temp.var.quantiles <- function(filled.data, date.series, bs.date.series, qtiles, bs.date.range, n, in.base=FALSE, min.base.data.fraction.present=0.1) {
@@ -360,7 +365,7 @@ get.temp.var.quantiles <- function(filled.data, date.series, bs.date.series, qti
     return(list(outbase=zhang.running.qtile(base.data, dates.base=bs.date.series, qtiles=qtiles, bootstrap.range=bs.date.range, n=n, min.fraction.present=min.base.data.fraction.present)))
 }
 
-get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtiles=c(0.25, 0.75, 0.95, 0.99)) {
+get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtiles=c(0.75, 0.95, 0.99)) {
   wet.days <- !(is.na(filled.prec) | filled.prec < 1)
   inset <- date.series >= bs.date.range[1] & date.series <= bs.date.range[2] & !is.na(filled.prec) & wet.days
   pq <- quantile(filled.prec[inset], qtiles, type=8)
@@ -417,10 +422,18 @@ get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtil
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #'
 #' @export
-get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, tavg=NULL, prec=NULL, tmax.dates=NULL, tmin.dates=NULL, tavg.dates=NULL, prec.dates=NULL, base.range=c(1961, 1990), n=5, temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99), min.base.data.fraction.present=0.1) {
+# get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, tmin.dates=NULL, prec.dates=NULL, 
+#                                     base.range=c(1961, 1990), n=5, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.75, 0.95, 0.99),
+#                                     min.base.data.fraction.present=0.1) {
+get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, tavg=NULL, prec=NULL, tmax.dates=NULL,
+                  tmin.dates=NULL, tavg.dates=NULL, prec.dates=NULL, base.range=c(1961, 1990), n=5,
+                  temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99), min.base.data.fraction.present=0.1) {
+  
   days.threshold <- 359
+  #check.basic.argument.validity(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range, n)
   check.basic.argument.validity(tmax, tmin, tavg, prec, tmax.dates, tmin.dates, tavg.dates, prec.dates, base.range, n)
   
+ # d.list <- list(tmin.dates, tmax.dates, prec.dates)
   d.list <- list(tmin.dates, tmax.dates, tavg.dates, prec.dates)
   all.dates <- do.call(c, d.list[!sapply(d.list, is.null)])
   last.day.of.year <- get.last.monthday.of.year(all.dates)
@@ -564,26 +577,35 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, tavg=NULL, prec=NULL, 
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #'
 #' @export
-climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL, 
-                             tmin=NULL, tmin.dates=NULL, 
-                             tavg=NULL, tavg.dates=NULL, 
+# climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL, 
+#                              tmin=NULL, tmin.dates=NULL, 
+#                              tavg=NULL, tavg.dates=NULL, 
+#                              prec=NULL, prec.dates=NULL,
+#                              quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.75, 0.95, 0.99), 
+#                              base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE,
+#                              max.missing.days=c(annual=15, halfyear=10, seasonal=8, monthly=3), 
+#                              min.base.data.fraction.present=0.1) {
+climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
+                             tmin=NULL, tmin.dates=NULL,
+                             tavg=NULL, tavg.dates=NULL,
                              prec=NULL, prec.dates=NULL,
                              snow=NULL, snow.dates=NULL,
-                             snow_new=NULL, snow_new.dates=NULL, 
+                             snow_new=NULL, snow_new.dates=NULL,
                              wind=NULL, wind.dates=NULL,
-                             wind_gust=NULL, wind_gust.dates=NULL,      
-                             wind_dir=NULL, wind_dir.dates=NULL,   
-                             cloud=NULL, cloud.dates=NULL,    
-                             sun=NULL, sun.dates=NULL,   
-                             sun_rel=NULL, sun_rel.dates=NULL,                       
-                             quantiles=NULL, temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99), 
+                             wind_gust=NULL, wind_gust.dates=NULL,
+                             wind_dir=NULL, wind_dir.dates=NULL,
+                             cloud=NULL, cloud.dates=NULL,
+                             sun=NULL, sun.dates=NULL,
+                             sun_rel=NULL, sun_rel.dates=NULL,
+                             quantiles=NULL, temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99),
                              base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE,
-                             max.missing.days=c(annual=15, halfyear=10, seasonal=8, monthly=3), 
+                             max.missing.days=c(annual=15, halfyear=10, seasonal=8, monthly=3),
                              min.base.data.fraction.present=0.1) {
   
   ## Make sure all of these arguments are valid...
-  
-  check.basic.argument.validity(tmax=tmax, tmax.dates=tmax.dates, 
+#  check.basic.argument.validity(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range, n, tavg, tavg.dates)
+#   
+  check.basic.argument.validity(tmax=tmax, tmax.dates=tmax.dates,
                                 tmin=tmin, tmin.dates=tmin.dates,
                                 tavg=tavg, tavg.dates=tavg.dates,
                                 prec=prec, prec.dates=prec.dates,
@@ -595,20 +617,22 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
                                 cloud=cloud, cloud.dates=cloud.dates,
                                 sun=sun, sun.dates=sun.dates,
                                 sun_rel=sun_rel, sun_rel.dates=sun_rel.dates,
-                                base.range=base.range, 
+                                base.range=base.range,
                                 n=n)
-  
+
   stopifnot(length(max.missing.days) == 4 && all(c("annual", "halfyear", "seasonal", "monthly") %in% names(max.missing.days)))
 
   stopifnot(is.numeric(min.base.data.fraction.present) && length(min.base.data.fraction.present) == 1)
   
-  d.list <- list(tmin.dates, tmax.dates, tavg.dates, 
-                 prec.dates, 
+#  d.list <- list(tmin.dates, tmax.dates, prec.dates, tavg.dates)
+#   
+  d.list <- list(tmin.dates, tmax.dates, tavg.dates,
+                 prec.dates,
                  snow.dates, snow_new.dates,
                  wind.dates, wind_gust.dates, wind_dir.dates,
                  cloud.dates,
                  sun.dates, sun_rel.dates)
-  
+   
   all.dates <- do.call(c, d.list[!sapply(d.list, is.null)])
   last.day.of.year <- get.last.monthday.of.year(all.dates)
   cal <- attr(all.dates, "cal")
@@ -647,9 +671,10 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
                        monthly=factor(format(date.series, format="%Y-%m", tz="GMT")))
   
   ## Filled data...
-  var.list <- c("tmax", "tmin", "tavg", "prec", "snow", "snow_new", "wind", "wind_gust", "wind_dir", 
+#  var.list <- c("tmax", "tmin", "prec", "tavg")
+  var.list <- c("tmax", "tmin", "tavg", "prec", "snow", "snow_new", "wind", "wind_gust", "wind_dir",
                 "cloud", "sun", "sun_rel")
-  
+
   present.var.list <- var.list[sapply(var.list, function(x) !is.null(get(x)))]
   
   filled.list <- sapply(present.var.list, function(x) { 
@@ -660,6 +685,7 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
   ## Establish some truth values for later use in logic...
   days.threshold <- 359
   present.dates <- sapply(present.var.list, function(x) get(paste(x, "dates", sep=".")))
+  #quantile.dates <- list(tmax=tmax.dates, tmin=tmin.dates, prec=prec.dates)
   quantile.dates <- list(tmax=tmax.dates, tmin=tmin.dates, tavg=tavg.dates, prec=prec.dates)
   days.in.base <- sapply(quantile.dates, get.num.days.in.range, bs.date.range)
 
@@ -677,6 +703,18 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
                   monthly=lapply(filled.list, get.na.mask, date.factors$monthly, max.missing.days['monthly']))
   
   ## Pad data passed as base if we're missing endpoints...
+  # if(!have.quantiles) {
+  #   quantiles <- new.env(parent=emptyenv())
+  #   
+  #   if(days.in.base['tmax'] > days.threshold)
+  #     delayedAssign("tmax", get.temp.var.quantiles(filled.list$tmax, date.series, bs.date.series, temp.qtiles, bs.date.range, n, TRUE, min.base.data.fraction.present), assign.env=quantiles)
+  #   if(days.in.base['tmin'] > days.threshold)
+  #     delayedAssign("tmin", get.temp.var.quantiles(filled.list$tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n, TRUE, min.base.data.fraction.present), assign.env=quantiles)
+  #   if(days.in.base['prec'] > days.threshold)
+  #     delayedAssign("prec", get.prec.var.quantiles(filled.list$prec, date.series, bs.date.range, prec.qtiles), assign.env=quantiles)
+  # } else {
+  #   quantiles <- as.environment(quantiles)
+  # }
   if(!have.quantiles) {
     quantiles <- new.env(parent=emptyenv())
 
@@ -691,7 +729,7 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
   } else {
     quantiles <- as.environment(quantiles)
   }
-  
+
   return(new("climdexInput", data=filled.list, quantiles=quantiles, namasks=namasks, dates=date.series, jdays=jdays, base.range=bs.date.range, date.factors=date.factors, northern.hemisphere=northern.hemisphere, max.missing.days=max.missing.days))
 }
 
@@ -770,24 +808,29 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
 #' prec.filename, date.types=list(list(fields=c("date"), format="%Y-%m-%d")))}
 #'
 #' @export
-climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, tavg.file=NULL, prec.file=NULL, 
+# climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, prec.file=NULL,
+#                              data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990),
+#                              na.strings=NULL, cal="gregorian", date.types=NULL, n=5, northern.hemisphere=TRUE,
+#                              tavg.file=NULL, quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.75, 0.95, 0.99), 
+#                              max.missing.days=c(annual=15, monthly=3), min.base.data.fraction.present=0.1) {
+climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, tavg.file=NULL, prec.file=NULL,
                              snow.file=NULL, snow_new.file=NULL,
                              wind.file=NULL, wind_gust.file=NULL, wind_dir.file=NULL,
                              cloud.file=NULL,
                              sun.file=NULL, sun_rel.file=NULL,
-                             data.columns=list(tmin="tmin", tmax="tmax", tavg="tavg", 
-                                               prec="prec", 
+                             data.columns=list(tmin="tmin", tmax="tmax", tavg="tavg",
+                                               prec="prec",
                                                snow="snow", snow_new="snow_new",
                                                wind="wind", wind_gust="wind_gust", wind_dir="wind_dir",
                                                cloud="cloud",
-                                               sun="sun", sun_rel="sun_rel"), 
+                                               sun="sun", sun_rel="sun_rel"),
                              base.range=c(1961, 1990),
-                             na.strings=NULL, cal="gregorian", 
+                             na.strings=NULL, cal="gregorian",
                              date.types=NULL, n=5, northern.hemisphere=TRUE,
-                             quantiles=NULL, temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99), 
-                             max.missing.days=c(annual=15, halfyear=10, seasonal=8, monthly=3), 
+                             quantiles=NULL, temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99),
+                             max.missing.days=c(annual=15, halfyear=10, seasonal=8, monthly=3),
                              min.base.data.fraction.present=0.1) {
-  
+
   get.and.check.data <- function(fn, datacol) {
     if(!is.null(fn)) {
       dat <- read.csv(fn, na.strings=na.strings)
@@ -816,22 +859,25 @@ climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, tavg.file=NULL, pre
   cloud <- get.and.check.data(cloud.file, data.columns$cloud)
   sun <- get.and.check.data(sun.file, data.columns$sun)
   sun_rel <- get.and.check.data(sun_rel.file, data.columns$sun_rel)
-  
+#   
+  # return(climdexInput.raw(tmax=tmax$dat, tmin=tmin$dat, prec=prec$dat, tmax.dates=tmax$dates, tmin.dates=tmin$dates, prec.dates=prec$dates, 
+  #                         base.range=base.range, n=n, northern.hemisphere=northern.hemisphere, tavg=tavg$dat, tavg.dates=tavg$dates, quantiles=quantiles, 
+  #                         temp.qtiles=temp.qtiles, prec.qtiles=prec.qtiles, max.missing.days=max.missing.days, min.base.data.fraction.present=min.base.data.fraction.present))
 
-  return(climdexInput.raw(tmax=tmax$dat, tmax.dates=tmax$dates, 
-                          tmin=tmin$dat, tmin.dates=tmin$dates, 
-                          tavg=tavg$dat, tavg.dates=tavg$dates, 
-                          prec=prec$dat, prec.dates=prec$dates, 
-                          snow=snow$dat, snow.dates=snow$dates, 
+  return(climdexInput.raw(tmax=tmax$dat, tmax.dates=tmax$dates,
+                          tmin=tmin$dat, tmin.dates=tmin$dates,
+                          tavg=tavg$dat, tavg.dates=tavg$dates,
+                          prec=prec$dat, prec.dates=prec$dates,
+                          snow=snow$dat, snow.dates=snow$dates,
                           snow_new=snow_new$dat, snow_new.dates=snow_new$dates,
-                          wind=wind$dat, wind.dates=wind$dates, 
-                          wind_gust=wind_gust$dat, wind_gust.dates=wind_gust$dates, 
-                          wind_dir=wind_dir$dat, wind_dir.dates=wind_dir$dates, 
+                          wind=wind$dat, wind.dates=wind$dates,
+                          wind_gust=wind_gust$dat, wind_gust.dates=wind_gust$dates,
+                          wind_dir=wind_dir$dat, wind_dir.dates=wind_dir$dates,
                           cloud=cloud$dat, cloud.dates=cloud$dates,
                           sun=sun$dat, sun.dates=sun$dates,
                           sun_rel=sun_rel$dat, sun_rel.dates=sun_rel$dates,
-                          base.range=base.range, n=n, northern.hemisphere=northern.hemisphere, 
-                          quantiles=quantiles, temp.qtiles=temp.qtiles, prec.qtiles=prec.qtiles, 
+                          base.range=base.range, n=n, northern.hemisphere=northern.hemisphere,
+                          quantiles=quantiles, temp.qtiles=temp.qtiles, prec.qtiles=prec.qtiles,
                           max.missing.days=max.missing.days, min.base.data.fraction.present=min.base.data.fraction.present))
 }
 
@@ -1412,12 +1458,77 @@ climdex.cwd <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal"),
   stopifnot(!is.null(ci@data$prec)); 
   return(spell.length.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=", spells.can.span.years) * ci@namasks[[match.arg(freq)]]$prec) }
 
+
 #' Total Daily Precipitation Exceeding 75\%ile Threshold
+#' 
+#' This function computes the climdex index R75p.
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index R75p: the annual sum of precipitation in days where daily precipitation exceeds the
+#' 75th percentile of daily precipitation in the base period.
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual timeseries of precipitation exceeding
+#' the threshold.
+#' @template generic_seealso_references
+#' @templateVar cdxvar r75p
+#' @templateVar cdxdescription an annual timeseries of the R75p index.
+#' @template get_generic_example
+#' 
+#' @export
+climdex.r75p <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")) { 
+  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); 
+  return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q75'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
+
+
+#' Total Daily Precipitation Exceeding 95\%ile Threshold
+#' 
+#' This function computes the climdex index R95p.
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index R95p: the annual sum of precipitation in days where daily precipitation exceeds the
+#' 95th percentile of daily precipitation in the base period.
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual timeseries of precipitation exceeding
+#' the threshold.
+#' @template generic_seealso_references
+#' @templateVar cdxvar r95p
+#' @templateVar cdxdescription an annual timeseries of the R95p index.
+#' @template get_generic_example
+#' 
+#' @export
+climdex.r95p <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")) { 
+  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); 
+  return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q95'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
+
+#' Total Daily Precipitation Exceeding 99\%ile Threshold
+#' 
+#' This function computes the climdex index R99p.
+#' 
+#' This function takes a climdexInput object as input and computes the climdex
+#' index R99p: the annual sum of precipitation in days where daily precipitation exceeds the
+#' 99th percentile of daily precipitation in the base period.
+#' 
+#' @param ci Object of type climdexInput.
+#' @return A vector containing an annual timeseries of precipitation exceeding
+#' the threshold.
+#' @template generic_seealso_references
+#' @templateVar cdxvar r99p
+#' @templateVar cdxdescription an annual timeseries of the R99p index.
+#' @template get_generic_example
+#' 
+#' @export
+climdex.r99p <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")) { 
+  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec));
+  return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q99'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
+
+#' Precipitation fraction due to moderate wet days (exceeding 75\%ile Threshold)
 #' 
 #' This function computes the climdex index R75pTOT.
 #' 
 #' This function takes a climdexInput object as input and computes the climdex
-#' index R75pTOT: the annual sum of precipitation in days where daily precipitation exceeds the
+#' index R75pTOT: the fraction of the sum of precipitation in days where daily precipitation exceeds the
 #' 75th percentile of daily precipitation in the base period.
 #' 
 #' @param ci Object of type climdexInput.
@@ -1430,16 +1541,18 @@ climdex.cwd <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal"),
 #' 
 #' @export
 climdex.r75ptot <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")) { 
-  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); 
-  return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q75'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
+  
+  stopifnot(!is.null(ci@data$prec),!is.null(ci@quantiles$prec)); 
+  prcptot <- total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=") * ci@namasks[[match.arg(freq)]]$prec
+  r75p <- total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q75'], ">") * ci@namasks[[match.arg(freq)]]$prec
+  return(100*r75p/prcptot) }
 
-
-#' Total Daily Precipitation Exceeding 95\%ile Threshold
+#' Precipitation fraction due to very wet days (exceeding 95\%ile Threshold)
 #' 
 #' This function computes the climdex index R95pTOT.
 #' 
 #' This function takes a climdexInput object as input and computes the climdex
-#' index R95pTOT: the annual sum of precipitation in days where daily precipitation exceeds the
+#' index R95pTOT: the fraction of the sum of precipitation in days where daily precipitation exceeds the
 #' 95th percentile of daily precipitation in the base period.
 #' 
 #' @param ci Object of type climdexInput.
@@ -1452,15 +1565,18 @@ climdex.r75ptot <- function(ci, freq=c("monthly", "annual", "halfyear", "seasona
 #' 
 #' @export
 climdex.r95ptot <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")) { 
-  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec)); 
-  return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q95'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
+  
+  stopifnot(!is.null(ci@data$prec),!is.null(ci@quantiles$prec)); 
+  prcptot <- total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=") * ci@namasks[[match.arg(freq)]]$prec
+  r95p <- total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q95'], ">") * ci@namasks[[match.arg(freq)]]$prec
+  return(100*r95p/prcptot) }
 
-#' Total Daily Precipitation Exceeding 99\%ile Threshold
+#' Precipitation fraction due to extremly wet days (exceeding 99\%ile Threshold)
 #' 
 #' This function computes the climdex index R99pTOT.
 #' 
 #' This function takes a climdexInput object as input and computes the climdex
-#' index R99pTOT: the annual sum of precipitation in days where daily precipitation exceeds the
+#' index R99pTOT: the fraction of the sum of precipitation in days where daily precipitation exceeds the
 #' 99th percentile of daily precipitation in the base period.
 #' 
 #' @param ci Object of type climdexInput.
@@ -1473,8 +1589,11 @@ climdex.r95ptot <- function(ci, freq=c("monthly", "annual", "halfyear", "seasona
 #' 
 #' @export
 climdex.r99ptot <- function(ci, freq=c("monthly", "annual", "halfyear", "seasonal")) { 
-  stopifnot(!is.null(ci@data$prec) && !is.null(ci@quantiles$prec));
-  return(total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q99'], ">") * ci@namasks[[match.arg(freq)]]$prec) }
+  
+  stopifnot(!is.null(ci@data$prec),!is.null(ci@quantiles$prec)); 
+  prcptot <- total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1, ">=") * ci@namasks[[match.arg(freq)]]$prec
+  r99p <- total.precip.op.threshold(ci@data$prec, ci@date.factors[[match.arg(freq)]], ci@quantiles$prec['q99'], ">") * ci@namasks[[match.arg(freq)]]$prec
+  return(100*r99p/prcptot) }
 
 #' Total Daily Precipitation
 #' 
@@ -1705,7 +1824,7 @@ days.op.threshold <- function(temp, dates, jdays, date.factor, threshold.outside
 #'
 #' This function takes a climdexInput object as input and computes the climdex
 #' index CD: the number of days where TG<25 & RR<25 (for wet days: days where precipitation is at least 1mm).
-#'
+#' Note: this function doesnt use directly tavg but derives it from tmax & tmin (concistent with .ncdf)
 #' @param ci Object of type climdexInput (representing the daily precipitation [mm] and the averaged daily temperature [C])
 #' @return A vector containing an annual timeseries of precipitation in wet days.
 #' @template generic_seealso_references
@@ -2410,26 +2529,26 @@ climdex.cc2 <- function(ci,freq=c("annual","halfyear","seasonal","monthly"),unit
 # 
 # #' Function to Curry a cxd.funcs for subset (now at cur_sub)
 # #' used only for Huglin Index
-curry_in_subset_for_huglin <- function(cdx.funcs, cur_sub){
-  cdx.names = names(cdx.funcs)
-  cdx.funcs <- lapply(cdx.names, function(function_name) {
-    f = cdx.funcs[[function_name]]
-    if(grepl('^hi', function_name)) {
-      return(functional::Curry(f, cur_sub = cur_sub))
-    } else {
-      return(f)
-    }
-  })
-  names(cdx.funcs) = cdx.names
-  return(cdx.funcs)
-}
+# curry_in_subset_for_huglin <- function(cdx.funcs, cur_sub){
+#   cdx.names = names(cdx.funcs)
+#   cdx.funcs <- lapply(cdx.names, function(function_name) {
+#     f = cdx.funcs[[function_name]]
+#     if(grepl('^hi', function_name)) {
+#       return(functional::Curry(f, cur_sub = cur_sub))
+#     } else {
+#       return(f)
+#     }
+#   })
+#   names(cdx.funcs) = cdx.names
+#   return(cdx.funcs)
+# }
 
-### Get latitude function 
-get.lat <- function(open_file_list, variable.name.map) {
-  #var.name <- variable.name.map[[names(v.f.idx)[1]]]
-  y.dim <- ncdf4.helpers::nc.get.dim.for.axis(open_file_list[[1]], variable.name.map, "Y")
-  return(y.dim$vals)
-}
+# ### Get latitude function 
+# get.lat <- function(open_file_list, variable.name.map) {
+#   #var.name <- variable.name.map[[names(v.f.idx)[1]]]
+#   y.dim <- ncdf4.helpers::nc.get.dim.for.axis(open_file_list[[1]], variable.name.map, "Y")
+#   return(y.dim$vals)
+# }
 
 #' Huglin Index
 #' 
@@ -2545,7 +2664,8 @@ climdex.get.available.indices <- function(ci, function.names=TRUE) {
   available.indices <- list(tmax=c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi', 'csu', 'txndaymin','txndaymax'),
                             tmin=c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi', 'cfd', 'tnndaymin','tnndaymax'),
                             tavg=c('gsl', 'dtr', 'hd17', 'tmndaymin','tmndaymax', 'cd', 'cw', 'wd', 'ww'),
-                            prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r75ptot', 'r95ptot', 'r99ptot', 'prcptot', 'spi3', 'spi6'),
+                            prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 
+                                   'r75p', 'r95p', 'r99p', 'r75ptot', 'r95ptot', 'r99ptot', 'prcptot', 'spi3', 'spi6'),
                             snow=c('sdd','sdx','sd'),
                             snow_new=c('nsd','nsx','nss'),
                             wind=c("fg","fgcalm","fg6bft"),
