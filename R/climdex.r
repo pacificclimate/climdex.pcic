@@ -51,8 +51,7 @@ valid.climdexInput <- function(x) {
   length.check.slots <- c("dates", "jdays")
   length.check.members <- c("date.factors", "data")
   data.lengths <- c(sapply(x@data, length), sapply(length.check.slots, function(y) length(slot(x, y))), unlist(sapply(length.check.members, function(y) { sapply(slot(x, y), length) })))
-  quantiles <- list(tmax=temp.quantiles, tmin=temp.quantiles, tavg=temp.quantiles, prec=prec.quantiles)
-  #quantiles <- list(tmax=temp.quantiles, tmin=temp.quantiles, prec=prec.quantiles)
+  quantiles <- list(tmax=temp.quantiles, tmin=temp.quantiles, prec=prec.quantiles)
   
   if(!all(data.lengths == max(data.lengths)))
     errors <- c(errors, "Data fields, dates, and date factors must all be of the same length")
@@ -65,8 +64,7 @@ valid.climdexInput <- function(x) {
   
   ## Check that appropriate thresholds are present.
   need.base.data <- get.num.days.in.range(x@dates, x@base.range) > 0
-  #errors <- do.call(c, c(list(errors), lapply(intersect(present.data.vars, c("tmax", "tmin", "prec")), function(n) {
-   errors <- do.call(c, c(list(errors), lapply(intersect(present.data.vars, c("tmax", "tmin", "tavg", "prec")), function(n) {
+  errors <- do.call(c, c(list(errors), lapply(intersect(present.data.vars, c("tmax", "tmin", "prec")), function(n) {
     if(is.null(quantiles[n]))
       return(NULL)
     ## FIXME: This test isn't necessarily valid and prevents calculating indices when no base period data is available.
@@ -287,10 +285,10 @@ get.num.days.in.range <- function(x, date.range) {
 ## Check that arguments to climdexInput.raw et al are complete enough and valid enough.
 #check.basic.argument.validity <- function(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range=c(1961, 1990), 
                               #             n=5, tavg=NULL, tavg.dates=NULL) {
-check.basic.argument.validity <- function(tmax, tmin, tavg, prec, snow,  snow_new, wind, wind_gust, wind_dir, cloud, sun, sun_rel,
-                                          tmax.dates, tmin.dates, tavg.dates, prec.dates, snow.dates, snow_new.dates, wind.dates, 
+check.basic.argument.validity <- function(tmax, tmin, prec, snow,  snow_new, wind, wind_gust, wind_dir, cloud, sun, sun_rel,
+                                          tmax.dates, tmin.dates, prec.dates, snow.dates, snow_new.dates, wind.dates, 
                                           wind_gust.dates,
-                                          wind_dir.dates, cloud.dates, sun.dates, sun_rel.dates,base.range=c(1961, 1990), n=5) {
+                                          wind_dir.dates, cloud.dates, sun.dates, sun_rel.dates,base.range=c(1961, 1990), n=5, tavg=NULL, tavg.dates=NULL) {
   
 
   check.var <- function(var, var.dates, var.name) {
@@ -422,19 +420,14 @@ get.prec.var.quantiles <- function(filled.prec, date.series, bs.date.range, qtil
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #'
 #' @export
-# get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, tmin.dates=NULL, prec.dates=NULL, 
-#                                     base.range=c(1961, 1990), n=5, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.75, 0.95, 0.99),
-#                                     min.base.data.fraction.present=0.1) {
-get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, tavg=NULL, prec=NULL, tmax.dates=NULL,
-                  tmin.dates=NULL, tavg.dates=NULL, prec.dates=NULL, base.range=c(1961, 1990), n=5,
-                  temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99), min.base.data.fraction.present=0.1) {
-  
+get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, tmin.dates=NULL, prec.dates=NULL,
+                                    base.range=c(1961, 1990), n=5, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.75, 0.95, 0.99),
+                                    min.base.data.fraction.present=0.1) {
   days.threshold <- 359
-  #check.basic.argument.validity(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range, n)
-  check.basic.argument.validity(tmax, tmin, tavg, prec, tmax.dates, tmin.dates, tavg.dates, prec.dates, base.range, n)
+  check.basic.argument.validity(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range, n)
+  #check.basic.argument.validity(tmax, tmin, tavg, prec, tmax.dates, tmin.dates, tavg.dates, prec.dates, base.range, n)
   
- # d.list <- list(tmin.dates, tmax.dates, prec.dates)
-  d.list <- list(tmin.dates, tmax.dates, tavg.dates, prec.dates)
+  d.list <- list(tmin.dates, tmax.dates, prec.dates)
   all.dates <- do.call(c, d.list[!sapply(d.list, is.null)])
   last.day.of.year <- get.last.monthday.of.year(all.dates)
   cal <- attr(all.dates, "cal")
@@ -460,12 +453,6 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, tavg=NULL, prec=NULL, 
     quantiles$tmin <- get.temp.var.quantiles(filled.tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n)
   }
   
-  if(!is.null(tavg)) {
-    if(get.num.days.in.range(tavg.dates, bs.date.range) <= days.threshold)
-      stop("There is less than a year of tavg data within the base period. Consider revising your base range and/or check your input data.")
-    filled.tavg <- create.filled.series(tavg, trunc(tavg.dates, "days"), date.series)
-    quantiles$tavg <- get.temp.var.quantiles(filled.tavg, date.series, bs.date.series, temp.qtiles, bs.date.range, n)
-  }
 
   if(!is.null(prec)) {
     if(get.num.days.in.range(prec.dates, bs.date.range) <= days.threshold)
@@ -597,7 +584,7 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
                              cloud=NULL, cloud.dates=NULL,
                              sun=NULL, sun.dates=NULL,
                              sun_rel=NULL, sun_rel.dates=NULL,
-                             quantiles=NULL, temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99),
+                             quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.75, 0.95, 0.99),
                              base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE,
                              max.missing.days=c(annual=15, halfyear=10, seasonal=8, monthly=3),
                              min.base.data.fraction.present=0.1) {
@@ -685,8 +672,7 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
   ## Establish some truth values for later use in logic...
   days.threshold <- 359
   present.dates <- sapply(present.var.list, function(x) get(paste(x, "dates", sep=".")))
-  #quantile.dates <- list(tmax=tmax.dates, tmin=tmin.dates, prec=prec.dates)
-  quantile.dates <- list(tmax=tmax.dates, tmin=tmin.dates, tavg=tavg.dates, prec=prec.dates)
+  quantile.dates <- list(tmax=tmax.dates, tmin=tmin.dates, prec=prec.dates)
   days.in.base <- sapply(quantile.dates, get.num.days.in.range, bs.date.range)
 
   ## Check that provided quantiles, if any, are valid
@@ -703,18 +689,6 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
                   monthly=lapply(filled.list, get.na.mask, date.factors$monthly, max.missing.days['monthly']))
   
   ## Pad data passed as base if we're missing endpoints...
-  # if(!have.quantiles) {
-  #   quantiles <- new.env(parent=emptyenv())
-  #   
-  #   if(days.in.base['tmax'] > days.threshold)
-  #     delayedAssign("tmax", get.temp.var.quantiles(filled.list$tmax, date.series, bs.date.series, temp.qtiles, bs.date.range, n, TRUE, min.base.data.fraction.present), assign.env=quantiles)
-  #   if(days.in.base['tmin'] > days.threshold)
-  #     delayedAssign("tmin", get.temp.var.quantiles(filled.list$tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n, TRUE, min.base.data.fraction.present), assign.env=quantiles)
-  #   if(days.in.base['prec'] > days.threshold)
-  #     delayedAssign("prec", get.prec.var.quantiles(filled.list$prec, date.series, bs.date.range, prec.qtiles), assign.env=quantiles)
-  # } else {
-  #   quantiles <- as.environment(quantiles)
-  # }
   if(!have.quantiles) {
     quantiles <- new.env(parent=emptyenv())
 
@@ -722,14 +696,12 @@ climdexInput.raw <- function(tmax=NULL, tmax.dates=NULL,
       delayedAssign("tmax", get.temp.var.quantiles(filled.list$tmax, date.series, bs.date.series, temp.qtiles, bs.date.range, n, TRUE, min.base.data.fraction.present), assign.env=quantiles)
     if(days.in.base['tmin'] > days.threshold)
       delayedAssign("tmin", get.temp.var.quantiles(filled.list$tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n, TRUE, min.base.data.fraction.present), assign.env=quantiles)
-    if(days.in.base['tavg'] > days.threshold)
-      delayedAssign("tavg", get.temp.var.quantiles(filled.list$tmin, date.series, bs.date.series, temp.qtiles, bs.date.range, n, TRUE, min.base.data.fraction.present), assign.env=quantiles)
     if(days.in.base['prec'] > days.threshold)
       delayedAssign("prec", get.prec.var.quantiles(filled.list$prec, date.series, bs.date.range, prec.qtiles), assign.env=quantiles)
   } else {
     quantiles <- as.environment(quantiles)
   }
-
+ 
   return(new("climdexInput", data=filled.list, quantiles=quantiles, namasks=namasks, dates=date.series, jdays=jdays, base.range=bs.date.range, date.factors=date.factors, northern.hemisphere=northern.hemisphere, max.missing.days=max.missing.days))
 }
 
@@ -827,7 +799,7 @@ climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, tavg.file=NULL, pre
                              base.range=c(1961, 1990),
                              na.strings=NULL, cal="gregorian",
                              date.types=NULL, n=5, northern.hemisphere=TRUE,
-                             quantiles=NULL, temp.qtiles=c(0.10, 0.25, 0.75, 0.90), prec.qtiles=c(0.25, 0.75, 0.95, 0.99),
+                             quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.75, 0.95, 0.99),
                              max.missing.days=c(annual=15, halfyear=10, seasonal=8, monthly=3),
                              min.base.data.fraction.present=0.1) {
 
