@@ -13,12 +13,12 @@ Getting Help
 New to programming or to R?
 ---------------------------
 
-* Read the the `Software Carpentry`_  `Programming in R`_ lessons
+* Read the the `Software Carpentry`_  `Programming with R`_ lessons
 * Read one of the man `R Manuals`_.
 * Attend an `R Users Group`_ meeting.
 
 .. _Software Carpentry: http://software-carpentry.org/index.html
-.. _Programming in R: http://software-carpentry.org/v5/novice/r/index.html
+.. _Programming with R: http://swcarpentry.github.io/r-novice-inflammation/
 .. _R Manuals: http://cran.r-project.org/manuals.html
 .. _R Users Group: http://r-users-group.meetup.com/
 
