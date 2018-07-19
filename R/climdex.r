@@ -1904,14 +1904,16 @@ climdex.quantile <- function(x, q=c(0, 0.25, 0.5, 0.75, 1)) {
 running.mean <- function(vec, bin){
   vec = as.vector(vec)
   len = length(vec)
-  if (bin<=1) return (vec)
+  if (bin<=1) {
+    return (vec)
+  }
   if (bin > len) bin = len
   left.bin = bin%/%2
 
   means = double(len)
 
   right.bin = bin - left.bin - 1
-  means = c( sum(vec[1:bin]), diff(vec,bin) ); # find the first sum and the differences from it
+  means = c( sum(vec[1:bin]), diff(vec,bin) ) # find the first sum and the differences from it
   means = cumsum(means)/bin                  # apply precomputed differences
   means = c(rep(NA,left.bin), means, rep(NA,right.bin))   # extend to original vector length
   return(means)
