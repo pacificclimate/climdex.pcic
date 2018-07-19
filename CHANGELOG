@@ -1,3 +1,5 @@
+1.1-8: Remove dependency on caTools
+1.1-7: Bug fix in climdexInput.csv()
 1.1-6: Bug fixes and documentation improvements
   - Fixed bug where nday.consec.prec.max() failed for even values of parameter "ndays".
   - Fixed bug in get.temp.var.quantiles where "qtiles" parameter was not being passed through to delegates.
