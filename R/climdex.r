@@ -1700,7 +1700,7 @@ nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.
   }
   ## Ends of the data will be de-emphasized (padded with zero precip data); NAs replaced with 0
   daily.prec[is.na(daily.prec)] <- 0
-  prec.runsum <- runmean(daily.prec, k=ndays, endrule="NA")
+  prec.runsum <- running.mean(daily.prec, ndays)
   prec.runsum[is.na(prec.runsum)] <- 0
   if(center.mean.on.last.day) {
       k2 = ndays %/% 2
@@ -1881,4 +1881,44 @@ climdex.quantile <- function(x, q=c(0, 0.25, 0.5, 0.75, 1)) {
   return(.Call("c_quantile2", as.double(x), q, PACKAGE='climdex.pcic'))
 }
 
+#' @title Running Mean of a Vector
+#'
+#' @description Calculates the running means of a vector with a shifting window
+#'
+#' @details Returns a new vector the same length as vec, where the ith
+#' element is the mean of the bin of elements centered at the ith element
+#' of the original vector. Means cannot be calculated for elements less
+#' than half the width of the bin from the beginning or end of the vector;
+#' the result vector has NA in those positions.
+#'
+#' @param vec A vector
+#' @param bin The number of entries to average over for each mean
+#'
+#' @return a vector containing the running mean of bin elements of vec
+#'
+#' @example
+#' \dontrun { 
+#' running.mean(c(1, 2, 3, 4, 5, 6), 2) 
+#' }
+#' \dontrun { 
+#' running.mean(c(5, 5, 5, 5, 5), 4) 
+#' }
+running.mean <- function(vec, bin){
+  vec = as.vector(vec)
+  len = length(vec)
+  if (bin<=1) {
+    return (vec)
+  }
+  if (bin > len) {
+    bin = len
+  }
+  left.bin = bin%/%2
 
+  means = double(len)
+
+  right.bin = bin - left.bin - 1
+  means = c( sum(vec[1:bin]), diff(vec,bin) ) # find the first sum and the differences from it
+  means = cumsum(means)/bin                  # apply precomputed differences
+  means = c(rep(NA,left.bin), means, rep(NA,right.bin))   # extend to original vector length
+  return(means)
+}
