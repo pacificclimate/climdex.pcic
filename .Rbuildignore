@@ -5,3 +5,4 @@ man-roxygen
 comparison
 README.rst
 CONTRIBUTING.rst
+^\.travis\.yml$
