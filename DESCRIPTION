@@ -14,6 +14,7 @@ Imports:
 Suggests:
     compiler,
     RUnit
+LinkingTo: Rcpp
 Description: PCIC's implementation of Climdex routines for computation of
     extreme climate indices.
 License: GPL-3
