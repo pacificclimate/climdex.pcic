@@ -13,14 +13,14 @@ Installation
 `climdex.pcic` is not available from CRAN at this time.
 
 One can install from the source tarball of our official release from
-PCIC's website:
+PCIC's website ::
 
     # ensure dependency is installed
     > install.packages('PCICt')
     > install.packages('https://pacificclimate.org/R/climdex.pcic_1.1-11.tar.gz')
 
 Or using the `devtools` package, one can install any arbitrary
-version, commit or branch from GitHub:
+version, commit or branch from GitHub ::
 
     # if devtools is not installed
     > install.packages('devtools')
