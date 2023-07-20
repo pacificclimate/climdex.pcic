@@ -7,6 +7,28 @@ What is climdex.pcic?
 .. _R statistical programming language: http://www.r-project.org/
 .. _Pacific Climate Impacts Consortium: http://pacificclimate.org/
 
+Installation
+============
+
+`climdex.pcic` is not available from CRAN at this time.
+
+One can install from the source tarball of our official release from
+PCIC's website:
+
+    # ensure dependency is installed
+    > install.packages('PCICt')
+    > install.packages('https://pacificclimate.org/R/climdex.pcic_1.1-11.tar.gz')
+
+Or using the `devtools` package, one can install any arbitrary
+version, commit or branch from GitHub:
+
+    # if devtools is not installed
+    > install.packages('devtools')
+
+    # Install the master branch for bleeding edge code
+    > devtools::install_github("pacificclimate/climdex.pcic")
+
+
 Getting Help
 ============
 
@@ -25,11 +47,8 @@ New to programming or to R?
 Looking for code?
 -----------------
 
-* Get the latest `climdex.pcic release from CRAN`_
-* Install it from the R interpreter ``> install.packages('climdex.pcic')``
-* Explore the `development repository`_.
+* Explore the `development repository`_ on GitHub.
 
-.. _climdex.pcic release from CRAN: http://cran.r-project.org/web/packages/climdex.pcic/index.html
 .. _development repository: https://github.com/pacificclimate/climdex.pcic/
 
 Need help using the package?
