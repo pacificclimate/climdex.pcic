@@ -561,13 +561,13 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
   jdays <- get.jdays.replaced.feb29(get.jdays(date.series))
   
-  # Define a function to classify meteorological seasons with associated years
+  # Classify meteorological seasons with associated years
   classify_meteorological_season_with_year <- function(date.series) {
     month <- as.integer(format(date.series, "%m"))
     year <- as.integer(format(date.series, format = "%Y"))
     year_for_season <- year - ifelse(month %in% c(1, 2), 1, 0)
 
-    # Create a character vector combining season and year
+    # Vector combining season and year
     season_with_year <- ifelse(month %in% c(12, 1, 2), paste("Winter", year_for_season),
       ifelse(month %in% 3:5, paste("Spring", year_for_season),
         ifelse(month %in% 6:8, paste("Summer", year_for_season),
@@ -578,12 +578,9 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 
     return(season_with_year)
   }
-
-  # Classify meteorological seasons with associated years and convert to a factor
   season_with_year <- classify_meteorological_season_with_year(date.series)
 
   ## Factors for dividing data up
-  # date.factors <- list(annual=factor(format(date.series, format="%Y", tz="GMT")), monthly=factor(format(date.series, format="%Y-%m", tz="GMT")))
   date.factors <- list(
     annual = factor(format(date.series, format = "%Y", tz = "GMT")),
     monthly = factor(format(date.series, format = "%Y-%m", tz = "GMT")),
