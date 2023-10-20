@@ -795,7 +795,7 @@ climdex.id <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.da
 #' daily minimum temperature stays above 20 degrees Celsius.
 #' 
 #' @param ci Object of type climdexInput.
-#' @return A vector containing the number of frost days for each year.
+#' @return A vector containing the number of tropical nights for each year.
 #' @template generic_seealso_references
 #' @templateVar cdxvar tr
 #' @templateVar cdxdescription an annual timeseries of the number of tropical nights.

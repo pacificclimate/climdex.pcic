@@ -46,12 +46,11 @@ climdex.pcic.test.seasonal.indices <- function() {
   # - For non-averaged stats (e.g., min, max), the seasonal value is the min/max of the constituent months.
   # - For averaged stats, the seasonal value may differ from the average of the 3 constituent months due to varying month lengths, so it's compared against a calculated dtr (daily temperature range).
   # - For percentage calculations, each season's percentage is computed against a weighted monthly percentage.
-  
-  indices <- climdex.get.available.indices(ci.csv, function.names = FALSE)
 
   min_max <- list(
     "tnn" = list(stat = "min", var = "tmin"), "tnx" = list(stat = "max", var = "tmin"),
-    "txn" = list(stat = "min", var = "tmax"), "txx" = list(stat = "max", var = "tmax")
+    "txn" = list(stat = "min", var = "tmax"), "txx" = list(stat = "max", var = "tmax"),
+    "rx1day" = list(stat = "max", var = "prec"), "rx5day" = list(stat = "max", var = "prec")
   )
   mean_indices <- list("dtr" = list(var = c("tmin", "tmax")))
   bootstrap_indices <- list("tn10p" = list(var = "tmin"), "tn90p" = list(var = "tmin"), "tx10p" = list(var = "tmax"), "tx90p" = list(var = "tmax"))
@@ -75,8 +74,13 @@ climdex.pcic.test.seasonal.indices <- function() {
         dates <- unique(ci.csv@dates[ci.csv@date.factors$seasonal == season])
         ci_season <- ci_subset(ci.csv, dates, season)
         fun <- paste("climdex", index, sep = ".")
-        clim.result <- get(fun)(ci.csv, freq = "seasonal")
-        statval <- get(stat)(ci_season@data[[varcol]][ci_season@date.factors$seasonal == season], na.rm = TRUE)
+        clim.result <- get(fun)(ci_season, freq = "seasonal")
+        if (index == "rx5day") {
+          precip <- (ci_season@data[[varcol]][ci_season@date.factors$seasonal == season])
+          statval <- get(stat)(sapply(1:(length(precip) - 4), function(i) sum(precip[i:(i + 4)])), na.rm = TRUE)
+        } else {
+          statval <- get(stat)(ci_season@data[[varcol]][ci_season@date.factors$seasonal == season], na.rm = TRUE)
+        }
         checkEqualsNumeric(statval, clim.result[season])
       }
     } else if (index %in% names(mean_indices)) {
@@ -108,5 +112,3 @@ climdex.pcic.test.seasonal.indices <- function() {
     }
   }
 }
-
-
