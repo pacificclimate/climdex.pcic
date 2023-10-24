@@ -15,37 +15,43 @@ unique_seasons <- unique(ci.csv@date.factors$seasonal)
 unique_months <- unique(ci.csv@date.factors$monthly)
 
 climdex.pcic.test.seasonal.na.cases <- function() {
-  # Test 1.1: Check if the first season is NA based on the start of the time series
-  # - If the first month of the date series is not a multiple of 3, expect the first season to be NA
-  checkTrue((as.integer(format(ci.csv@dates[1], "%m")) %% 3 != 0) && is.na(ci.csv@namasks$seasonal$tmax[1]))
-  # Test 1.2: Check if the last season is NA based on the end of the time series
-  # - If the last month of the date series + 1 is not a multiple of 3, expect the last season to be NA
-  checkTrue((as.integer(format(ci.csv@dates[length(ci.csv@dates)], "%m")) + 1 %% 3 != 0) && is.na(ci.csv@namasks$seasonal$tmax[length(ci.csv@namasks$season$tmax)]))
-  # Test 1.3: Check for NA seasons where conditions in 1.1 and 1.2 do not apply
-  # A season is marked as NA if it contains at least one month with missing data or if the sum of missing days within the season is greater than or equal to max.missing.days$season.
-  unique_seasons <- unique(ci.csv@date.factors$seasonal)
-  unique_months <- unique(ci.csv@date.factors$monthly)
-  na_seasons <- unique_seasons[is.na(ci.csv@namasks$seasonal$tmax)]
-  na_months <- unique_months[is.na(ci.csv@namasks$monthly$tmax)]
-  results <- logical(length(na_seasons))
-
-  for (i in seq_along(na_seasons)) {
-    season <- na_seasons[i]
-    months_of_season <- unique(ci.csv@date.factors$monthly[ci.csv@date.factors$season == season])
-    any_month_na <- any(months_of_season %in% na_months)
-    results[i] <- any_month_na
-    na_days <- sum(is.na(ci.csv@data$tmax[ci.csv@date.factors$season == season]))
-    results[i] <- any_month_na || (na_days >= ci.csv@max.missing.days[["seasonal"]])
+  var.list <- c("tmax", "tmin", "prec", "tavg")
+  for (var in var.list){
+    # Test 1.1: Check if the first season is NA based on the start of the time series
+    # - If the first month of the date series is not a multiple of 3, expect the first season to be NA
+    checkTrue((as.integer(format(ci.csv@dates[1], "%m")) %% 3 != 0) && is.na(ci.csv@namasks$seasonal[[var]][1]))
+    # Test 1.2: Check if the last season is NA based on the end of the time series
+    # - If the last month of the date series + 1 is not a multiple of 3, expect the last season to be NA
+    checkTrue((as.integer(format(ci.csv@dates[length(ci.csv@dates)], "%m")) + 1 %% 3 != 0) && is.na(ci.csv@namasks$seasonal[[var]][length(ci.csv@namasks$season[[var]])]))
+    # Test 1.3: Check for NA seasons where conditions in 1.1 and 1.2 do not apply
+    # A season is marked as NA if it contains at least one month with missing data or if the sum of missing days within the season is greater than or equal to max.missing.days$season.
+    unique_seasons <- unique(ci.csv@date.factors$seasonal)
+    unique_months <- unique(ci.csv@date.factors$monthly)
+    na_seasons <- unique_seasons[is.na(ci.csv@namasks$seasonal[[var]])]
+    na_months <- unique_months[is.na(ci.csv@namasks$monthly[[var]])]
+    results <- logical(length(na_seasons))
+    
+    for (i in seq_along(na_seasons)) {
+      season <- na_seasons[i]
+      months_of_season <- unique(ci.csv@date.factors$monthly[ci.csv@date.factors$season == season])
+      any_month_na <- any(months_of_season %in% na_months)
+      results[i] <- any_month_na
+      na_days <- sum(is.na(ci.csv@data[[var]][ci.csv@date.factors$season == season]))
+      results[i] <- any_month_na || (na_days >= ci.csv@max.missing.days[["seasonal"]])
+      
+    }
+    checkTrue(all(results))
   }
-  checkTrue(all(results))
+  
 }
+
 
 climdex.pcic.test.seasonal.indices <- function() {
   # Test 2:
   # This section handles various scenarios based on the type of index being calculated:
   # - For non-averaged stats (e.g., min, max), the seasonal value is the min/max of the constituent months.
   # - For averaged stats, the seasonal value may differ from the average of the 3 constituent months due to varying month lengths, so it's compared against a calculated dtr (daily temperature range).
-  # - For percentage calculations, each season's percentage is computed against a weighted monthly percentage.
+  # - For percentile calculations, each season's percentile is computed against a weighted monthly percentile.
 
   min_max <- list(
     "tnn" = list(stat = "min", var = "tmin"), "tnx" = list(stat = "max", var = "tmin"),
@@ -106,8 +112,8 @@ climdex.pcic.test.seasonal.indices <- function() {
         months_of_season <- unique(ci.csv@date.factors$monthly[ci.csv@date.factors$seasonal == season])
         days_in_months <- sapply(months_of_season, function(month) sum(!is.na(ci.csv@data[[varcol]][ci.csv@date.factors$monthly == month])))
         monthly_weight <- sapply(days_in_months, function(month) month / sum(days_in_months))
-        monthly_percentage <- sum(clim.result.monthly[months_of_season] * monthly_weight)
-        checkEqualsNumeric(clim.result[season], monthly_percentage, tolerance = 1e-1)
+        monthly_percentile <- sum(clim.result.monthly[months_of_season] * monthly_weight)
+        checkEqualsNumeric(clim.result[season], monthly_percentile, tolerance = 1e-1)
       }
     }
   }

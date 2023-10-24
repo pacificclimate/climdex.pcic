@@ -540,7 +540,7 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
 #' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #'
-#' @export
+#' @export 
 climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, tmin.dates=NULL, prec.dates=NULL,
                              base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE,
                              tavg=NULL, tavg.dates=NULL, quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.95, 0.99), max.missing.days=c(annual=15, monthly=3, seasonal=6), min.base.data.fraction.present=0.1) {
@@ -563,7 +563,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   new.date.range <- as.PCICt(paste(as.numeric(format(range(all.dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
   jdays <- get.jdays.replaced.feb29(get.jdays(date.series))
-  
+
   # Classify meteorological seasons with associated years
   classify_meteorological_season_with_year <- function(date.series) {
     month <- as.integer(format(date.series, "%m"))
@@ -578,7 +578,6 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
         )
       )
     )
-
     return(season_with_year)
   }
   season_with_year <- classify_meteorological_season_with_year(date.series)
@@ -619,6 +618,14 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
     d
   })
   names(namasks$annual) <- names(namasks$seasonal) <- names(namasks$monthly)
+  
+  lapply(var.list, function(var) {
+    na_months <- unique(date.factors$monthly)[is.na(namasks$monthly[[var]])]
+    seasons_of_na_months <- unique(date.factors$seasonal[date.factors$monthly %in% na_months])
+    seasonal_namasks <- namasks$seasonal[[var]]
+    seasonal_namasks[unique(date.factors$seasonal) %in% seasons_of_na_months] <- NA
+    namasks$seasonal[[var]] <- seasonal_namasks
+  })
   ## Pad data passed as base if we're missing endpoints...
   if(!have.quantiles) {
     quantiles <- new.env(parent=emptyenv())
