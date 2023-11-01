@@ -129,6 +129,18 @@ valid.climdexInput <- function(x) {
 #' thresholds can be set when instantiating the object, and are stored in the
 #' \code{max.missing.days} slot.
 #' 
+#' Seasons are considered valid only when all three constituent months are valid,
+#' and the sum of NA days for the season is no greater than the max.missing.days
+#' seasonal argument. This means that a time series starting in January and ending
+#' in December will have NA winter seasons at both ends of the series.
+#'
+#' The season description is as follows:
+#'
+#' - 'winter': December, January, February
+#' - 'spring': March, April, May
+#' - 'summer': June, July, August
+#' - 'autumn': September, October, November
+#' 
 #' The \code{base.range} slot contains vector of type PCICt containing the
 #' first and last day included in the baseline.
 #' 
@@ -564,7 +576,15 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
   jdays <- get.jdays.replaced.feb29(get.jdays(date.series))
 
-  # Classify meteorological seasons with associated years
+  # Classify meteorological seasons with associated years. This includes 
+  # handling for the winter season, where data in the months of January and 
+  # February are assigned to the winter season of the previous year.
+  # 
+  # The season description is as follows:
+  #  - 'Winter': December, January, February
+  #  - 'Spring': March, April, May
+  #  - 'Summer': June, July, August
+  #  - 'Fall': September, October, November
   classify_meteorological_season_with_year <- function(date.series) {
     month <- as.integer(format(date.series, "%m"))
     year <- as.integer(format(date.series, format = "%Y"))
