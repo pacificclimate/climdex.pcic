@@ -1,4 +1,3 @@
-1.1-12: Added support for meteorological seasons in the ClimdexInput data structure.
 1.1-11: Metadata changes requested by Uwe Ligges <ligges@statistik.tu-dortmund.de>
 1.1-10: Revises the method of linking to Rcpp package
 1.1-9: Register native routines and disable symbol search
