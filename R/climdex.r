@@ -316,7 +316,7 @@ check.quantile.validity <- function(quantiles, present.vars, days.in.base) {
   if(is.null(quantiles))
     return()
   
-  if(class(quantiles) != "list")
+  if(!inherits(quantiles, "list"))
     stop("Provided quantiles must be a list.")
   
   if(!all(present.vars %in% names(quantiles)))
