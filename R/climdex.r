@@ -134,7 +134,7 @@ valid.climdexInput <- function(x) {
 #' seasonal argument. This means that a time series starting in January and ending
 #' in December will have NA winter seasons at both ends of the series.
 #'
-#' The season description is as follows:
+#' Seasons are defined as the meteorological seasons:
 #'
 #' - 'winter': December, January, February
 #' - 'spring': March, April, May
@@ -580,11 +580,12 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   # handling for the winter season, where data in the months of January and 
   # February are assigned to the winter season of the previous year.
   # 
-  # The season description is as follows:
+  # Seasons are defined as the meteorological seasons:
   #  - 'Winter': December, January, February
   #  - 'Spring': March, April, May
   #  - 'Summer': June, July, August
   #  - 'Fall': September, October, November
+  
   classify_meteorological_season_with_year <- function(date.series) {
     month <- as.integer(format(date.series, "%m"))
     year <- as.integer(format(date.series, format = "%Y"))
