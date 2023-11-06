@@ -588,6 +588,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   #  - 'Spring': March, April, May
   #  - 'Summer': June, July, August
   #  - 'Fall': September, October, November
+  
   classify_meteorological_season_with_year <- function(date.series) {
     month <- as.integer(format(date.series, "%m"))
     year <- as.integer(format(date.series, format = "%Y"))
