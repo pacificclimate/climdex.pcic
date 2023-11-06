@@ -66,11 +66,7 @@ ci_subset <- function(ci.csv, dates, season) {
 }
 
 climdex.pcic.test.seasonal.min.max.indices <- function() {
-  min_max <- list(
-    "tnn" = list(stat = "min", var = "tmin"), "tnx" = list(stat = "max", var = "tmin"),
-    "txn" = list(stat = "min", var = "tmax"), "txx" = list(stat = "max", var = "tmax"),
-    "rx1day" = list(stat = "max", var = "prec"), "rx5day" = list(stat = "max", var = "prec")
-  )
+  min_max <- climdex.min.max.idx.list
   lapply(names(min_max), function(index) {
     stat <- min_max[[index]]$stat
     varcol <- min_max[[index]]$var
@@ -93,7 +89,7 @@ climdex.pcic.test.seasonal.min.max.indices <- function() {
 }
 
 climdex.pcic.test.seasonal.mean.indices <- function() {
-  mean_indices <- list("dtr" = list(var = c("tmin", "tmax")))
+  mean_indices <- climdex.mean.idx.list
   index <- "dtr"
   vars <- mean_indices[[index]]$var
   dtr_vars <- pmin(!is.na(ci.csv@namasks$seasonal[[vars[1]]]), !is.na(ci.csv@namasks$seasonal[[vars[2]]]), na.rm = TRUE)
@@ -110,7 +106,7 @@ climdex.pcic.test.seasonal.mean.indices <- function() {
 }
 
 climdex.pcic.test.seasonal.bootstrap.indices <- function() {
-  bootstrap_indices <- list("tn10p" = list(var = "tmin"), "tn90p" = list(var = "tmin"), "tx10p" = list(var = "tmax"), "tx90p" = list(var = "tmax"))
+  bootstrap_indices <- climdex.bootstrap.idx.list
   lapply(names(bootstrap_indices), function(index) {
     fun <- paste("climdex", index, sep = ".")
     varcol <- bootstrap_indices[[index]]$var
@@ -126,4 +122,3 @@ climdex.pcic.test.seasonal.bootstrap.indices <- function() {
     }
   })
 }
-
