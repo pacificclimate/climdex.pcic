@@ -57,19 +57,11 @@ valid.climdexInput <- function(x) {
     errors <- c(errors, "Data fields, dates, and date factors must all be of the same length")
 
   ## Check that namasks have columns for each of the variables
-  if(!all(c("annual", "monthly") %in% names(x@namasks)) || !all(present.data.vars %in% names(x@namasks$annual) & present.data.vars %in% names(x@namasks$monthly)))
-    errors <- c(errors, "NA mask for monthly and annual must contain data for all variables supplied.")
+  if(!all(c("annual", "monthly", "seasonal") %in% names(x@namasks)) || !all(present.data.vars %in% names(x@namasks$annual) & present.data.vars %in% names(x@namasks$monthly)& present.data.vars %in% names(x@namasks$seasonal)))
+    errors <- c(errors, "NA mask for monthly, seasonal and annual must contain data for all variables supplied.")
 
   ## Check that appropriate thresholds are present.
   need.base.data <- get.num.days.in.range(x@dates, x@base.range) > 0
-  errors <- do.call(c, c(list(errors), lapply(intersect(present.data.vars, c("tmax", "tmin", "prec")), function(n) {
-    if(is.null(quantiles[n]))
-      return(NULL)
-    ## FIXME: This test isn't necessarily valid and prevents calculating indices when no base period data is available.
-    if(!(n %in% ls(envir=x@quantiles)))
-      return(paste("Quantiles for", n, "are missing."))
-    return(NULL)
-  })))
 
   if(length(x@northern.hemisphere) != 1)
     errors <- c(errors, "northern.hemisphere must be of length 1.")
@@ -113,20 +105,33 @@ valid.climdexInput <- function(x) {
 #' of data to use as the base period, there are n * (n - 1) sets of daily
 #' quantiles of the same type as those in 'inbase'.
 #' 
-#' To ease computation of monthly and annual data, \code{date.factors} 
-#' contains date factors which group data into annual and monthly time
+#' To ease computation of monthly, seasonal and annual data, \code{date.factors} 
+#' contains date factors which group data into annual, seasonal and monthly time
 #' buckets. They are of the same length as the time series and can be reused
-#' for computation of any annual or monthly aggregates.
+#' for computation of any annual, seasonal or monthly aggregates.
 #' 
-#' The climdexInput class also includes NA masks for both monthly
+#' The climdexInput class also includes NA masks for seasonal, monthly
 #' and annual as parts of the \code{namasks} slot. Each of these masks consist
-#' of a vector of numbers of the same length as the monthly or annual output
+#' of a vector of numbers of the same length as the monthly, seasonal or annual output
 #' data. The values used are 1 to signify that the data meets the QC criteria,
 #' and NA to signify it does not. Years with more than (by default) 15 days
-#' missing, and months with more than (by default) 3 days missing, are
+#' missing, months with more than (by default) 3 days missing, 
+#' and seasons with more than (by default) 6 days missing are
 #' considered to be of poor quality and are masked here with NA. These
 #' thresholds can be set when instantiating the object, and are stored in the
 #' \code{max.missing.days} slot.
+#' 
+#' Seasons are considered valid only when all three constituent months are valid,
+#' and the sum of NA days for the season is no greater than the max.missing.days
+#' seasonal argument. This means that a time series starting in January and ending
+#' in December will have NA winter seasons at both ends of the series.
+#'
+#' Seasons are defined as the meteorological seasons:
+#'
+#' - 'winter': December, January, February
+#' - 'spring': March, April, May
+#' - 'summer': June, July, August
+#' - 'autumn': September, October, November
 #' 
 #' The \code{base.range} slot contains vector of type PCICt containing the
 #' first and last day included in the baseline.
@@ -139,8 +144,9 @@ valid.climdexInput <- function(x) {
 #' indicated, running to the end of June of the following year.
 #' 
 #' The \code{max.missing.days} slot is a vector consisting of 'annual'
-#' (the number of days that can be missing in a year) and 'monthly' (the
-#' number of days that can be missing in a month. If one month in a year fails
+#' (the number of days that can be missing in a year), 'monthly' (the
+#' number of days that can be missing in a month and 'seasonal' (the
+#' number of days that can be missing in a season. If one month in a year fails
 #' the test, the corresponding year will be omitted.
 #' 
 #' @name climdexInput
@@ -149,15 +155,15 @@ valid.climdexInput <- function(x) {
 #' @section Slots: \describe{
 #' \item{data}{Time series of supplied data variables.}
 #' \item{quantiles}{Threshold quantiles used for threshold-based indices.}
-#' \item{namasks}{Data quality masks for annual and monthly data.}
+#' \item{namasks}{Data quality masks for annual, seasonal and monthly data.}
 #' \item{dates}{Date sequence (type PCICt) corresponding to temperature and
 #' precipitation data.}
 #' \item{jdays}{Julian days for the date sequence.}
 #' \item{base.range}{Date range (type PCICt) of baseline period.}
-#' \item{date.factors}{Factors used for creation of annual and monthly indices.}
+#' \item{date.factors}{Factors used for creation of annual, seasonal and monthly indices.}
 #' \item{northern.hemisphere}{Boolean used when computing growing season
 #' length.}
-#' \item{max.missing.days}{Maximum number of missing days of data for annual
+#' \item{max.missing.days}{Maximum number of missing days of data for annual, seasonal
 #' and monthly data.}
 #' }
 #' @seealso \code{\link{climdexInput.csv}}, \code{\link{climdexInput.raw}}.
@@ -316,7 +322,7 @@ check.quantile.validity <- function(quantiles, present.vars, days.in.base) {
   if(is.null(quantiles))
     return()
   
-  if(class(quantiles) != "list")
+  if(!inherits(quantiles, "list"))
     stop("Provided quantiles must be a list.")
   
   if(!all(present.vars %in% names(quantiles)))
@@ -498,8 +504,9 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
 #' the quantile for that day will be set to NA.
 #'
 #' The \code{max.missing.days} argument is a vector consisting of 'annual'
-#' (the number of days that can be missing in a year) and 'monthly' (the
-#' number of days that can be missing in a month. If one month in a year fails
+#' (the number of days that can be missing in a year), 'monthly' (the
+#' number of days that can be missing in a month and 'seasonal' (the
+#' number of days that can be missing in a season. If one month in a year fails
 #' the test, the corresponding year will be omitted.
 #' 
 #' @seealso \code{\link{climdex.pcic-package}}, \code{\link{strptime}}.
@@ -512,7 +519,7 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
 #' @param northern.hemisphere Whether this point is in the northern hemisphere.
 #' @param quantiles Threshold quantiles for supplied variables.
 #' @param max.missing.days Vector containing thresholds for number of days
-#' allowed missing per year (annual) and per month (monthly).
+#' allowed missing per year (annual), per month (monthly) and per season (seasonal).
 #' @return An object of class \code{\link{climdexInput-class}} for use with
 #' other climdex methods.
 #' @note Units are assumed to be mm/day for precipitation and degrees Celsius
@@ -537,14 +544,14 @@ get.outofbase.quantiles <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=
 #' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
 #' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
 #'
-#' @export
+#' @export 
 climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, tmin.dates=NULL, prec.dates=NULL,
                              base.range=c(1961, 1990), n=5, northern.hemisphere=TRUE,
-                             tavg=NULL, tavg.dates=NULL, quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.95, 0.99), max.missing.days=c(annual=15, monthly=3), min.base.data.fraction.present=0.1) {
+                             tavg=NULL, tavg.dates=NULL, quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.95, 0.99), max.missing.days=c(annual=15, monthly=3, seasonal=6), min.base.data.fraction.present=0.1) {
   ## Make sure all of these arguments are valid...
   check.basic.argument.validity(tmax, tmin, prec, tmax.dates, tmin.dates, prec.dates, base.range, n, tavg, tavg.dates)
 
-  stopifnot(length(max.missing.days) == 2 && all(c("annual", "monthly") %in% names(max.missing.days)))
+  stopifnot(length(max.missing.days) == 3 && all(c("annual", "monthly", "seasonal") %in% names(max.missing.days)))
   stopifnot(is.numeric(min.base.data.fraction.present) && length(min.base.data.fraction.present) == 1)
   
   d.list <- list(tmin.dates, tmax.dates, prec.dates, tavg.dates)
@@ -560,10 +567,40 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   new.date.range <- as.PCICt(paste(as.numeric(format(range(all.dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
   jdays <- get.jdays.replaced.feb29(get.jdays(date.series))
-  
-  ## Factors for dividing data up
-  date.factors <- list(annual=factor(format(date.series, format="%Y", tz="GMT")), monthly=factor(format(date.series, format="%Y-%m", tz="GMT")))
 
+  # Classify meteorological seasons with associated years. This includes 
+  # handling for the winter season, where data in the months of January and 
+  # February are assigned to the winter season of the previous year.
+  # 
+  # Seasons are defined as the meteorological seasons:
+  #  - 'Winter': December, January, February
+  #  - 'Spring': March, April, May
+  #  - 'Summer': June, July, August
+  #  - 'Fall': September, October, November
+  
+  classify_meteorological_season_with_year <- function(date.series) {
+    month <- as.integer(format(date.series, "%m"))
+    year <- as.integer(format(date.series, format = "%Y"))
+    year_for_season <- year - ifelse(month %in% c(1, 2), 1, 0)
+
+    # Vector combining season and year
+    season_with_year <- ifelse(month %in% c(12, 1, 2), paste("Winter", year_for_season),
+      ifelse(month %in% 3:5, paste("Spring", year_for_season),
+        ifelse(month %in% 6:8, paste("Summer", year_for_season),
+          ifelse(month %in% 9:11, paste("Fall", year_for_season), NA)
+        )
+      )
+    )
+    return(season_with_year)
+  }
+  season_with_year <- classify_meteorological_season_with_year(date.series)
+
+  ## Factors for dividing data up
+  date.factors <- list(
+    annual = factor(format(date.series, format = "%Y", tz = "GMT")),
+    monthly = factor(format(date.series, format = "%Y-%m", tz = "GMT")),
+    seasonal = factor(season_with_year, levels = unique(season_with_year))
+  )
   ## Filled data...
   var.list <- c("tmax", "tmin", "prec", "tavg")
   present.var.list <- var.list[sapply(var.list, function(x) !is.null(get(x)))]
@@ -584,10 +621,24 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   have.quantiles <- all(present.var.list %in% names(quantiles))
 
   ## NA masks
-  namasks <- list(annual=lapply(filled.list, get.na.mask, date.factors$annual, max.missing.days['annual']), monthly=lapply(filled.list, get.na.mask, date.factors$monthly, max.missing.days['monthly']))
-  namasks$annual <- lapply(names(namasks$annual), function(v) { d <- namasks$annual[[v]] * as.numeric(tapply(namasks$monthly[[v]], rep(seq_along(namasks$annual[[v]]), each=12), prod)); dimnames(d) <- dim(d) <- NULL; d })
-  names(namasks$annual) <- names(namasks$monthly)
+  namasks <- list(
+    annual = lapply(filled.list, get.na.mask, date.factors$annual, max.missing.days["annual"]),
+    monthly = lapply(filled.list, get.na.mask, date.factors$monthly, max.missing.days["monthly"]),
+    seasonal = lapply(filled.list, get.na.mask, date.factors$seasonal, max.missing.days["seasonal"]))
+  namasks$annual <- lapply(names(namasks$annual), function(v) {
+    d <- namasks$annual[[v]] * as.numeric(tapply(namasks$monthly[[v]], rep(seq_along(namasks$annual[[v]]), each = 12), prod))
+    dimnames(d) <- dim(d) <- NULL
+    d
+  })
+  names(namasks$annual) <- names(namasks$seasonal) <- names(namasks$monthly)
   
+  lapply(var.list, function(var) {
+    na_months <- unique(date.factors$monthly)[is.na(namasks$monthly[[var]])]
+    seasons_of_na_months <- unique(date.factors$seasonal[date.factors$monthly %in% na_months])
+    seasonal_namasks <- namasks$seasonal[[var]]
+    seasonal_namasks[unique(date.factors$seasonal) %in% seasons_of_na_months] <- NA
+    namasks$seasonal[[var]] <- seasonal_namasks
+  })
   ## Pad data passed as base if we're missing endpoints...
   if(!have.quantiles) {
     quantiles <- new.env(parent=emptyenv())
@@ -660,7 +711,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 #' @param northern.hemisphere Whether this point is in the northern hemisphere.
 #' @param quantiles Threshold quantiles for supplied variables.
 #' @param max.missing.days Vector containing thresholds for number of days
-#' allowed missing per year (annual) and per month (monthly).
+#' allowed missing per year (annual), per month (monthly) and per season (seasonal).
 #' @return An object of class \code{\link{climdexInput-class}} for use with
 #' other climdex methods.
 #' @note Units are assumed to be mm/day for precipitation and degrees Celsius
@@ -675,7 +726,7 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
 climdexInput.csv <- function(tmax.file=NULL, tmin.file=NULL, prec.file=NULL,
                              data.columns=list(tmin="tmin", tmax="tmax", prec="prec"), base.range=c(1961, 1990),
                              na.strings=NULL, cal="gregorian", date.types=NULL, n=5, northern.hemisphere=TRUE,
-                             tavg.file=NULL, quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.95, 0.99), max.missing.days=c(annual=15, monthly=3), min.base.data.fraction.present=0.1) {
+                             tavg.file=NULL, quantiles=NULL, temp.qtiles=c(0.10, 0.90), prec.qtiles=c(0.95, 0.99), max.missing.days=c(annual=15, monthly=3, seasonal=6), min.base.data.fraction.present=0.1) {
   get.and.check.data <- function(fn, datacol) {
     if(!is.null(fn)) {
       dat <- read.csv(fn, na.strings=na.strings)
@@ -764,7 +815,7 @@ climdex.id <- function(ci) { stopifnot(!is.null(ci@data$tmax)); return(number.da
 #' daily minimum temperature stays above 20 degrees Celsius.
 #' 
 #' @param ci Object of type climdexInput.
-#' @return A vector containing the number of frost days for each year.
+#' @return A vector containing the number of tropical nights for each year.
 #' @template generic_seealso_references
 #' @templateVar cdxvar tr
 #' @templateVar cdxdescription an annual timeseries of the number of tropical nights.
@@ -851,7 +902,7 @@ climdex.gsl <- function(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")
 #' This function computes the climdex index TXx.
 #' 
 #' This function takes a climdexInput object as input and computes
-#' the monthly or annual maximum of daily maximum temperature.
+#' the monthly, seasonal or annual maximum of daily maximum temperature.
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
@@ -862,14 +913,14 @@ climdex.gsl <- function(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")
 #' @template get_generic_example
 #' 
 #' @export
-climdex.txx <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax)); return(suppressWarnings(tapply.fast(ci@data$tmax, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmax) }
+climdex.txx <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmax)); return(suppressWarnings(tapply.fast(ci@data$tmax, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmax) }
 
 #' Monthly Maximum of Daily Minimum Temperature
 #'
 #' This function computes the climdex index TNx.
 #' 
 #' This function takes a climdexInput object as input and computes
-#' the monthly or annual maximum of daily minimum temperature.
+#' the monthly, seasonal or annual maximum of daily minimum temperature.
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
@@ -880,14 +931,14 @@ climdex.txx <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tnx <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin)); return(suppressWarnings(tapply.fast(ci@data$tmin, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmin) }
+climdex.tnx <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmin)); return(suppressWarnings(tapply.fast(ci@data$tmin, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmin) }
 
 #' Monthly Minimum of Daily Maximum Temperature
 #'
 #' This function computes the climdex index TXn.
 #' 
 #' This function takes a climdexInput object as input and computes
-#' the monthly or annual minimum of daily maximum temperature.
+#' the monthly, seasonal or annual minimum of daily maximum temperature.
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
@@ -898,14 +949,14 @@ climdex.tnx <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci
 #' @template get_generic_example
 #' 
 #' @export
-climdex.txn <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax)); return(suppressWarnings(tapply.fast(ci@data$tmax, ci@date.factors[[match.arg(freq)]], min, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmax) }
+climdex.txn <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmax)); return(suppressWarnings(tapply.fast(ci@data$tmax, ci@date.factors[[match.arg(freq)]], min, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmax) }
 
 #' Monthly Minimum of Daily Minimum Temperature
 #'
 #' This function computes the climdex index TNn.
 #' 
 #' This function takes a climdexInput object as input and computes
-#' the monthly or annual minimum of daily minimum temperature.
+#' the monthly, seasonal or annual minimum of daily minimum temperature.
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
@@ -916,7 +967,7 @@ climdex.txn <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tnn <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin)); return(suppressWarnings(tapply.fast(ci@data$tmin, ci@date.factors[[match.arg(freq)]], min, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmin) }
+climdex.tnn <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmin)); return(suppressWarnings(tapply.fast(ci@data$tmin, ci@date.factors[[match.arg(freq)]], min, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmin) }
 
 ## Our implementation currently follows the example set by fclimdex for dealing with missing values, which is wrong; it biases results upwards when missing values are present.
 
@@ -925,7 +976,7 @@ climdex.tnn <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci
 #' This function computes the climdex index TN10p.
 #' 
 #' This function takes a climdexInput object as input and computes the
-#' monthly or annual percent of values below the 10th percentile of baseline
+#' monthly, seasonal or annual percent of values below the 10th percentile of baseline
 #' daily minimum temperature.
 #' 
 #' @template threshold_indices_block
@@ -938,14 +989,14 @@ climdex.tnn <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tn10p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(percent.days.op.threshold(ci@data$tmin, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmin$outbase$q10, ci@quantiles$tmin$inbase$q10, ci@base.range, "<", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmin) }
+climdex.tn10p <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(percent.days.op.threshold(ci@data$tmin, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmin$outbase$q10, ci@quantiles$tmin$inbase$q10, ci@base.range, "<", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmin) }
 
 #' Percent of Values Below 10th Percentile Daily Maximum Temperature
 #' 
 #' This function computes the climdex index TX10p.
 #' 
 #' This function takes a climdexInput object as input and computes the
-#' monthly or annual percent of values below the 10th percentile of baseline
+#' monthly, seasonal or annual percent of values below the 10th percentile of baseline
 #' daily maximum temperature.
 #' 
 #' @template threshold_indices_block
@@ -958,14 +1009,14 @@ climdex.tn10p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tx10p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmax$outbase$q10, ci@quantiles$tmax$inbase$q10, ci@base.range, "<", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmax) }
+climdex.tx10p <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmax$outbase$q10, ci@quantiles$tmax$inbase$q10, ci@base.range, "<", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmax) }
 
 #' Percent of Values Above 90th Percentile Daily Minimum Temperature
 #' 
 #' This function computes the climdex index TN90p.
 #' 
 #' This function takes a climdexInput object as input and computes the
-#' monthly or annual percent of values above the 90th percentile of baseline
+#' monthly, seasonal or annual percent of values above the 90th percentile of baseline
 #' daily minimum temperature.
 #' 
 #' @template threshold_indices_block
@@ -978,14 +1029,14 @@ climdex.tx10p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tn90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(percent.days.op.threshold(ci@data$tmin, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmin$outbase$q90, ci@quantiles$tmin$inbase$q90, ci@base.range, ">", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmin) }
+climdex.tn90p <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(percent.days.op.threshold(ci@data$tmin, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmin$outbase$q90, ci@quantiles$tmin$inbase$q90, ci@base.range, ">", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmin) }
 
 #' Percent of Values Above 90th Percentile Daily Maximum Temperature
 #' 
 #' This function computes the climdex index TX90p.
 #' 
 #' This function takes a climdexInput object as input and computes the
-#' monthly or annual percent of values above the 90th percentile of baseline
+#' monthly, seasonal or annual percent of values above the 90th percentile of baseline
 #' daily maximum temperature.
 #' 
 #' @template threshold_indices_block
@@ -998,7 +1049,7 @@ climdex.tn90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tx90p <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmax) }
+climdex.tx90p <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(percent.days.op.threshold(ci@data$tmax, ci@dates, ci@jdays, ci@date.factors[[match.arg(freq)]], ci@quantiles$tmax$outbase$q90, ci@quantiles$tmax$inbase$q90, ci@base.range, ">", ci@max.missing.days[match.arg(freq)]) * ci@namasks[[match.arg(freq)]]$tmax) }
 
 #' @title Warm Spell Duration Index
 #'
@@ -1061,7 +1112,7 @@ climdex.csdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(c
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @return A vector containing the mean monthly or mean annual diurnal
+#' @return A vector containing the mean monthly, mean seasonal or mean annual diurnal
 #' temperature range.
 #' @note This function creates results which may differ in the 3rd decimal
 #' place from the results from fclimdex.
@@ -1071,14 +1122,14 @@ climdex.csdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(c
 #' @template get_generic_example
 #' 
 #' @export
-climdex.dtr <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@data$tmax) && !is.null(ci@data$tavg)); return(mean.daily.temp.range(ci@data$tmax, ci@data$tmin, ci@date.factors[[match.arg(freq)]]) * ci@namasks[[match.arg(freq)]]$tavg) }
+climdex.dtr <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@data$tmax) && !is.null(ci@data$tavg)); return(mean.daily.temp.range(ci@data$tmax, ci@data$tmin, ci@date.factors[[match.arg(freq)]]) * ci@namasks[[match.arg(freq)]]$tavg) }
 
 #' Monthly Maximum 1-day Precipitation
 #' 
 #' This function computes the climdex index Rx1day.
 #' 
 #' This function takes a climdexInput object as input and computes the climdex
-#' index Rx1day: monthly or annual maximum 1-day precipitation.
+#' index Rx1day: monthly, seasonal or annual maximum 1-day precipitation.
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
@@ -1089,14 +1140,14 @@ climdex.dtr <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci
 #' @template get_generic_example
 #' 
 #' @export
-climdex.rx1day <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null(ci@data$prec)); return(nday.consec.prec.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1) * ci@namasks[[match.arg(freq)]]$prec) }
+climdex.rx1day <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$prec)); return(nday.consec.prec.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1) * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Monthly Maximum 5-day Consecutive Precipitation
 #' 
 #' This function computes the climdex index Rx5day.
 #' 
 #' This function takes a climdexInput object as input and computes the climdex
-#' index Rx5day: monthly or annual maximum 5-day consecutive precipitation.
+#' index Rx5day: monthly, seasonal or annual maximum 5-day consecutive precipitation.
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
@@ -1109,7 +1160,7 @@ climdex.rx1day <- function(ci, freq=c("monthly", "annual")) { stopifnot(!is.null
 #' @template get_generic_example
 #' 
 #' @export
-climdex.rx5day <- function(ci, freq=c("monthly", "annual"), center.mean.on.last.day=FALSE) { stopifnot(!is.null(ci@data$prec)); return(nday.consec.prec.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 5, center.mean.on.last.day) * ci@namasks[[match.arg(freq)]]$prec) }
+climdex.rx5day <- function(ci, freq=c("monthly", "annual", "seasonal"), center.mean.on.last.day=FALSE) { stopifnot(!is.null(ci@data$prec)); return(nday.consec.prec.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 5, center.mean.on.last.day) * ci@namasks[[match.arg(freq)]]$prec) }
 
 #' Simple Precpitation Intensity Index
 #' 
@@ -1896,12 +1947,13 @@ climdex.quantile <- function(x, q=c(0, 0.25, 0.5, 0.75, 1)) {
 #'
 #' @return a vector containing the running mean of bin elements of vec
 #'
-#' @example
-#' \dontrun { 
-#' running.mean(c(1, 2, 3, 4, 5, 6), 2) 
+#' @examples
+#' 
+#' \dontrun{
+#' running.mean(c(1, 2, 3, 4, 5, 6), 2)
 #' }
-#' \dontrun { 
-#' running.mean(c(5, 5, 5, 5, 5), 4) 
+#' \dontrun{
+#' running.mean(c(5, 5, 5, 5, 5), 4)
 #' }
 running.mean <- function(vec, bin){
   vec = as.vector(vec)
