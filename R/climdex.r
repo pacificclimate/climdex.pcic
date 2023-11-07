@@ -1896,11 +1896,12 @@ climdex.quantile <- function(x, q=c(0, 0.25, 0.5, 0.75, 1)) {
 #'
 #' @return a vector containing the running mean of bin elements of vec
 #'
-#' @example
-#' \dontrun { 
+#' @examples
+#' 
+#' \dontrun{ 
 #' running.mean(c(1, 2, 3, 4, 5, 6), 2) 
 #' }
-#' \dontrun { 
+#' \dontrun{ 
 #' running.mean(c(5, 5, 5, 5, 5), 4) 
 #' }
 running.mean <- function(vec, bin){
