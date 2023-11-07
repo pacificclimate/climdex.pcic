@@ -41,9 +41,9 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, any::roxygen2
+          extra-packages: any::rcmdcheck, any::roxygen2, any::lifecycle 
           needs: check
-
+          
       - name: Document
         run: roxygen2::roxygenize(clean=T)
         shell: Rscript {0}
