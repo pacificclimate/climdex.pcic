@@ -19,24 +19,35 @@ get.last.monthday.of.year <- function(d, sep="-") {
 }
 
 ## Lower overhead version of tapply
-tapply.fast <- function (X, INDEX, FUN = NULL, ..., simplify = TRUE) {
-  FUN <- if (!is.null(FUN))
+tapply.fast <- function(X, INDEX, FUN = NULL, ..., simplify = TRUE) {
+  FUN <- if (!is.null(FUN)) {
     match.fun(FUN)
+  }
   
-  if(!is.factor(INDEX))
+  if (!is.factor(INDEX)) {
     stop("INDEX must be a factor.")
+  }
   
-  if (length(INDEX) != length(X))
-    stop("arguments must have same length")
+  if (length(INDEX) != length(X)) {
+    stop("arguments must have the same length")
+  }
   
-  if (is.null(FUN))
+  if (is.null(FUN)) {
     return(INDEX)
+  }
   
-  namelist <- levels(INDEX)
+  
   ans <- lapply(split(X, INDEX), FUN, ...)
-  
-  ans <- unlist(ans, recursive = FALSE)
+  if (is.function(FUN) && (identical(FUN, which.min) || identical(FUN, which.max))) {
+    # Handle which.min & which.max separately
+    ans <- lapply(ans, function(x) if (length(x) == 0) NA else x)
+    ans <- unlist(ans)
+  } else {
+    ans <- unlist(ans, recursive = FALSE)
+  }
   names(ans) <- levels(INDEX)
+  
+  
   return(ans)
 }
 
@@ -852,6 +863,7 @@ climdex.tr <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 #' 
 #' @param ci Object of type climdexInput.
 #' @param gsl.mode Growing season length method to use.
+#' @param as.df Logical, should the result be returned as a data frame?
 #' @return A vector containing the number of days in the growing season for
 #' each year.
 #' @note Note that fclimdex results may differ from results using the first
@@ -871,31 +883,108 @@ climdex.tr <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 #' @template get_generic_example
 #' 
 #' @export
-climdex.gsl <- function(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")) {
+
+climdex.gsl <- function(ci, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum"), as.df = FALSE) {
   stopifnot(!is.null(ci@data$tavg))
   ## Gotta shift dates so that July 1 is considered Jan 1 of same year in southern hemisphere
-  if(ci@northern.hemisphere) {
-    return(growing.season.length(ci@data$tavg, ci@date.factors$annual, ci@dates, ci@northern.hemisphere, gsl.mode=match.arg(gsl.mode)) * ci@namasks$annual$tavg)
+  if (ci@northern.hemisphere) {
+    gs <- growing.season.length(ci@data$tavg, ci@date.factors$annual, ci@dates, ci@northern.hemisphere, gsl.mode = match.arg(gsl.mode), as.df = as.df, cal = attr(ci@dates, "cal"))
+    na.mask <- ci@namasks$annual$tavg
+    
+    if (as.df) {
+      gs$sl <- gs$sl * na.mask
+      gs$start[is.na(gs$sl)] <- NA
+      gs$end[is.na(gs$sl)] <- NA
+      return(gs)
+    }
+    return(gs * na.mask)
   } else {
     dates.POSIXlt <- as.POSIXlt(ci@dates)
     years <- dates.POSIXlt$year + 1900
     months <- dates.POSIXlt$mon + 1
-
+    
     valid.years <- range(years)
     years.gsl <- years - floor((12 - months) / 6)
     
     inset <- years.gsl >= valid.years[1]
     gsl.factor <- factor(years.gsl[inset])
-    gsl.factor.monthly <- factor(paste(years.gsl[inset], months[inset], sep="-"))
+    gsl.factor.monthly <- factor(paste(years.gsl[inset], months[inset], sep = "-"))
     gsl.yearmonth.factor <- unlist(strsplit(levels(gsl.factor.monthly), "-"))[(0:(nlevels(gsl.factor.monthly) - 1)) * 2 + 1]
     gsl.temp.data <- ci@data$tavg[inset]
-    namask.gsl.monthly <- get.na.mask(gsl.temp.data, gsl.factor.monthly, ci@max.missing.days['annual'])
-    namask.gsl <- get.na.mask(gsl.temp.data, gsl.factor, ci@max.missing.days['annual']) * as.numeric(tapply(namask.gsl.monthly, gsl.yearmonth.factor, prod))
+    namask.gsl.monthly <- get.na.mask(gsl.temp.data, gsl.factor.monthly, ci@max.missing.days["annual"])
+    namask.gsl <- get.na.mask(gsl.temp.data, gsl.factor, ci@max.missing.days["annual"]) * as.numeric(tapply(namask.gsl.monthly, gsl.yearmonth.factor, prod))
     dim(namask.gsl) <- dimnames(namask.gsl) <- NULL
     namask.gsl[length(namask.gsl)] <- NA
-    return((growing.season.length(gsl.temp.data, gsl.factor, ci@dates[inset], ci@northern.hemisphere, gsl.mode=match.arg(gsl.mode)) * namask.gsl))
+    
+    gs <- growing.season.length(gsl.temp.data, gsl.factor, ci@dates[inset], ci@northern.hemisphere, gsl.mode = match.arg(gsl.mode), as.df = as.df, cal = attr(ci@dates, "cal"))
+    if (as.df) {
+      gs$sl <- gs$sl * namask.gsl
+      gs$start[is.na(gs$sl)] <- NA
+      gs$end[is.na(gs$sl)] <- NA
+      return(gs)
+    }
+    
+    return(gs * namask.gsl)
   }
 }
+
+
+# Converts a positional index with respect to some origin into a PCICt object in the format %Y-%m-%d.
+ymd.dates <- function(origin, cal, exact.day, val) {
+  origin.pcict <- as.PCICt(origin, cal)
+  seconds.per.day <- 86400
+  exact.day.pcict <- origin.pcict + (exact.day - 1) * seconds.per.day
+  ymd <- as.PCICt(exact.day.pcict, cal = cal, format = "%Y-%m-%d")
+  ymd <- format(ymd, "%Y-%m-%d")
+  ymd[is.na(val)] <- NA
+  return(ymd)
+}
+
+# Computes exact dates for statistics based on the specified frequency (annual, monthly, or seasonal).
+exact.date <- function(stat, data, date.factor, freq, cal, mask) {
+  val <- suppressWarnings(tapply.fast(data, date.factor, get(stat), na.rm = TRUE)) * mask
+  exact.day <- suppressWarnings(tapply.fast(data, date.factor, get(paste("which.", stat, sep = "")))) * mask
+  df <- data.frame(
+    val = val,
+    ymd = if (freq == "annual") {
+      origin <- sapply(1:length(names(val)), function(i) {
+        paste(names(val)[i], "01", "01", sep = "-")
+      })
+      ymd.dates(origin, cal, exact.day, val)
+    } else if (freq == "monthly") {
+      origin <- sapply(1:length(names(val)), function(i) {
+        paste(names(val)[i], "01", sep = "-")
+      })
+      ymd.dates(origin, cal, exact.day, val)
+    } else { # seasonal
+      season.year <- strsplit(names(val), " ")
+      year <- as.numeric(sapply(season.year, function(season.year) season.year[2]))
+      season <- sapply(season.year, function(season.year) season.year[1])
+      season.months <- list(Winter = "12", Spring = "03", Summer = "06", Fall = "09")
+      origin <- sapply(1:length(year), function(i) {
+        paste(year[i], season.months[[season[i]]], "01", sep = "-")
+      })
+      ymd.dates(origin, cal, exact.day, val)
+    }
+  )
+  return(df)
+}
+
+# Computes a specified statistic (min, max) for a given climate index and frequency.
+compute.stat <- function(ci, stat, data.key, freq = c("monthly", "annual", "seasonal"), as.df) {
+  stopifnot(!is.null(ci@data[[data.key]]))
+  data <- ci@data[[data.key]]
+  date.factors <- ci@date.factors[[match.arg(freq)]]
+  mask <- ci@namasks[[match.arg(freq)]][[data.key]]
+  cal <- attr(ci@dates, "cal")
+  
+  if (as.df) {
+    return(exact.date(stat, data, date.factors, freq, cal, mask))
+  }
+  
+  return(suppressWarnings(tapply.fast(data, date.factors, stat, na.rm = TRUE)) * mask)
+}
+
 
 #' Monthly Maximum of Daily Maximum Temperature
 #'
@@ -906,14 +995,17 @@ climdex.gsl <- function(ci, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @return A vector containing the value of the index for each month.
+#' @param as.df Logical, should the result be returned as a data frame?
+#' @return A vector or data frame containing the value of the index for each month.
 #' @template generic_seealso_references
 #' @templateVar cdxvar txx
 #' @templateVar cdxdescription a monthly timeseries of maximum daily maximum temperature.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.txx <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmax)); return(suppressWarnings(tapply.fast(ci@data$tmax, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmax) }
+climdex.txx <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
+  return(compute.stat(ci, "max", "tmax", freq, as.df))
+}
 
 #' Monthly Maximum of Daily Minimum Temperature
 #'
@@ -924,14 +1016,17 @@ climdex.txx <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @return A vector containing the value of the index for each month.
+#' @param as.df Logical, should the result be returned as a data frame?
+#' @return A vector or data frame containing the value of the index for each month.
 #' @template generic_seealso_references
 #' @templateVar cdxvar tnx
 #' @templateVar cdxdescription a monthly timeseries of maximum daily minimum temperature.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tnx <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmin)); return(suppressWarnings(tapply.fast(ci@data$tmin, ci@date.factors[[match.arg(freq)]], max, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmin) }
+climdex.tnx <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
+  return(compute.stat(ci, "max", "tmin", freq, as.df))
+}
 
 #' Monthly Minimum of Daily Maximum Temperature
 #'
@@ -942,14 +1037,17 @@ climdex.tnx <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @return A vector containing the value of the index for each month.
+#' @param as.df Logical, should the result be returned as a data frame?
+#' @return A vector or data frame containing the value of the index for each month.
 #' @template generic_seealso_references
 #' @templateVar cdxvar txn
 #' @templateVar cdxdescription a monthly timeseries of minimum daily maximum temperature.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.txn <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmax)); return(suppressWarnings(tapply.fast(ci@data$tmax, ci@date.factors[[match.arg(freq)]], min, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmax) }
+climdex.txn <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
+  return(compute.stat(ci, "min", "tmax", freq, as.df))
+}
 
 #' Monthly Minimum of Daily Minimum Temperature
 #'
@@ -960,14 +1058,17 @@ climdex.txn <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @return A vector containing the value of the index for each month.
+#' @param as.df Logical, should the result be returned as a data frame?
+#' @return A vector or data frame containing the value of the index for each month.
 #' @template generic_seealso_references
 #' @templateVar cdxvar tnn
 #' @templateVar cdxdescription a monthly timeseries of minimum daily minimum temperature.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tnn <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmin)); return(suppressWarnings(tapply.fast(ci@data$tmin, ci@date.factors[[match.arg(freq)]], min, na.rm=TRUE)) * ci@namasks[[match.arg(freq)]]$tmin) }
+climdex.tnn <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
+  return(compute.stat(ci, "min", "tmin", freq, as.df))
+}
 
 ## Our implementation currently follows the example set by fclimdex for dealing with missing values, which is wrong; it biases results upwards when missing values are present.
 
@@ -1124,6 +1225,16 @@ climdex.csdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(c
 #' @export
 climdex.dtr <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@data$tmax) && !is.null(ci@data$tavg)); return(mean.daily.temp.range(ci@data$tmax, ci@data$tmin, ci@date.factors[[match.arg(freq)]]) * ci@namasks[[match.arg(freq)]]$tavg) }
 
+# Helper function to extract parameters for rxnday indices.
+get.rxnday.params <- function(ci, freq= c("monthly", "annual", "seasonal")) {
+  stopifnot(!is.null(ci@data$prec))
+  data <- ci@data$prec
+  date.factors <- ci@date.factors[[match.arg(freq)]]
+  mask <- ci@namasks[[match.arg(freq)]]$prec
+  cal <- attr(ci@dates, "cal")
+  return(list(data = data, date.factor = date.factors, mask = mask, cal = cal))
+}
+
 #' Monthly Maximum 1-day Precipitation
 #' 
 #' This function computes the climdex index Rx1day.
@@ -1133,6 +1244,7 @@ climdex.dtr <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
+#' @param as.df Logical; should the result be returned as a data frame?
 #' @template rx5day_common
 #' @template generic_seealso_references
 #' @templateVar cdxvar rx1day
@@ -1140,7 +1252,11 @@ climdex.dtr <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot
 #' @template get_generic_example
 #' 
 #' @export
-climdex.rx1day <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopifnot(!is.null(ci@data$prec)); return(nday.consec.prec.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 1) * ci@namasks[[match.arg(freq)]]$prec) }
+climdex.rx1day <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
+  rxnday.params <- get.rxnday.params(ci, freq)
+  ndays <- 1
+  return(nday.consec.prec.max(ndays = ndays, as.df = as.df, date.factor = rxnday.params$date.factor, cal = rxnday.params$cal, mask = rxnday.params$mask, daily.prec = rxnday.params$data, freq = freq))
+}
 
 #' Monthly Maximum 5-day Consecutive Precipitation
 #' 
@@ -1153,6 +1269,7 @@ climdex.rx1day <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopif
 #' @param freq Time frequency to aggregate to.
 #' @param center.mean.on.last.day Whether to center the 5-day running mean on
 #' the last day of the window, instead of the center day.
+#' @param as.df Logical; should the result be returned as a data frame?
 #' @template rx5day_common
 #' @template generic_seealso_references
 #' @templateVar cdxvar rx5day
@@ -1160,7 +1277,11 @@ climdex.rx1day <- function(ci, freq=c("monthly", "annual", "seasonal")) { stopif
 #' @template get_generic_example
 #' 
 #' @export
-climdex.rx5day <- function(ci, freq=c("monthly", "annual", "seasonal"), center.mean.on.last.day=FALSE) { stopifnot(!is.null(ci@data$prec)); return(nday.consec.prec.max(ci@data$prec, ci@date.factors[[match.arg(freq)]], 5, center.mean.on.last.day) * ci@namasks[[match.arg(freq)]]$prec) }
+climdex.rx5day <- function(ci, freq = c("monthly", "annual", "seasonal"), center.mean.on.last.day = FALSE, as.df = FALSE) {
+  rxnday.params <- get.rxnday.params(ci, freq)
+  ndays <- 5
+  return(nday.consec.prec.max(ndays = ndays, as.df = as.df, center.mean.on.last.day = center.mean.on.last.day, date.factor = rxnday.params$date.factor, cal = rxnday.params$cal, mask = rxnday.params$mask, daily.prec = rxnday.params$data, freq = freq))
+}
 
 #' Simple Precpitation Intensity Index
 #' 
@@ -1247,14 +1368,17 @@ climdex.rnnmm <- function(ci, threshold=1) {
 #' This function computes the climdex index CDD: the annual maximum length of dry spells, in days.
 #' Dry spells are considered to be sequences of days where daily preciptation
 #' is less than 1mm per day.
-#' 
+#' @param as.df Logical, should the result be returned as a data frame?
 #' @template cdd_common
 #' @templateVar cdxvar cdd
 #' @templateVar cdxdescription an annual timeseries of the CDD index.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.cdd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, "<", spells.can.span.years) * ci@namasks$annual$prec) }
+climdex.cdd <- function(ci, spells.can.span.years = T, as.df = FALSE) {
+  stopifnot(!is.null(ci@data$prec))
+  return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, "<", spells.can.span.years, as.df, ci@namasks$annual$prec, attr(ci@dates, "cal")))
+}
 
 #' Maximum Consecutive Wet Days
 #' 
@@ -1264,14 +1388,17 @@ climdex.cdd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@
 #' index CWD: the annual maximum length of wet spells, in days.
 #' Wet spells are considered to be sequences of days where daily precipitation
 #' is at least 1mm per day.
-#' 
+#' @param as.df Logical, should the result be returned as a data frame?
 #' @template cdd_common
 #' @templateVar cdxvar cdd
 #' @templateVar cdxdescription an annual timeseries of the CWD index.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.cwd <- function(ci, spells.can.span.years=TRUE) { stopifnot(!is.null(ci@data$prec)); return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, ">=", spells.can.span.years) * ci@namasks$annual$prec) }
+climdex.cwd <- function(ci, spells.can.span.years = T, as.df = FALSE) {
+  stopifnot(!is.null(ci@data$prec))
+  return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, ">=", spells.can.span.years, as.df, ci@namasks$annual$prec, attr(ci@dates, "cal")))
+}
 
 #' Total Daily Precipitation Exceeding 95\%ile Threshold
 #' 
@@ -1489,6 +1616,8 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 #' @param t.thresh The temperature threshold for being considered part of a
 #' growing season (in degrees C).
 #' @param gsl.mode The growing season length mode (ETCCDI mode is "GSL").
+#' @param as.df Logical, should the result be returned as a data frame?
+#' @param cal Calendar object specifying the calendar system.
 #' @return A vector containing the number of days in the growing season for
 #' each year.
 #' @seealso \code{\link{climdex.gsl}}, \code{\link{climdexInput.csv}}.
@@ -1522,34 +1651,98 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 #' 
 #' @export
 growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.hemisphere,
-                                  min.length=6, t.thresh=5, gsl.mode=c("GSL", "GSL_first", "GSL_max", "GSL_sum")) {
+                                  min.length = 6, t.thresh = 5, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum"), as.df = FALSE, cal) {
   gsl.mode <- match.arg(gsl.mode)
   month.series <- get.months(dates)
-  transition.month <- if(northern.hemisphere) 7 else 1
-  if(gsl.mode == "GSL") {
-    return(tapply.fast(1:length(daily.mean.temp), date.factor, function(idx) {
+  transition.month <- if (northern.hemisphere) 7 else 1
+  if (gsl.mode == "GSL") {
+    growing.season <- (tapply.fast(1:length(daily.mean.temp), date.factor, function(idx) {
       temp.data <- daily.mean.temp[idx]
       ts.mid <- head(which(month.series[idx] == transition.month), n = 1)
-      if(!length(ts.mid))
+      if (!length(ts.mid)) {
         return(NA)
+      }
       
-      ts.len<- length(temp.data)
-      gs.begin <- which(select.blocks.gt.length(temp.data[1:(ts.mid-1)] > t.thresh, min.length - 1))
+      ts.len <- length(temp.data)
+      gs.begin <- which(select.blocks.gt.length(temp.data[1:(ts.mid - 1)] > t.thresh, min.length - 1))
       
       ## Growing season actually ends the day -before- the sequence of sketchy days
       gs.end <- which(select.blocks.gt.length(temp.data[ts.mid:ts.len] < t.thresh, min.length - 1)) - 1
-
+      
       ## If no growing season start, 0 length; if no end, ends at end of year; otherwise, end - start + 1
-      return(ifelse(length(gs.begin) == 0, 0, ifelse(length(gs.end) == 0, ts.len - gs.begin[1] + 1, gs.end[1] - gs.begin[1] + ts.mid)))
+      # season.length <- ifelse(length(gs.begin) == 0, 0, ifelse(length(gs.end) == 0, ts.len - gs.begin[1] + 1, gs.end[1] - gs.begin[1] + ts.mid))
+      
+      if (is.na(gs.begin[1])) {
+        start <- NA_character_
+        end <- NA_character_
+        season.length <- 0  # Set season length to 0
+      } 
+      else if (is.na(gs.end[1])) {
+        start <- gs.begin[1]
+        end <- ts.len
+        season.length <- ts.len - start + 1
+      } 
+      else {
+        start <- gs.begin[1]
+        end <- gs.end[1] + ts.mid -1
+        season.length <- end - start +1 
+      }
+      
+      if (as.df) {
+        if(northern.hemisphere){
+          origin <- paste(year = unique(date.factor[idx]), "01", "01", sep = "-")
+        }
+        else {origin <- paste(year = unique(date.factor[idx]), "07", "01", sep = "-")}
+        
+        origin.pcict <- as.PCICt(origin, cal)
+        seconds.per.day <- 86400
+        
+        if (!is.na(start)){
+          start.pcict <- origin.pcict + (start - 1) * seconds.per.day
+          start <- format(start.pcict, "%Y-%m-%d")
+          end.pcict <- origin.pcict + (end * seconds.per.day)
+          end <- format(end.pcict, "%Y-%m-%d")
+        }
+        
+        result <- c(start, sl <- season.length, end)
+      } 
+      else { result <- season.length}
+      return(result)
     }))
-  } else {
+    
+    if (as.df) {
+      start <- growing.season[seq(1, length(growing.season), by = 3)]
+      sl <- growing.season[seq(2, length(growing.season), by = 3)]
+      sl <- as.numeric(sl)
+      end <- growing.season[seq(3, length(growing.season), by = 3)]
+      year <- names(growing.season[1:length(start)]) 
+      if(!northern.hemisphere){
+        sl <- c(sl,NA)
+        end <- c(end,NA)
+      }
+      df <- data.frame(start,sl, end, year) 
+      return(df)
+    }
+    return(growing.season)
+  } 
+  else {
     in.gsl <- !select.blocks.gt.length(!select.blocks.gt.length(daily.mean.temp >= t.thresh, min.length - 1), min.length - 1)
     warning("GSL_first, GSL_max, and GSL_sum are experimental alternative growing season length definitions. Use at your own risk.")
     
-    innerfunc <- switch(gsl.mode, GSL_first=function(bl) { ifelse(any(bl > 0), (bl[bl > 0])[1], 0) }, GSL_max=max, GSL_sum=sum)
-    return(tapply.fast(in.gsl, date.factor, function(ts) { block.lengths <- get.series.lengths.at.ends(ts); return(innerfunc(block.lengths)); }))
+    innerfunc <- switch(gsl.mode,
+                        GSL_first = function(bl) {
+                          ifelse(any(bl > 0), (bl[bl > 0])[1], 0)
+                        },
+                        GSL_max = max,
+                        GSL_sum = sum
+    )
+    return(tapply.fast(in.gsl, date.factor, function(ts) {
+      block.lengths <- get.series.lengths.at.ends(ts)
+      return(innerfunc(block.lengths))
+    }))
   }
 }
+
 
 #' Lengths of strings of TRUE values
 #' 
@@ -1722,7 +1915,11 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 #' @param ndays Number of days in the running window.
 #' @param center.mean.on.last.day Whether to center the n-day running mean on
 #' the last day of the series, instead of the middle day.
-#' @return A vector consisting of the maximum n-day sum of precipitation per
+#' @param as.df Logical; should the result be returned as a data frame?
+#' @param mask The mask to be applied to the result.
+#' @param freq The frequency of the data (monthly, annual, seasonal).
+#' @param cal Calendar object specifying the calendar system.
+#' @return A vector or data frame consisting of the maximum n-day sum of precipitation per
 #' time interval.
 #' @keywords ts climate
 #' @examples
@@ -1745,19 +1942,31 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 #' rx5day <- nday.consec.prec.max(ci@@data$prec, ci@@date.factors$monthly, 5)
 #' 
 #' @export
-nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.last.day=FALSE) {
-  if(ndays == 1) {
-    return(suppressWarnings(tapply.fast(daily.prec, date.factor, max, na.rm=TRUE)))
+nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.last.day = FALSE, as.df = FALSE, mask = 1, freq, cal) {
+  stat <- "max"
+  if (ndays == 1) {
+    if (as.df) {
+      
+      df <- exact.date(stat, daily.prec, date.factor, freq, cal, mask)
+      return(df)
+    }
+    return(suppressWarnings(tapply.fast(daily.prec, date.factor, stat, na.rm = TRUE)) * mask)
   }
   ## Ends of the data will be de-emphasized (padded with zero precip data); NAs replaced with 0
   daily.prec[is.na(daily.prec)] <- 0
   prec.runsum <- running.mean(daily.prec, ndays)
   prec.runsum[is.na(prec.runsum)] <- 0
-  if(center.mean.on.last.day) {
-      k2 = ndays %/% 2
-      prec.runsum <- c(rep(0, k2), prec.runsum[1:(length(prec.runsum) - k2)])
+  
+  if (center.mean.on.last.day) {
+    k2 <- ndays %/% 2
+    prec.runsum <- c(rep(0, k2), prec.runsum[1:(length(prec.runsum) - k2)])
   }
-  return(tapply.fast(prec.runsum, date.factor, max) * ndays)
+  if (as.df) {
+    df <- exact.date(stat, prec.runsum, date.factor, freq, cal, mask)
+    df$val <- df$val * ndays
+    return(df)
+  }
+  return((tapply.fast(prec.runsum, date.factor, stat) * ndays) * mask)
 }
 
 #' Simple Precipitation Intensity Index
@@ -1807,6 +2016,9 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 #' @param threshold The threshold to compare to.
 #' @param op The operator to use to compare data to threshold.
 #' @param spells.can.span.years Whether spells can span years.
+#' @param as.df Logical, should the result be returned as a data frame?
+#' @param mask Binary mask indicating valid date.factors.
+#' @param cal Calendar object specifying the calendar system.
 #' @return A timeseries of maximum spell lengths for each period.
 #' @seealso \code{\link{climdex.cdd}}.
 #' @keywords ts climate
@@ -1822,18 +2034,48 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 #' altcwd <- spell.length.max(prec.dat, phony.date.factor, 1, ">=", FALSE)
 #' 
 #' @export
-spell.length.max <- function(daily.prec, date.factor, threshold, op, spells.can.span.years) {
-  bools <- match.fun(op)(daily.prec, threshold)
 
-  if(spells.can.span.years) {
+spell.length.max <- function(daily.prec, date.factor, threshold, op, spells.can.span.years, as.df = FALSE, mask = 1, cal= "365") {
+  bools <- match.fun(op)(daily.prec, threshold)
+  spells <- get.series.lengths.at.ends(bools)
+  if (spells.can.span.years) {
     all.true <- tapply.fast(bools, date.factor, all)
-    max.spell <- tapply.fast(get.series.lengths.at.ends(bools), date.factor, max)
+    max.spell <- tapply.fast(spells, date.factor, max)
     
     ## Mask out values which are in the middle of a spell with NA
     na.mask <- c(1, NA)[as.integer((max.spell == 0) & all.true) + 1]
-    return(max.spell * na.mask)
+    max.spell <- max.spell * na.mask
   } else {
-    return(tapply.fast(bools, date.factor, function(x) { max(get.series.lengths.at.ends(x)) }))
+    max.spell <- tapply.fast(bools, date.factor, function(x) {
+      max(get.series.lengths.at.ends(x))
+    })
+  }
+  if (as.df) {
+    end <- tapply.fast(bools, date.factor, function(x) {
+      which.max(get.series.lengths.at.ends(x))
+    })
+    
+    start <- end - max.spell
+    origin <- paste(names(max.spell), "01", "01", sep = "-")
+    origin.pcict <- as.PCICt(origin, cal)
+    seconds.per.day <- 86400
+    start.pcict <- origin.pcict + start * seconds.per.day
+    end.pcict <- origin.pcict + (end - 1) * seconds.per.day
+    
+    df <- data.frame(
+      duration = max.spell * mask,
+      start = format(start.pcict, "%Y-%m-%d"),
+      end = format(end.pcict, "%Y-%m-%d")
+    )
+    
+    df$start[which(df$duration == 0)]<- NA
+    df$end[which(df$duration == 0)] <- NA
+    
+    df$start[is.na(df$duration)] <- NA
+    df$end[is.na(df$duration)] <- NA
+    return(df)
+  } else {
+    return(max.spell * mask)
   }
 }
 
