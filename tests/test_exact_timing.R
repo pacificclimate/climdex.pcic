@@ -260,7 +260,6 @@ climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
   }
 }
 
-
 # Find the longest consecutive true values in a boolean array.
 find.longest.consecutive.true <- function(bool.array) {
   max.length <- current.length <- start.index <- max.start.index <- 0
@@ -304,7 +303,6 @@ get.spell.bounds <- function(ci, idx) {
 
   return(do.call(rbind, spell.boundary))
 }
-
 # Generic to compare the expected and climdex-calculated results for the spell tests.
 check.spell.results <- function(expected, result, idx) {
   checkIdentical(nrow(expected), nrow(result), paste("Lengths Differ. Expected:", nrow(expected), "Result:", nrow(result)))
@@ -321,7 +319,10 @@ check.spell.results <- function(expected, result, idx) {
   }
 }
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2ddafd6 (Update expected.GSL for southern hemisphere and leap years)
 # Test cdd and cwd spells with example data set.
 climdex.pcic.test.spell.boundaries <- function() {
   test.indices <- c("cdd", "cwd")
@@ -438,7 +439,6 @@ climdex.pcic.test.na.masks.spell <- function() {
     } else {
       result <- climdex.cwd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
     }
-
     expected <- get.spell.bounds(ci.ran, idx)
     check.spell.results(expected, result, idx)
   }
@@ -505,7 +505,6 @@ climdex.pcic.test.spells.can.span.leap.year <- function() {
     check.spell.results(expected, result, idx)
   }
 }
-
 
 # Return start or end of the GSL index as PCICt object in %Y-%m-%d format
 gsl.test.ymd <- function(year, cal, doy, northern.hemisphere) {
