@@ -209,6 +209,7 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
         } else {
           expected.val <- NA
           checkTrue(is.na(expected[[i]]) && is.na(result$val[i]))
+          next
         }
 
 
