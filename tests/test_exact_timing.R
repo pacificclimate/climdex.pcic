@@ -3,7 +3,6 @@ library(RUnit)
 
 # Setup
 wd <- "./"
-source("../../climdex.pcic/R/climdex.r")
 
 ClimVars.tmax <- file.path(wd, "1018935_MAX_TEMP.csv")
 ClimVars.tmin <- file.path(wd, "1018935_MIN_TEMP.csv")
@@ -81,7 +80,7 @@ get.Rxnday.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
   fun <- which.max
   if (as.numeric(substr(idx, 3, 3)) == 5) {
     data[is.na(data)] <- 0
-    prec.runsum <- running.mean(data, ndays)
+    prec.runsum <- climdex.pcic:::running.mean(data, ndays)
     prec.runsum[is.na(prec.runsum)] <- 0
 
     if (center.mean.on.last.day) {
@@ -384,8 +383,8 @@ expected.gsl <- function(ci, as.df) {
       gsl.factor.monthly <- factor(paste(years.gsl[inset], months[inset], sep = "-"))
       gsl.yearmonth.factor <- unlist(strsplit(levels(gsl.factor.monthly), "-"))[(0:(nlevels(gsl.factor.monthly) - 1)) * 2 + 1]
       gsl.temp.data <- ci@data$tavg[inset]
-      namask.gsl.monthly <- get.na.mask(gsl.temp.data, gsl.factor.monthly, ci@max.missing.days["annual"])
-      ci@namasks$annual$tavg <- get.na.mask(gsl.temp.data, gsl.factor, ci@max.missing.days["annual"]) * as.numeric(tapply(namask.gsl.monthly, gsl.yearmonth.factor, prod))
+      namask.gsl.monthly <- climdex.pcic:::get.na.mask(gsl.temp.data, gsl.factor.monthly, ci@max.missing.days["annual"])
+      ci@namasks$annual$tavg <- climdex.pcic:::get.na.mask(gsl.temp.data, gsl.factor, ci@max.missing.days["annual"]) * as.numeric(tapply(namask.gsl.monthly, gsl.yearmonth.factor, prod))
     }
 
     ex.r$sl <- ex.r$sl * ci@namasks$annual$tavg
