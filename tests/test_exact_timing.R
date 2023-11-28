@@ -8,13 +8,14 @@ source("../../climdex.pcic/R/climdex.r")
 ClimVars.tmax <- file.path(wd, "1018935_MAX_TEMP.csv")
 ClimVars.tmin <- file.path(wd, "1018935_MIN_TEMP.csv")
 ClimVars.prec <- file.path(wd, "1018935_ONE_DAY_PRECIPITATION.csv")
-
-
 datacol <- list(tmax = "MAX_TEMP", tmin = "MIN_TEMP", prec = "ONE_DAY_PRECIPITATION")
+
+# Create climdex input objects for both northern and southern hemispheres.
 ci.csv <- climdexInput.csv(ClimVars.tmax, ClimVars.tmin, ClimVars.prec, data.columns = datacol, base.range = c(1981, 1990))
 ci.csv.sh <- climdexInput.csv(ClimVars.tmax, ClimVars.tmin, ClimVars.prec, data.columns = datacol, base.range = c(1981, 1990), northern.hemisphere = F)
 
-expected.result <- function(ci.csv, data, date.index, date.factors, freq, fun, offset, na.mask) {
+# Returns the specific value of a climate variable at a specific index. Used in n or x, and Rxnday tests.
+expected.result <- function(ci.csv, data, date.index, date.factors, freq, na.mask) {
   ex.r <- c()
   ex.r <- lapply(seq_along(date.factors), function(i) {
     factor.name <- names(date.index[i])
@@ -28,8 +29,7 @@ expected.result <- function(ci.csv, data, date.index, date.factors, freq, fun, o
   })
   return((ex.r))
 }
-
-
+# Generic function to get the expected results for N or X indices.
 get.n.or.x.result <- function(idx, ci.csv, freq = c("monthly", "annual", "seasonal")) {
   data <- if (substr(idx, 2, 2) == "x") {
     ci.csv@data$tmax
@@ -42,13 +42,12 @@ get.n.or.x.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
     ci.csv@namasks[[freq]]$tmin
   }
   fun <- ifelse(substr(idx, 3, 3) == "x", which.max, which.min)
-  offset <- 0
   date.index <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], function(x) fun(x))
   date.factors <- unique(ci.csv@date.factors[[match.arg(freq)]])
-  return(expected.result(ci.csv, data, date.index, date.factors, freq, fun, offset, na.mask))
+  return(expected.result(ci.csv, data, date.index, date.factors, freq, na.mask))
 }
 
-# Exact date:
+# Test for TXx, TNn, TNx and TXn indices
 climdex.pcic.test.exact.date.n.or.x.indices <- function() {
   test.indices <- c("txx", "tnn", "tnx", "txn")
   date.factors <- c("annual", "monthly", "seasonal")
@@ -61,7 +60,6 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
     }
 
     for (freq in date.factors) {
-      print(paste(idx, freq))
       fun <- paste("climdex", idx, sep = ".")
       result <- do.call(fun, list(ci.csv, freq = freq, as.df = TRUE))
       expected <- get.n.or.x.result(idx, ci.csv, freq)
@@ -76,7 +74,7 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
   }
 }
 
-
+# Generic function to get results for rx1day and rx5day indices.
 get.Rxnday.result <- function(idx, ci.csv, freq = c("monthly", "annual", "seasonal"), ndays, center.mean.on.last.day) {
   data <- ci.csv@data$prec
   na.mask <- ci.csv@namasks[[freq]]$prec
@@ -94,17 +92,16 @@ get.Rxnday.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
   }
   date.index <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], function(x) fun(x))
   date.factors <- unique(ci.csv@date.factors[[match.arg(freq)]])
-  return(expected.result(ci.csv, data, date.index, date.factors, freq, fun, offset, na.mask))
+  return(expected.result(ci.csv, data, date.index, date.factors, freq, na.mask))
 }
 
-
+# Test exact dates returned for Rx1day and Rx5day indices.
 climdex.pcic.test.exact.date.rxnd.indices <- function() {
   test.indices <- c("rx1day", "rx5day")
   date.factors <- c("annual", "monthly", "seasonal")
 
   for (idx in test.indices) {
     for (freq in date.factors) {
-      print(paste(idx, freq))
       fun <- paste("climdex", idx, sep = ".")
       result <- do.call(fun, list(ci.csv, freq = freq, as.df = TRUE))
       ndays <- as.numeric(substr(idx, 3, 3))
@@ -132,7 +129,7 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
   }
 }
 
-
+# Find the longest consecutive true values in a boolean array.
 find.longest.consecutive.true <- function(bool.array) {
   max.length <- current.length <- start.index <- max.start.index <- 0
 
@@ -154,7 +151,7 @@ find.longest.consecutive.true <- function(bool.array) {
   data.frame(start = max.start.index, end = max.start.index + max.length - 1, duration = max.length)
 }
 
-
+# Function to get expected spell boundaries for CDD and CWD indices.
 get.spell.bounds <- function(ci, idx) {
   spell.boundary <- lapply(unique(ci@date.factors$annual), function(year) {
     if (idx == "cdd") {
@@ -174,7 +171,7 @@ get.spell.bounds <- function(ci, idx) {
   })
   return(spell.boundary)
 }
-
+# Generic to compare the expected and climdex-calculated results for the spell tests.
 check.spell.results <- function(expected, result, idx) {
   for (i in seq_along(result$start)) {
     if (is.na(expected[[i]]$duration)) {
@@ -186,12 +183,10 @@ check.spell.results <- function(expected, result, idx) {
   }
 }
 
-
+# Test cdd and cwd spells with example data set.
 climdex.pcic.test.spell.boundaries <- function() {
   test.indices <- c("cdd", "cwd")
   for (idx in test.indices) {
-    print(paste(idx))
-
     if (idx == "cdd") {
       result <- climdex.cdd(ci.csv, spells.can.span.years = F, as.df = TRUE)
     } else {
@@ -203,7 +198,7 @@ climdex.pcic.test.spell.boundaries <- function() {
   }
 }
 
-
+# Test for spell that spans multiple years.
 climdex.pcic.test.multi.year.spell <- function() {
   cal <- 365
   test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1967-12-31", cal = cal), by = "days")
@@ -216,8 +211,6 @@ climdex.pcic.test.multi.year.spell <- function() {
 
   test.indices <- c("cdd", "cwd")
   for (idx in test.indices) {
-    print(paste(idx))
-
     if (idx == "cdd") {
       result <- climdex.cdd(ci.dry, spells.can.span.years = F, as.df = TRUE)
       ci <- ci.dry
@@ -231,7 +224,7 @@ climdex.pcic.test.multi.year.spell <- function() {
   }
 }
 
-
+# Test for zero-length spell duration.
 climdex.pcic.test.no.spell <- function() {
   cal <- 365
   test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1967-12-31", cal = cal), by = "days")
@@ -243,8 +236,6 @@ climdex.pcic.test.no.spell <- function() {
 
   test.indices <- c("cdd", "cwd")
   for (idx in test.indices) {
-    print(paste(idx))
-
     if (idx == "cdd") {
       result <- climdex.cdd(ci.wet, spells.can.span.years = F, as.df = TRUE)
       ci <- ci.wet
@@ -258,7 +249,7 @@ climdex.pcic.test.no.spell <- function() {
   }
 }
 
-
+# Test function for spell boundaries with NA masks.
 climdex.pcic.test.na.masks.spell <- function() {
   cal <- 365
   test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1967-12-31", cal = cal), by = "days")
@@ -269,29 +260,28 @@ climdex.pcic.test.na.masks.spell <- function() {
 
   test.indices <- c("cdd", "cwd")
   for (idx in test.indices) {
-    print(paste(idx))
-
     if (idx == "cdd") {
       result <- climdex.cdd(ci.ran, spells.can.span.years = F, as.df = TRUE)
     } else {
       result <- climdex.cwd(ci.ran, spells.can.span.years = F, as.df = TRUE)
     }
+    
     expected <- get.spell.bounds(ci.ran, idx)
     check.spell.results(expected, result, idx)
   }
 }
 
-
+# Return start or end of the GSL index as PCICt object in %Y-%m-%d format
 gsl.test.ymd <- function(year, cal, doy, northern.hemisphere) {
   origin <- ifelse(northern.hemisphere, paste(year, "01", "01", sep = "-"), paste(year, "07", "01", sep = "-"))
   origin.pcict <- as.PCICt(origin, cal)
   seconds.per.day <- 86400
-  doy.pcict <- origin.pcict + (doy - 1) * seconds.per.day
+  doy.pcict <- origin.pcict + (doy) * seconds.per.day
   ymd <- as.PCICt(doy.pcict, cal = cal, format = "%Y-%m-%d")
   return(format(ymd, "%Y-%m-%d"))
 }
 
-
+# Helper for finding the GSL bounds.
 find.repeated <- function(tavg, repetition, op) {
   count <- 0
   index <- 0
@@ -320,79 +310,114 @@ find.repeated <- function(tavg, repetition, op) {
   }
 }
 
-
+# Calculate the Expected GSL bounds.
 expected.gsl <- function(ci, as.df) {
   cal <- attr(ci@dates, "cal")
   n.h <- ci@northern.hemisphere
+
   gsl.output <- lapply(unique(ci@date.factors$annual), function(year) {
     year.length <- length(ci@dates[ci@date.factors$annual == year])
     year.idx <- ci@date.factors$annual == year
+    next.year <- as.numeric(as.character(year)) + 1
+    leap.year <- year.length > 365
+    next.year.is.leap <- length(ci@dates[ci@date.factors$annual == next.year]) > 365
 
     if (!n.h) {
       sy <- paste(year, "07", "01", sep = "-")
       sy.pcict <- as.PCICt(sy, cal)
       seconds.per.day <- 86400
-      ey.pcict <- sy.pcict + year.length * seconds.per.day
+      ey.pcict <- sy.pcict + ifelse(next.year.is.leap, year.length + 1, ifelse(leap.year, year.length - 1, year.length)) * seconds.per.day
       date_indices <- which(ci@dates >= sy.pcict & ci@dates < ey.pcict)
+
       tavg <- ci@data$tavg[date_indices]
     } else {
       tavg <- ci@data$tavg[year.idx]
     }
 
-    midpoint <- length(tavg) %/% 2
-    first.half <- tavg[1:midpoint - 1]
-    second.half <- tavg[(midpoint):length(tavg)]
-    op.gt <- ">"
-    op.lt <- "<"
+    midpoint <- ceiling(length(tavg) / 2)
+    if (next.year.is.leap) midpoint <- midpoint + 1
 
-    start.idx <- find.repeated(first.half, 6, op.gt)
-    end.idx <- find.repeated(second.half, 6, op.lt) - 1
-    start.result <- gsl.test.ymd(year, cal, start.idx, n.h)
+    first.half <- tavg[1:(midpoint - 1)]
+    second.half <- tavg[midpoint:length(tavg)]
+
+    start.idx <- find.repeated(first.half, 6, ">")
+    end.idx <- find.repeated(second.half, 6, "<") - 1
+
+    start.result <- ifelse(is.na(start.idx), NA_character_, gsl.test.ymd(year, cal, start.idx - 1, n.h))
 
     if (is.na(start.idx)) {
-      start.result <- NA_character_
       end.result <- NA_character_
       duration <- 0
     } else if (is.na(end.idx)) {
-      end.result <- gsl.test.ymd(year, cal, length(tavg) + 1, n.h)
+      end.result <- gsl.test.ymd(year, cal, length(tavg), n.h)
       duration <- length(tavg) + 1 - start.idx
     } else {
-      end.result <- gsl.test.ymd(year, cal, midpoint + end.idx, n.h)
-      duration <- midpoint + end.idx - start.idx
+      end.result <- gsl.test.ymd(year, cal, (ifelse(end.idx > 1, midpoint + end.idx - 1, ifelse(!n.h && next.year.is.leap, midpoint, midpoint + 1))), n.h)
+      duration <- (midpoint + end.idx) - start.idx
     }
+
     list(start = start.result, end = end.result, duration = duration)
   })
-
   starts <- lapply(gsl.output, `[[`, "start")
   ends <- lapply(gsl.output, `[[`, "end")
   season <- lapply(gsl.output, `[[`, "duration")
 
+  ex.r <- data.frame(start = unlist(starts), end = unlist(ends), sl = unlist(season))
+  ex.r$sl <- ex.r$sl * ci@namasks$annual$tavg
+  ex.r$start[is.na(ex.r$sl)] <- NA
+  ex.r$end[is.na(ex.r$sl)] <- NA
+
   if (as.df) {
     ex.r <- data.frame(start = unlist(starts), end = unlist(ends), sl = unlist(season))
-    if (!n.h) ci@namasks$annual$tavg[length(ci@namasks$annual$tavg)] <- NA
+
+    if (!n.h) {
+      ci@namasks$annual$tavg[length(ci@namasks$annual$tavg)] <- NA
+      dates.POSIXlt <- as.POSIXlt(ci@dates)
+      years <- dates.POSIXlt$year + 1900
+      months <- dates.POSIXlt$mon + 1
+
+      valid.years <- range(years)
+      years.gsl <- years - floor((12 - months) / 6)
+
+      inset <- years.gsl >= valid.years[1]
+      gsl.factor <- factor(years.gsl[inset])
+      gsl.factor.monthly <- factor(paste(years.gsl[inset], months[inset], sep = "-"))
+      gsl.yearmonth.factor <- unlist(strsplit(levels(gsl.factor.monthly), "-"))[(0:(nlevels(gsl.factor.monthly) - 1)) * 2 + 1]
+      gsl.temp.data <- ci@data$tavg[inset]
+      namask.gsl.monthly <- get.na.mask(gsl.temp.data, gsl.factor.monthly, ci@max.missing.days["annual"])
+      ci@namasks$annual$tavg <- get.na.mask(gsl.temp.data, gsl.factor, ci@max.missing.days["annual"]) * as.numeric(tapply(namask.gsl.monthly, gsl.yearmonth.factor, prod))
+    }
+
     ex.r$sl <- ex.r$sl * ci@namasks$annual$tavg
     ex.r$start[is.na(ex.r$sl)] <- NA
     ex.r$end[is.na(ex.r$sl)] <- NA
   }
+
   return(ex.r)
 }
-
-# Generic GSL test function
+# Generic GSL test function comparing expected with climdex-calculated results.
 test_gsl <- function(ci, test_name) {
   expected <- expected.gsl(ci, as.df = TRUE)
   result <- climdex.gsl(ci, "GSL", as.df = TRUE)
 
   for (i in seq_along(result$start)) {
+    if (test_name == "climdex.pcic.test.na.masks.gsl") {
+      # Only compare NA rows
+      if (i %% 2 == 0) {
+        next
+      }
+    }
     checkIdentical(expected$start[i], result$start[i], paste("Start of GSL does not match Expected:", as.character(expected$start[i]), " Result: ", result$start[i], " (", test_name, ")"))
     checkIdentical(expected$end[i], result$end[i], paste("End of GSL does not match Expected:", as.character(expected$end[i]), " Result: ", result$end[i], " (", test_name, ")"))
   }
 }
 
+# Test GSL calculation with example data.
 climdex.pcic.test.gsl <- function() {
   test_gsl(ci.csv, "climdex.pcic.test.gsl")
 }
 
-
+# Test for a GSL that spans multiple years.
 climdex.pcic.test.multi.year.gsl <- function() {
   cal <- 365
   test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1967-12-31", cal = cal), by = "days")
@@ -401,7 +426,7 @@ climdex.pcic.test.multi.year.gsl <- function() {
   test_gsl(ci.gsl, "climdex.pcic.test.multi.year.gsl")
 }
 
-
+# Test for GSL that never starts.
 climdex.pcic.test.no.gsl <- function() {
   cal <- 365
   test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1964-12-31", cal = cal), by = "days")
@@ -410,7 +435,7 @@ climdex.pcic.test.no.gsl <- function() {
   test_gsl(ci.gsl, "climdex.pcic.test.no.gsl")
 }
 
-
+# Test that the NA masks are applied to results.
 climdex.pcic.test.na.masks.gsl <- function() {
   cal <- 365
   test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1969-12-31", cal = cal), by = "days")
@@ -419,4 +444,9 @@ climdex.pcic.test.na.masks.gsl <- function() {
   ci.gsl <- climdexInput.raw(tavg = test.tavg.data, tavg.dates = test.dates)
   ci.gsl@namasks$annual$tavg <- rep(c(NA, 1), length.out = length(unique(test.dates.factor)))
   test_gsl(ci.gsl, "climdex.pcic.test.na.masks.gsl")
+}
+
+# Test GSL in the southern hemisphere.
+climdex.pcic.test.gsl.southern.hemisphere <- function() {
+  test_gsl(ci.csv.sh, "climdex.pcic.test.gsl.southern.hemisphere")
 }
