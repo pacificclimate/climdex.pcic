@@ -120,6 +120,7 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
         } else {
           expected.value <- NA
           checkTrue(is.na(expected[[i]]) && is.na(result$val[i]))
+          next
         }
         checkEqualsNumeric(as.numeric(expected.value), as.numeric(result$val[i]), tolerance = 0.01)
         checkIdentical(as.character(expected[[i]]), result$ymd[i])
