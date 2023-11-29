@@ -162,7 +162,7 @@ get.spell.bounds <- function(ci, idx) {
     spell <- find.longest.consecutive.true(bool.array)
     dates <- ci@dates[ci@date.factors$annual == year]
     if (spell$duration > 0) {
-      spell.bounds <- data.frame(start = dates[spell$start], end = dates[spell$end], duration = ifelse(is.na(ci@namasks$annual$prec[year]), NA, spell$duration))
+      spell.bounds <- data.frame(start = format(dates[spell$start], "%Y-%m-%d"), end = format(dates[spell$end], "%Y-%m-%d"), duration = ifelse(is.na(ci@namasks$annual$prec[year]), NA, spell$duration))
     } else {
       spell.bounds <- data.frame(start = NA, end = NA, duration = 0)
     }
