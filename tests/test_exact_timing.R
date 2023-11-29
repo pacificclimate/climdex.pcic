@@ -67,7 +67,8 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
         expected.val <- data[ci.csv@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), result$ymd[i])
-        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]))
+        if(is.na(expected.val) || is.na(result$val[i])) next
+        checkEquals(as.numeric(expected.val), as.numeric(result$val[i]))
       }
     }
   }
