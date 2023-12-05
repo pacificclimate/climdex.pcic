@@ -13,37 +13,43 @@ datacol <- list(tmax = "MAX_TEMP", tmin = "MIN_TEMP", prec = "ONE_DAY_PRECIPITAT
 ci.csv <- climdexInput.csv(ClimVars.tmax, ClimVars.tmin, ClimVars.prec, data.columns = datacol, base.range = c(1981, 1990))
 ci.csv.sh <- climdexInput.csv(ClimVars.tmax, ClimVars.tmin, ClimVars.prec, data.columns = datacol, base.range = c(1981, 1990), northern.hemisphere = F)
 
-# Returns the specific value of a climate variable at a specific index. Used in n or x, and Rxnday tests.
-expected.result <- function(ci.csv, data, date.index, date.factors, freq, na.mask) {
+expected.exact.date <- function(ci.csv, data, factor.extremes, date.factors, freq, na.mask) {
   ex.r <- c()
   ex.r <- lapply(seq_along(date.factors), function(i) {
-    factor.name <- names(date.index[i])
-    dof <- date.index[[i]]
-    dates <- ci.csv@dates[ci.csv@date.factors[[freq]] == factor.name]
+    factor.name <- names(factor.extremes[i])
+    idx.of.extreme <- factor.extremes[[i]]
+    dates.in.factor <- ci.csv@dates[ci.csv@date.factors[[freq]] == factor.name]
+
     if (!is.na(na.mask[i])) {
-      dates[dof]
+      dates.in.factor[idx.of.extreme]
     } else {
-      NA
+      NA_character_
     }
   })
-  return((ex.r))
+
+  return(ex.r)
 }
+
+get.data.for.idx <- function(ci, idx) {
+  if (substr(idx, 2, 2) == "x") {
+    ci@data$tmax
+  } else {
+    ci@data$tmin
+  }
+}
+
 # Generic function to get the expected results for N or X indices.
 get.n.or.x.result <- function(idx, ci.csv, freq = c("monthly", "annual", "seasonal")) {
-  data <- if (substr(idx, 2, 2) == "x") {
-    ci.csv@data$tmax
-  } else {
-    ci.csv@data$tmin
-  }
+  data <- get.data.for.idx(ci.csv, idx)
   na.mask <- if (substr(idx, 2, 2) == "x") {
     ci.csv@namasks[[freq]]$tmax
   } else {
     ci.csv@namasks[[freq]]$tmin
   }
   fun <- ifelse(substr(idx, 3, 3) == "x", which.max, which.min)
-  date.index <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], function(x) fun(x))
+  factor.extremes <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], function(x) fun(x))
   date.factors <- unique(ci.csv@date.factors[[match.arg(freq)]])
-  return(expected.result(ci.csv, data, date.index, date.factors, freq, na.mask))
+  return(expected.exact.date(ci.csv, data, factor.extremes, date.factors, freq, na.mask))
 }
 
 # Test for TXx, TNn, TNx and TXn indices
@@ -52,23 +58,48 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
   date.factors <- c("annual", "monthly", "seasonal")
 
   for (idx in test.indices) {
-    data <- if (substr(idx, 2, 2) == "x") {
-      ci.csv@data$tmax
-    } else {
-      ci.csv@data$tmin
-    }
+    data <- get.data.for.idx(ci.csv, idx)
 
     for (freq in date.factors) {
       fun <- paste("climdex", idx, sep = ".")
-      result <- do.call(fun, list(ci.csv, freq = freq, as.df = TRUE))
+      result <- do.call(fun, list(ci.csv, freq = freq, include.exact.dates = TRUE))
       expected <- get.n.or.x.result(idx, ci.csv, freq)
       result$ymd <- as.character(result$ymd)
       for (i in seq_along(expected)) {
         expected.val <- data[ci.csv@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
+        checkIdentical(as.character(expected[[i]]), as.character(result$ymd[i]), paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
+        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]))
+      }
+    }
+  }
+}
+
+# Boundary test that checks if TXx and TNn occur on the last day of the year,
+# and TXn and TNx occur on the first day of the year.
+climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
+  test.indices <- c("txx", "tnn", "tnx", "txn")
+  date.factors <- c("annual", "monthly", "seasonal")
+  cal <- 365
+  test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1961-12-31", cal = cal), by = "days")
+  test.tmax <- c(rep(0, length(test.dates) - 1), 1)
+  test.tmin <- c(rep(1, length(test.dates) - 1), 0)
+  ci.nx.eoy <- climdexInput.raw(tmax = test.tmax, tmin = test.tmin, tmax.dates = test.dates, tmin.dates = test.dates)
+
+  for (idx in test.indices) {
+    data <- get.data.for.idx(ci.nx.eoy, idx)
+
+    for (freq in date.factors) {
+      fun <- paste("climdex", idx, sep = ".")
+
+      result <- do.call(fun, list(ci.nx.eoy, freq = freq, include.exact.dates = TRUE))
+      expected <- get.n.or.x.result(idx, ci.nx.eoy, freq)
+      result$ymd <- as.character(result$ymd)
+      for (i in seq_along(expected)) {
+        expected.val <- data[ci.nx.eoy@dates %in% as.character(expected[[i]])]
+        expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), result$ymd[i])
-        if(is.na(expected.val) || is.na(result$val[i])) next
-        checkEquals(as.numeric(expected.val), as.numeric(result$val[i]))
+        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]))
       }
     }
   }
@@ -79,7 +110,7 @@ get.Rxnday.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
   data <- ci.csv@data$prec
   na.mask <- ci.csv@namasks[[freq]]$prec
   fun <- which.max
-  if (as.numeric(substr(idx, 3, 3)) == 5) {
+  if (ndays == 5) {
     data[is.na(data)] <- 0
     prec.runsum <- climdex.pcic:::running.mean(data, ndays)
     prec.runsum[is.na(prec.runsum)] <- 0
@@ -90,10 +121,11 @@ get.Rxnday.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
     }
     data <- prec.runsum
   }
-  date.index <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], function(x) fun(x))
+  factor.extremes <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], function(x) fun(x))
   date.factors <- unique(ci.csv@date.factors[[match.arg(freq)]])
-  return(expected.result(ci.csv, data, date.index, date.factors, freq, na.mask))
+  return(expected.exact.date(ci.csv, data, factor.extremes, date.factors, freq, na.mask))
 }
+
 
 # Test exact dates returned for Rx1day and Rx5day indices.
 climdex.pcic.test.exact.date.rxnd.indices <- function() {
@@ -101,10 +133,11 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
   date.factors <- c("annual", "monthly", "seasonal")
 
   for (idx in test.indices) {
+    ndays <- as.numeric(substr(idx, 3, 3))
+    fun <- paste("climdex", idx, sep = ".")
+
     for (freq in date.factors) {
-      fun <- paste("climdex", idx, sep = ".")
-      result <- do.call(fun, list(ci.csv, freq = freq, as.df = TRUE))
-      ndays <- as.numeric(substr(idx, 3, 3))
+      result <- do.call(fun, list(ci.csv, freq = freq, include.exact.dates = TRUE))
       center.mean.on.last.day <- FALSE
       expected <- get.Rxnday.result(idx, ci.csv, freq, ndays, center.mean.on.last.day)
       result$ymd <- as.character(result$ymd)
@@ -114,21 +147,23 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
           if (ndays == 5) {
             window.start <- expected[[i]] - 2 * 86400
             window.end <- expected[[i]] + 2 * 86400
-            expected.value <- sum(ci.csv@data$prec[ci.csv@dates >= window.start & ci.csv@dates <= window.end], na.rm = TRUE)
+            expected.val <- sum(ci.csv@data$prec[ci.csv@dates >= window.start & ci.csv@dates <= window.end], na.rm = TRUE)
           } else {
-            expected.value <- ci.csv@data$prec[ci.csv@dates == expected[[i]]]
+            expected.val <- ci.csv@data$prec[ci.csv@dates == expected[[i]]]
           }
         } else {
-          expected.value <- NA
+          expected.val <- NA
           checkTrue(is.na(expected[[i]]) && is.na(result$val[i]))
-          next
         }
-        checkEqualsNumeric(as.numeric(expected.value), as.numeric(result$val[i]), tolerance = 0.01)
-        checkIdentical(as.character(expected[[i]]), result$ymd[i])
+
+        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01)
+        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
       }
     }
   }
 }
+
+
 
 # Find the longest consecutive true values in a boolean array.
 find.longest.consecutive.true <- function(bool.array) {
@@ -189,9 +224,9 @@ climdex.pcic.test.spell.boundaries <- function() {
   test.indices <- c("cdd", "cwd")
   for (idx in test.indices) {
     if (idx == "cdd") {
-      result <- climdex.cdd(ci.csv, spells.can.span.years = F, as.df = TRUE)
+      result <- climdex.cdd(ci.csv, spells.can.span.years = F, include.exact.dates = TRUE)
     } else {
-      result <- climdex.cwd(ci.csv, spells.can.span.years = F, as.df = TRUE)
+      result <- climdex.cwd(ci.csv, spells.can.span.years = F, include.exact.dates = TRUE)
     }
 
     expected <- get.spell.bounds(ci.csv, idx)
@@ -213,10 +248,10 @@ climdex.pcic.test.multi.year.spell <- function() {
   test.indices <- c("cdd", "cwd")
   for (idx in test.indices) {
     if (idx == "cdd") {
-      result <- climdex.cdd(ci.dry, spells.can.span.years = F, as.df = TRUE)
+      result <- climdex.cdd(ci.dry, spells.can.span.years = F, include.exact.dates = TRUE)
       ci <- ci.dry
     } else {
-      result <- climdex.cwd(ci.wet, spells.can.span.years = F, as.df = TRUE)
+      result <- climdex.cwd(ci.wet, spells.can.span.years = F, include.exact.dates = TRUE)
       ci <- ci.wet
     }
 
@@ -238,10 +273,36 @@ climdex.pcic.test.no.spell <- function() {
   test.indices <- c("cdd", "cwd")
   for (idx in test.indices) {
     if (idx == "cdd") {
-      result <- climdex.cdd(ci.wet, spells.can.span.years = F, as.df = TRUE)
+      result <- climdex.cdd(ci.wet, spells.can.span.years = F, include.exact.dates = TRUE)
       ci <- ci.wet
     } else {
-      result <- climdex.cwd(ci.dry, spells.can.span.years = F, as.df = TRUE)
+      result <- climdex.cwd(ci.dry, spells.can.span.years = F, include.exact.dates = TRUE)
+      ci <- ci.dry
+    }
+
+    expected <- get.spell.bounds(ci, idx)
+    check.spell.results(expected, result, idx)
+  }
+}
+
+# Test for spell of 1 day starting from the second last day of the year.
+climdex.pcic.test.end.of.year.spell <- function() {
+  cal <- 365
+  test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1962-01-01", cal = cal), by = "days")
+
+  test.prec.data.dry <- c(rep(0, length(test.dates) - 2), 1, 1)
+  ci.dry <- climdexInput.raw(prec = test.prec.data.dry, prec.dates = test.dates)
+
+  test.prec.data.wet <- c(rep(2, length(test.dates) - 2), 0, 0)
+  ci.wet <- climdexInput.raw(prec = test.prec.data.wet, prec.dates = test.dates)
+
+  test.indices <- c("cdd", "cwd")
+  for (idx in test.indices) {
+    if (idx == "cdd") {
+      result <- climdex.cdd(ci.wet, spells.can.span.years = F, include.exact.dates = TRUE)
+      ci <- ci.wet
+    } else {
+      result <- climdex.cwd(ci.dry, spells.can.span.years = F, include.exact.dates = TRUE)
       ci <- ci.dry
     }
 
@@ -262,11 +323,11 @@ climdex.pcic.test.na.masks.spell <- function() {
   test.indices <- c("cdd", "cwd")
   for (idx in test.indices) {
     if (idx == "cdd") {
-      result <- climdex.cdd(ci.ran, spells.can.span.years = F, as.df = TRUE)
+      result <- climdex.cdd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
     } else {
-      result <- climdex.cwd(ci.ran, spells.can.span.years = F, as.df = TRUE)
+      result <- climdex.cwd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
     }
-    
+
     expected <- get.spell.bounds(ci.ran, idx)
     check.spell.results(expected, result, idx)
   }
@@ -312,7 +373,7 @@ find.repeated <- function(tavg, repetition, op) {
 }
 
 # Calculate the Expected GSL bounds.
-expected.gsl <- function(ci, as.df) {
+expected.gsl <- function(ci, include.exact.dates) {
   cal <- attr(ci@dates, "cal")
   n.h <- ci@northern.hemisphere
 
@@ -368,7 +429,7 @@ expected.gsl <- function(ci, as.df) {
   ex.r$start[is.na(ex.r$sl)] <- NA
   ex.r$end[is.na(ex.r$sl)] <- NA
 
-  if (as.df) {
+  if (include.exact.dates) {
     ex.r <- data.frame(start = unlist(starts), end = unlist(ends), sl = unlist(season))
 
     if (!n.h) {
@@ -398,8 +459,8 @@ expected.gsl <- function(ci, as.df) {
 }
 # Generic GSL test function comparing expected with climdex-calculated results.
 test_gsl <- function(ci, test_name) {
-  expected <- expected.gsl(ci, as.df = TRUE)
-  result <- climdex.gsl(ci, "GSL", as.df = TRUE)
+  expected <- expected.gsl(ci, include.exact.dates = TRUE)
+  result <- climdex.gsl(ci, "GSL", include.exact.dates = TRUE)
 
   for (i in seq_along(result$start)) {
     if (test_name == "climdex.pcic.test.na.masks.gsl") {
