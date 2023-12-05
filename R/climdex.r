@@ -588,11 +588,26 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   #  - 'Spring': March, April, May
   #  - 'Summer': June, July, August
   #  - 'Fall': September, October, November
-  
   classify_meteorological_season_with_year <- function(date.series) {
     month <- as.integer(format(date.series, "%m"))
     year <- as.integer(format(date.series, format = "%Y"))
     year_for_season <- year - ifelse(month %in% c(1, 2), 1, 0)
+    
+    # Vector combining season and year
+    season_with_year <- ifelse(month %in% c(12, 1, 2), paste("Winter", year_for_season),
+                               ifelse(month %in% 3:5, paste("Spring", year_for_season),
+                                      ifelse(month %in% 6:8, paste("Summer", year_for_season),
+                                             ifelse(month %in% 9:11, paste("Fall", year_for_season), NA)
+                                      )
+                               )
+    )
+    return(season_with_year)
+  }
+  
+  classify_meteorological_season_with_year <- function(date.series) {
+    month <- as.integer(format(date.series, "%m"))
+    year <- as.integer(format(date.series, format = "%Y"))
+    year_for_season <- ifelse(month %in% c(1, 2), year - 1, year)
 
     # Vector combining season and year
     season_with_year <- ifelse(month %in% c(12, 1, 2), paste("Winter", year_for_season),
@@ -643,13 +658,26 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   })
   names(namasks$annual) <- names(namasks$seasonal) <- names(namasks$monthly)
   
-  lapply(var.list, function(var) {
+  
+  season_month_counts <- sapply(unique(date.factors$seasonal), function(season) {
+    length(unique(date.factors$monthly[date.factors$seasonal == season]))
+  })
+  
+  for (var in present.var.list) {
+    seasonal_namasks <- namasks$seasonal[[var]]
     na_months <- unique(date.factors$monthly)[is.na(namasks$monthly[[var]])]
     seasons_of_na_months <- unique(date.factors$seasonal[date.factors$monthly %in% na_months])
-    seasonal_namasks <- namasks$seasonal[[var]]
     seasonal_namasks[unique(date.factors$seasonal) %in% seasons_of_na_months] <- NA
+    # Identify and set NA for seasons with less than 3 months
+    for (season in seq_along(season_month_counts) ) {
+      if (!is.na(season_month_counts[season]) && season_month_counts[season] < 3) {
+        seasonal_namasks[season] <- NA
+      }
+    }
     namasks$seasonal[[var]] <- seasonal_namasks
-  })
+  } 
+
+  
   ## Pad data passed as base if we're missing endpoints...
   if(!have.quantiles) {
     quantiles <- new.env(parent=emptyenv())
@@ -863,7 +891,7 @@ climdex.tr <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 #' 
 #' @param ci Object of type climdexInput.
 #' @param gsl.mode Growing season length method to use.
-#' @param as.df Logical, should the result be returned as a data frame?
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the season lengths and the start and end dates of each season; if FALSE, return only the season lengths.
 #' @return A vector containing the number of days in the growing season for
 #' each year.
 #' @note Note that fclimdex results may differ from results using the first
@@ -884,20 +912,13 @@ climdex.tr <- function(ci) { stopifnot(!is.null(ci@data$tmin)); return(number.da
 #' 
 #' @export
 
-climdex.gsl <- function(ci, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum"), as.df = FALSE) {
+climdex.gsl <- function(ci, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum"), include.exact.dates = FALSE) {
   stopifnot(!is.null(ci@data$tavg))
   ## Gotta shift dates so that July 1 is considered Jan 1 of same year in southern hemisphere
   if (ci@northern.hemisphere) {
-    gs <- growing.season.length(ci@data$tavg, ci@date.factors$annual, ci@dates, ci@northern.hemisphere, gsl.mode = match.arg(gsl.mode), as.df = as.df, cal = attr(ci@dates, "cal"))
-    na.mask <- ci@namasks$annual$tavg
+    gs <- growing.season.length(ci@data$tavg, ci@date.factors$annual, ci@dates, ci@northern.hemisphere, gsl.mode = match.arg(gsl.mode), include.exact.dates = include.exact.dates, cal = attr(ci@dates, "cal"))
+    namask.gsl <- ci@namasks$annual$tavg
     
-    if (as.df) {
-      gs$sl <- gs$sl * na.mask
-      gs$start[is.na(gs$sl)] <- NA
-      gs$end[is.na(gs$sl)] <- NA
-      return(gs)
-    }
-    return(gs * na.mask)
   } else {
     dates.POSIXlt <- as.POSIXlt(ci@dates)
     years <- dates.POSIXlt$year + 1900
@@ -916,18 +937,17 @@ climdex.gsl <- function(ci, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum
     dim(namask.gsl) <- dimnames(namask.gsl) <- NULL
     namask.gsl[length(namask.gsl)] <- NA
     
-    gs <- growing.season.length(gsl.temp.data, gsl.factor, ci@dates[inset], ci@northern.hemisphere, gsl.mode = match.arg(gsl.mode), as.df = as.df, cal = attr(ci@dates, "cal"))
-    if (as.df) {
-      gs$sl <- gs$sl * namask.gsl
-      gs$start[is.na(gs$sl)] <- NA
-      gs$end[is.na(gs$sl)] <- NA
-      return(gs)
-    }
-    
-    return(gs * namask.gsl)
+    gs <- growing.season.length(gsl.temp.data, gsl.factor, ci@dates[inset], ci@northern.hemisphere, gsl.mode = match.arg(gsl.mode), include.exact.dates = include.exact.dates, cal = attr(ci@dates, "cal"))
   }
+  if (include.exact.dates) {
+    gs$sl <- gs$sl * namask.gsl
+    gs$start[is.na(gs$sl)] <- NA
+    gs$end[is.na(gs$sl)] <- NA
+    return(gs)
+  }
+  
+  return(gs * namask.gsl)
 }
-
 
 # Converts a positional index with respect to some origin into a PCICt object in the format %Y-%m-%d.
 ymd.dates <- function(origin, cal, exact.day, val) {
@@ -940,29 +960,27 @@ ymd.dates <- function(origin, cal, exact.day, val) {
   return(ymd)
 }
 
+
 # Computes exact dates for statistics based on the specified frequency (annual, monthly, or seasonal).
 exact.date <- function(stat, data, date.factor, freq, cal, mask) {
   val <- suppressWarnings(tapply.fast(data, date.factor, get(stat), na.rm = TRUE)) * mask
-  exact.day <- suppressWarnings(tapply.fast(data, date.factor, get(paste("which.", stat, sep = "")))) * mask
+  exact.day <- suppressWarnings(tapply.fast(data, date.factor, get(paste("which.", stat, sep = "")))) 
   df <- data.frame(
     val = val,
-    ymd = if (freq == "annual") {
-      origin <- sapply(1:length(names(val)), function(i) {
-        paste(names(val)[i], "01", "01", sep = "-")
-      })
-      ymd.dates(origin, cal, exact.day, val)
-    } else if (freq == "monthly") {
-      origin <- sapply(1:length(names(val)), function(i) {
-        paste(names(val)[i], "01", sep = "-")
-      })
-      ymd.dates(origin, cal, exact.day, val)
-    } else { # seasonal
-      season.year <- strsplit(names(val), " ")
-      year <- as.numeric(sapply(season.year, function(season.year) season.year[2]))
-      season <- sapply(season.year, function(season.year) season.year[1])
-      season.months <- list(Winter = "12", Spring = "03", Summer = "06", Fall = "09")
-      origin <- sapply(1:length(year), function(i) {
-        paste(year[i], season.months[[season[i]]], "01", sep = "-")
+    ymd = {
+      origin <- sapply(1:length(unique(date.factor)), function(i) {
+        switch(
+          as.character(freq),
+          annual = paste((unique(date.factor))[[i]], "01-01", sep = "-"),
+          monthly = paste((unique(date.factor))[[i]], "01", sep = "-"),
+          seasonal = {
+            season.year <- strsplit(as.character(unique(date.factor)[[i]]), " ")
+            year <- as.numeric(season.year[[1]][2])
+            season <- season.year[[1]][1]
+            season.months <- list(Winter = "12", Spring = "03", Summer = "06", Fall = "09")
+            paste(year, season.months[[season]], "01", sep = "-")
+          }
+        )
       })
       ymd.dates(origin, cal, exact.day, val)
     }
@@ -970,15 +988,16 @@ exact.date <- function(stat, data, date.factor, freq, cal, mask) {
   return(df)
 }
 
+
 # Computes a specified statistic (min, max) for a given climate index and frequency.
-compute.stat <- function(ci, stat, data.key, freq = c("monthly", "annual", "seasonal"), as.df) {
+compute.stat <- function(ci, stat, data.key, freq = c("monthly", "annual", "seasonal"), include.exact.dates) {
   stopifnot(!is.null(ci@data[[data.key]]))
   data <- ci@data[[data.key]]
   date.factors <- ci@date.factors[[match.arg(freq)]]
   mask <- ci@namasks[[match.arg(freq)]][[data.key]]
   cal <- attr(ci@dates, "cal")
   
-  if (as.df) {
+  if (include.exact.dates) {
     return(exact.date(stat, data, date.factors, freq, cal, mask))
   }
   
@@ -995,16 +1014,17 @@ compute.stat <- function(ci, stat, data.key, freq = c("monthly", "annual", "seas
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @param as.df Logical, should the result be returned as a data frame?
-#' @return A vector or data frame containing the value of the index for each month.
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the index values and exact dates for each month, season, or year; if FALSE, return only the index values.
+#' @return A vector containing the value of the index per time interval. 
+#' If `include.exact.dates` is TRUE, a data frame with additional exact dates is returned.
 #' @template generic_seealso_references
 #' @templateVar cdxvar txx
 #' @templateVar cdxdescription a monthly timeseries of maximum daily maximum temperature.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.txx <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
-  return(compute.stat(ci, "max", "tmax", freq, as.df))
+climdex.txx <- function(ci, freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE) {
+  return(compute.stat(ci, "max", "tmax", freq, include.exact.dates))
 }
 
 #' Monthly Maximum of Daily Minimum Temperature
@@ -1016,16 +1036,17 @@ climdex.txx <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = F
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @param as.df Logical, should the result be returned as a data frame?
-#' @return A vector or data frame containing the value of the index for each month.
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the index values and exact dates for each month, season, or year; if FALSE, return only the index values.
+#' @return A vector containing the value of the index per time interval. 
+#' If `include.exact.dates` is TRUE, a data frame with additional exact dates is returned.
 #' @template generic_seealso_references
 #' @templateVar cdxvar tnx
 #' @templateVar cdxdescription a monthly timeseries of maximum daily minimum temperature.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tnx <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
-  return(compute.stat(ci, "max", "tmin", freq, as.df))
+climdex.tnx <- function(ci, freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE) {
+  return(compute.stat(ci, "max", "tmin", freq, include.exact.dates))
 }
 
 #' Monthly Minimum of Daily Maximum Temperature
@@ -1037,16 +1058,17 @@ climdex.tnx <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = F
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @param as.df Logical, should the result be returned as a data frame?
-#' @return A vector or data frame containing the value of the index for each month.
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the index values and exact dates for each month, season, or year; if FALSE, return only the index values.
+#' @return A vector containing the value of the index per time interval. 
+#' If `include.exact.dates` is TRUE, a data frame with additional exact dates is returned.
 #' @template generic_seealso_references
 #' @templateVar cdxvar txn
 #' @templateVar cdxdescription a monthly timeseries of minimum daily maximum temperature.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.txn <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
-  return(compute.stat(ci, "min", "tmax", freq, as.df))
+climdex.txn <- function(ci, freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE) {
+  return(compute.stat(ci, "min", "tmax", freq, include.exact.dates))
 }
 
 #' Monthly Minimum of Daily Minimum Temperature
@@ -1058,16 +1080,17 @@ climdex.txn <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = F
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @param as.df Logical, should the result be returned as a data frame?
-#' @return A vector or data frame containing the value of the index for each month.
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the index values and exact dates for each month, season, or year; if FALSE, return only the index values.
+#' @return A vector containing the value of the index per time interval. 
+#' If `include.exact.dates` is TRUE, a data frame with additional exact dates is returned.
 #' @template generic_seealso_references
 #' @templateVar cdxvar tnn
 #' @templateVar cdxdescription a monthly timeseries of minimum daily minimum temperature.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.tnn <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
-  return(compute.stat(ci, "min", "tmin", freq, as.df))
+climdex.tnn <- function(ci, freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE) {
+  return(compute.stat(ci, "min", "tmin", freq, include.exact.dates))
 }
 
 ## Our implementation currently follows the example set by fclimdex for dealing with missing values, which is wrong; it biases results upwards when missing values are present.
@@ -1244,7 +1267,9 @@ get.rxnday.params <- function(ci, freq= c("monthly", "annual", "seasonal")) {
 #' 
 #' @param ci Object of type climdexInput.
 #' @param freq Time frequency to aggregate to.
-#' @param as.df Logical; should the result be returned as a data frame?
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the index values and exact dates for each month, season, or year; if FALSE, return only the index values.
+#' @return A vector containing the value of the index per time interval. 
+#' If `include.exact.dates` is TRUE, a data frame with additional exact dates is returned.
 #' @template rx5day_common
 #' @template generic_seealso_references
 #' @templateVar cdxvar rx1day
@@ -1252,10 +1277,10 @@ get.rxnday.params <- function(ci, freq= c("monthly", "annual", "seasonal")) {
 #' @template get_generic_example
 #' 
 #' @export
-climdex.rx1day <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df = FALSE) {
+climdex.rx1day <- function(ci, freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE) {
   rxnday.params <- get.rxnday.params(ci, freq)
   ndays <- 1
-  return(nday.consec.prec.max(ndays = ndays, as.df = as.df, date.factor = rxnday.params$date.factor, cal = rxnday.params$cal, mask = rxnday.params$mask, daily.prec = rxnday.params$data, freq = freq))
+  return(nday.consec.prec.max(ndays = ndays, include.exact.dates = include.exact.dates, date.factor = rxnday.params$date.factor, cal = rxnday.params$cal, mask = rxnday.params$mask, daily.prec = rxnday.params$data, freq = freq))
 }
 
 #' Monthly Maximum 5-day Consecutive Precipitation
@@ -1269,7 +1294,9 @@ climdex.rx1day <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df 
 #' @param freq Time frequency to aggregate to.
 #' @param center.mean.on.last.day Whether to center the 5-day running mean on
 #' the last day of the window, instead of the center day.
-#' @param as.df Logical; should the result be returned as a data frame?
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the index values and exact dates for each month, season, or year; if FALSE, return only the index values.
+#' @return A vector containing the value of the index per time interval. 
+#' If `include.exact.dates` is TRUE, a data frame with additional exact dates is returned.
 #' @template rx5day_common
 #' @template generic_seealso_references
 #' @templateVar cdxvar rx5day
@@ -1277,10 +1304,10 @@ climdex.rx1day <- function(ci, freq = c("monthly", "annual", "seasonal"), as.df 
 #' @template get_generic_example
 #' 
 #' @export
-climdex.rx5day <- function(ci, freq = c("monthly", "annual", "seasonal"), center.mean.on.last.day = FALSE, as.df = FALSE) {
+climdex.rx5day <- function(ci, freq = c("monthly", "annual", "seasonal"), center.mean.on.last.day = FALSE, include.exact.dates = FALSE) {
   rxnday.params <- get.rxnday.params(ci, freq)
   ndays <- 5
-  return(nday.consec.prec.max(ndays = ndays, as.df = as.df, center.mean.on.last.day = center.mean.on.last.day, date.factor = rxnday.params$date.factor, cal = rxnday.params$cal, mask = rxnday.params$mask, daily.prec = rxnday.params$data, freq = freq))
+  return(nday.consec.prec.max(ndays = ndays, include.exact.dates = include.exact.dates, center.mean.on.last.day = center.mean.on.last.day, date.factor = rxnday.params$date.factor, cal = rxnday.params$cal, mask = rxnday.params$mask, daily.prec = rxnday.params$data, freq = freq))
 }
 
 #' Simple Precpitation Intensity Index
@@ -1368,16 +1395,16 @@ climdex.rnnmm <- function(ci, threshold=1) {
 #' This function computes the climdex index CDD: the annual maximum length of dry spells, in days.
 #' Dry spells are considered to be sequences of days where daily preciptation
 #' is less than 1mm per day.
-#' @param as.df Logical, should the result be returned as a data frame?
+#' @param include.exact.dates Logical, if TRUE, return a data frame with spell durations and the start and end dates of each spell; if FALSE, return only the spell durations.
 #' @template cdd_common
 #' @templateVar cdxvar cdd
 #' @templateVar cdxdescription an annual timeseries of the CDD index.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.cdd <- function(ci, spells.can.span.years = T, as.df = FALSE) {
+climdex.cdd <- function(ci, spells.can.span.years = T, include.exact.dates = FALSE) {
   stopifnot(!is.null(ci@data$prec))
-  return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, "<", spells.can.span.years, as.df, ci@namasks$annual$prec, attr(ci@dates, "cal")))
+  return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, "<", spells.can.span.years, include.exact.dates, ci@namasks$annual$prec, attr(ci@dates, "cal")))
 }
 
 #' Maximum Consecutive Wet Days
@@ -1388,16 +1415,16 @@ climdex.cdd <- function(ci, spells.can.span.years = T, as.df = FALSE) {
 #' index CWD: the annual maximum length of wet spells, in days.
 #' Wet spells are considered to be sequences of days where daily precipitation
 #' is at least 1mm per day.
-#' @param as.df Logical, should the result be returned as a data frame?
+#' @param include.exact.dates Logical, if TRUE, return a data frame with spell durations and the start and end dates of each spell; if FALSE, return only the spell durations.
 #' @template cdd_common
 #' @templateVar cdxvar cdd
 #' @templateVar cdxdescription an annual timeseries of the CWD index.
 #' @template get_generic_example
 #' 
 #' @export
-climdex.cwd <- function(ci, spells.can.span.years = T, as.df = FALSE) {
+climdex.cwd <- function(ci, spells.can.span.years = T, include.exact.dates = FALSE) {
   stopifnot(!is.null(ci@data$prec))
-  return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, ">=", spells.can.span.years, as.df, ci@namasks$annual$prec, attr(ci@dates, "cal")))
+  return(spell.length.max(ci@data$prec, ci@date.factors$annual, 1, ">=", spells.can.span.years, include.exact.dates, ci@namasks$annual$prec, attr(ci@dates, "cal")))
 }
 
 #' Total Daily Precipitation Exceeding 95\%ile Threshold
@@ -1616,7 +1643,7 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 #' @param t.thresh The temperature threshold for being considered part of a
 #' growing season (in degrees C).
 #' @param gsl.mode The growing season length mode (ETCCDI mode is "GSL").
-#' @param as.df Logical, should the result be returned as a data frame?
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the season lengths and the start and end dates of each season; if FALSE, return only the season lengths.
 #' @param cal Calendar object specifying the calendar system.
 #' @return A vector containing the number of days in the growing season for
 #' each year.
@@ -1651,7 +1678,7 @@ number.days.op.threshold <- function(temp, date.factor, threshold, op="<") {
 #' 
 #' @export
 growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.hemisphere,
-                                  min.length = 6, t.thresh = 5, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum"), as.df = FALSE, cal) {
+                                  min.length = 6, t.thresh = 5, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum"), include.exact.dates = FALSE, cal) {
   gsl.mode <- match.arg(gsl.mode)
   month.series <- get.months(dates)
   transition.month <- if (northern.hemisphere) 7 else 1
@@ -1688,7 +1715,7 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
         season.length <- end - start +1 
       }
       
-      if (as.df) {
+      if (include.exact.dates) {
         if(northern.hemisphere){
           origin <- paste(year = unique(date.factor[idx]), "01", "01", sep = "-")
         }
@@ -1710,7 +1737,7 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
       return(result)
     }))
     
-    if (as.df) {
+    if (include.exact.dates) {
       start <- growing.season[seq(1, length(growing.season), by = 3)]
       sl <- growing.season[seq(2, length(growing.season), by = 3)]
       sl <- as.numeric(sl)
@@ -1915,12 +1942,13 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 #' @param ndays Number of days in the running window.
 #' @param center.mean.on.last.day Whether to center the n-day running mean on
 #' the last day of the series, instead of the middle day.
-#' @param as.df Logical; should the result be returned as a data frame?
+#' @param include.exact.dates Logical, if TRUE, return a data frame with the index values and exact dates for each month, season, or year; if FALSE, return only the index values.
 #' @param mask The mask to be applied to the result.
 #' @param freq The frequency of the data (monthly, annual, seasonal).
 #' @param cal Calendar object specifying the calendar system.
-#' @return A vector or data frame consisting of the maximum n-day sum of precipitation per
-#' time interval.
+#' @return A vector containing the the maximum n-day sum of precipitation per
+#' time interval. If `include.exact.dates` is TRUE, a data frame with additional exact dates is returned.
+
 #' @keywords ts climate
 #' @examples
 #' library(PCICt)
@@ -1942,10 +1970,10 @@ mean.daily.temp.range <- function(daily.max.temp, daily.min.temp, date.factor) {
 #' rx5day <- nday.consec.prec.max(ci@@data$prec, ci@@date.factors$monthly, 5)
 #' 
 #' @export
-nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.last.day = FALSE, as.df = FALSE, mask = 1, freq, cal) {
+nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.last.day = FALSE, include.exact.dates = FALSE, mask = 1, freq, cal) {
   stat <- "max"
   if (ndays == 1) {
-    if (as.df) {
+    if (include.exact.dates) {
       
       df <- exact.date(stat, daily.prec, date.factor, freq, cal, mask)
       return(df)
@@ -1961,7 +1989,7 @@ nday.consec.prec.max <- function(daily.prec, date.factor, ndays, center.mean.on.
     k2 <- ndays %/% 2
     prec.runsum <- c(rep(0, k2), prec.runsum[1:(length(prec.runsum) - k2)])
   }
-  if (as.df) {
+  if (include.exact.dates) {
     df <- exact.date(stat, prec.runsum, date.factor, freq, cal, mask)
     df$val <- df$val * ndays
     return(df)
@@ -2016,7 +2044,7 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 #' @param threshold The threshold to compare to.
 #' @param op The operator to use to compare data to threshold.
 #' @param spells.can.span.years Whether spells can span years.
-#' @param as.df Logical, should the result be returned as a data frame?
+#' @param include.exact.dates Logical, if TRUE, return a data frame with spell durations and the start and end dates of each spell; if FALSE, return only the spell durations.
 #' @param mask Binary mask indicating valid date.factors.
 #' @param cal Calendar object specifying the calendar system.
 #' @return A timeseries of maximum spell lengths for each period.
@@ -2035,7 +2063,7 @@ simple.precipitation.intensity.index <- function(daily.prec, date.factor) {
 #' 
 #' @export
 
-spell.length.max <- function(daily.prec, date.factor, threshold, op, spells.can.span.years, as.df = FALSE, mask = 1, cal= "365") {
+spell.length.max <- function(daily.prec, date.factor, threshold, op, spells.can.span.years, include.exact.dates = FALSE, mask = 1, cal= "365") {
   bools <- match.fun(op)(daily.prec, threshold)
   spells <- get.series.lengths.at.ends(bools)
   if (spells.can.span.years) {
@@ -2050,7 +2078,7 @@ spell.length.max <- function(daily.prec, date.factor, threshold, op, spells.can.
       max(get.series.lengths.at.ends(x))
     })
   }
-  if (as.df) {
+  if (include.exact.dates) {
     end <- tapply.fast(bools, date.factor, function(x) {
       which.max(get.series.lengths.at.ends(x))
     })
