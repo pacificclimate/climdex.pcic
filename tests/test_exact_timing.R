@@ -39,6 +39,15 @@ are.not.all.na <- function(x,r) {
   checkTrue(any(!is.na(x)))
   checkTrue(any(!is.na(r)))
 }
+
+get.data.for.idx <- function(ci, idx) {
+  if (substr(idx, 2, 2) == "x") {
+    ci@data$tmax
+  } else {
+    ci@data$tmin
+  }
+}
+
 # Generic function to get the expected results for N or X indices.
 get.n.or.x.result <- function(idx, ci.csv, freq = c("monthly", "annual", "seasonal")) {
   data <- get.data.for.idx(ci.csv, idx)
@@ -209,7 +218,6 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
         } else {
           expected.val <- NA
           checkTrue(is.na(expected[[i]]) && is.na(result$val[i]))
-          next
         }
 
 
@@ -260,6 +268,8 @@ climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
     }
   }
 }
+
+
 
 # Find the longest consecutive true values in a boolean array.
 find.longest.consecutive.true <- function(bool.array) {
