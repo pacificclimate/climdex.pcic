@@ -69,7 +69,7 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
         expected.val <- data[ci.csv@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), as.character(result$ymd[i]), paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]))
+        checkIdentical(as.numeric(expected.val), as.numeric(result$val[i]))
       }
     }
   }
@@ -99,7 +99,7 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
         expected.val <- data[ci.nx.eoy@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), result$ymd[i])
-        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]))
+        checkIdentical(as.numeric(expected.val), as.numeric(result$val[i]))
       }
     }
   }
@@ -156,8 +156,9 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
           checkTrue(is.na(expected[[i]]) && is.na(result$val[i]))
         }
 
-        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01)
+
         checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
+        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01)
       }
     }
   }
