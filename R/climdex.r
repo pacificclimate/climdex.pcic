@@ -1747,7 +1747,8 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
         sl <- c(sl,NA)
         end <- c(end,NA)
       }
-      df <- data.frame(start,sl, end, year) 
+      df <- data.frame(start,sl, end)
+      rownames(df) <- year
       return(df)
     }
     return(growing.season)
@@ -2091,8 +2092,8 @@ spell.length.max <- function(daily.prec, date.factor, threshold, op, spells.can.
     end.pcict <- origin.pcict + (end - 1) * seconds.per.day
     
     df <- data.frame(
-      duration = max.spell * mask,
       start = format(start.pcict, "%Y-%m-%d"),
+      duration = max.spell * mask,
       end = format(end.pcict, "%Y-%m-%d")
     )
     
