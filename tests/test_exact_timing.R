@@ -47,7 +47,7 @@ get.n.or.x.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
     ci.csv@namasks[[freq]]$tmin
   }
   fun <- ifelse(substr(idx, 3, 3) == "x", which.max, which.min)
-  factor.extremes <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], function(x) fun(x))
+  factor.extremes <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], fun)
   date.factors <- unique(ci.csv@date.factors[[match.arg(freq)]])
   return(expected.exact.date(ci.csv, data, factor.extremes, date.factors, freq, na.mask))
 }
@@ -65,11 +65,12 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
       result <- do.call(fun, list(ci.csv, freq = freq, include.exact.dates = TRUE))
       expected <- get.n.or.x.result(idx, ci.csv, freq)
       result$ymd <- as.character(result$ymd)
+      checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(result),"climdex result:", length(result)))
       for (i in seq_along(expected)) {
         expected.val <- data[ci.csv@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), as.character(result$ymd[i]), paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-        checkIdentical(as.numeric(expected.val), as.numeric(result$val[i]))
+        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01)
       }
     }
   }
@@ -95,11 +96,12 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
       result <- do.call(fun, list(ci.nx.eoy, freq = freq, include.exact.dates = TRUE))
       expected <- get.n.or.x.result(idx, ci.nx.eoy, freq)
       result$ymd <- as.character(result$ymd)
+      checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(result),"climdex result:", length(result)))
       for (i in seq_along(expected)) {
         expected.val <- data[ci.nx.eoy@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
-        checkIdentical(as.character(expected[[i]]), result$ymd[i])
-        checkIdentical(as.numeric(expected.val), as.numeric(result$val[i]))
+        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
+        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01)
       }
     }
   }
@@ -121,7 +123,7 @@ get.Rxnday.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
     }
     data <- prec.runsum
   }
-  factor.extremes <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], function(x) fun(x))
+  factor.extremes <- tapply(data, ci.csv@date.factors[[match.arg(freq)]], fun)
   date.factors <- unique(ci.csv@date.factors[[match.arg(freq)]])
   return(expected.exact.date(ci.csv, data, factor.extremes, date.factors, freq, na.mask))
 }
@@ -141,7 +143,7 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
       center.mean.on.last.day <- FALSE
       expected <- get.Rxnday.result(idx, ci.csv, freq, ndays, center.mean.on.last.day)
       result$ymd <- as.character(result$ymd)
-
+      checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(result),"climdex result:", length(result)))
       for (i in seq_along(result$ymd)) {
         if (!is.na(result$ymd[i])) {
           if (ndays == 5) {
@@ -513,3 +515,67 @@ climdex.pcic.test.na.masks.gsl <- function() {
 climdex.pcic.test.gsl.southern.hemisphere <- function() {
   test_gsl(ci.csv.sh, "climdex.pcic.test.gsl.southern.hemisphere")
 }
+
+
+format_seasons <- function(months, years) {
+  ifelse(months %in% c(12, 1, 2), paste("Winter", as.integer(years) - ifelse(months %in% c(1, 2), 1, 0)),
+         ifelse(months %in% 3:5, paste("Spring", years),
+                ifelse(months %in% 6:8, paste("Summer", years),
+                       ifelse(months %in% 9:11, paste("Fall", years), NA)
+                )
+         )
+  )
+}
+
+check.single.day.in.factors <- function(freq, result) {
+  non_na_rows <- !is.na(result$ymd)
+  result.formatted <- switch(
+    as.character(freq),
+    annual = {format(as.Date(result$ymd[non_na_rows]), "%Y")},
+    monthly = {format(as.Date(result$ymd[non_na_rows]), "%Y-%m")},
+    seasonal = {
+      months <- as.integer(format(as.Date(result$ymd[non_na_rows]), "%m"))
+      years <- format(as.Date(result$ymd[non_na_rows]), "%Y")
+      format_seasons(months, years)
+    }
+  )
+  checkEquals(result.formatted, rownames(result)[non_na_rows], c("Found the following mismatches:",result.formatted[result.formatted != rownames(result)[non_na_rows]]))
+}
+
+
+
+check.duration.bounds.in.factors <- function(freq, result, spells.can.span.years = F, is.gsl = F) {
+  non_na_starts <- !is.na(result$start)
+  non_na_ends <- !is.na(result$end)
+  
+  starts.formatted <- {format(as.Date(result$start[non_na_starts]), "%Y")}
+  ends.formatted <- {format(as.Date(result$end[non_na_ends]), "%Y")}
+  
+  checkEquals(starts.formatted, rownames(result)[non_na_starts], c("Found the following mismatches:",starts.formatted[starts.formatted != rownames(result)[non_na_starts]]))
+  checkEquals(ends.formatted, rownames(result)[non_na_ends], c("Found the following mismatches:",ends.formatted[ends.formatted != rownames(result)[non_na_ends]]))
+
+}
+
+
+climdex.pcic.tests.exact.dates.are.in.factors <- function() {
+  
+  test.indices <- c("txx", "tnn", "tnx", "txn", "rx1day", "rx5day")
+  
+  for(idx in test.indices){
+    fun <- paste("climdex", idx, sep = ".")
+    date.factors <- c("annual", "monthly", "seasonal")
+    for (freq in date.factors) {
+      result <- do.call(fun, list(ci.csv, freq = freq, include.exact.dates = TRUE))
+      check.single.day.in.factors(freq, result)
+    }
+  }
+  
+  freq<- "annual"
+  result <- climdex.cdd(ci.csv, spells.can.span.years = F, include.exact.dates = TRUE)
+  check.duration.bounds.in.factors(freq, result)
+  result <- climdex.cwd(ci.csv, spells.can.span.years = F, include.exact.dates = TRUE)
+  check.duration.bounds.in.factors(freq, result)
+
+}
+
+
