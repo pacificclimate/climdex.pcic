@@ -47,7 +47,10 @@ get.data.for.idx <- function(ci, idx) {
     ci@data$tmin
   }
 }
-
+Are.not.all.na <- function(x,r) {
+  checkTrue(any(!is.na(x)))
+  checkTrue(any(!is.na(r)))
+}
 # Generic function to get the expected results for N or X indices.
 get.n.or.x.result <- function(idx, ci.csv, freq = c("monthly", "annual", "seasonal")) {
   data <- get.data.for.idx(ci.csv, idx)
@@ -269,6 +272,45 @@ climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
   }
 }
 
+climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
+  date.factors <- c("annual", "monthly", "seasonal")
+  ndays <- 5 
+  idx <-"rx5day"
+  fun <- "climdex.rx5day"
+  for (freq in date.factors) {
+    center.mean.on.last.day <- TRUE
+    result <- do.call(fun, list(ci.csv, freq = freq, center.mean.on.last.day = center.mean.on.last.day, include.exact.dates = TRUE))
+    expected <- get.Rxnday.result(idx, ci.csv, freq, ndays, center.mean.on.last.day)
+    result$ymd <- as.character(result$ymd)
+    checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(expected),"climdex result:", length(result$ymd)))
+    Are.not.all.na(expected, result$ymd)
+    for (i in seq_along(result$ymd)) {
+      if (!is.na(result$ymd[i])) {
+        if (ndays == 5) {
+          if(center.mean.on.last.day){
+            window.start <- expected[[i]] - 4 * 86400
+            window.end <- expected[[i]] 
+            expected.val <- sum(ci.csv@data$prec[ci.csv@dates >= window.start & ci.csv@dates <= window.end], na.rm = TRUE)
+          }
+          else{
+            window.start <- expected[[i]] - 2 * 86400
+            window.end <- expected[[i]] + 2 * 86400
+            expected.val <- sum(ci.csv@data$prec[ci.csv@dates >= window.start & ci.csv@dates <= window.end], na.rm = TRUE)
+          }
+
+        }
+      } else {
+        expected.val <- NA
+        checkTrue(is.na(expected[[i]]) && is.na(result$val[i]))
+      }
+      
+      
+      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
+      checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
+                msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
+    }
+  }
+}
 
 
 # Find the longest consecutive true values in a boolean array.
@@ -330,10 +372,6 @@ check.spell.results <- function(expected, result, idx) {
   }
 }
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 2ddafd6 (Update expected.GSL for southern hemisphere and leap years)
 # Test cdd and cwd spells with example data set.
 climdex.pcic.test.spell.boundaries <- function() {
   test.indices <- c("cdd", "cwd")
