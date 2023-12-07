@@ -1706,7 +1706,7 @@ growing.season.length <- function(daily.mean.temp, date.factor, dates, northern.
       } 
       else if (is.na(gs.end[1])) {
         start <- gs.begin[1]
-        end <- ts.len
+        end <- ts.len - 1 # Last DOY
         season.length <- ts.len - start + 1
       } 
       else {

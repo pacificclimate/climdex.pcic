@@ -69,8 +69,10 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
       for (i in seq_along(expected)) {
         expected.val <- data[ci.csv@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
-        checkIdentical(as.character(expected[[i]]), as.character(result$ymd[i]), paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01)
+        checkIdentical(as.character(expected[[i]]), as.character(result$ymd[i]), 
+                       paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
+        checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
+                  msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
       }
     }
   }
@@ -101,7 +103,8 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
         expected.val <- data[ci.nx.eoy@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01)
+        checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
+                  msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
       }
     }
   }
@@ -160,7 +163,8 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
 
 
         checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-        checkEqualsNumeric(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01)
+        checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
+                  msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
       }
     }
   }
@@ -414,7 +418,7 @@ expected.gsl <- function(ci, include.exact.dates) {
       end.result <- NA_character_
       duration <- 0
     } else if (is.na(end.idx)) {
-      end.result <- gsl.test.ymd(year, cal, length(tavg), n.h)
+      end.result <- gsl.test.ymd(year, cal, length(tavg)-1, n.h)
       duration <- length(tavg) + 1 - start.idx
     } else {
       end.result <- gsl.test.ymd(year, cal, (ifelse(end.idx > 1, midpoint + end.idx - 1, ifelse(!n.h && next.year.is.leap, midpoint, midpoint + 1))), n.h)
