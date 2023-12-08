@@ -83,7 +83,7 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
       checkIdentical(length(expected), nrow(result), paste("Lengths differ. Expected:", length(expected),"Result:", nrow(result)))
       are.not.all.na(expected, result$ymd)
        for (i in seq_along(expected)) {
-        expected.val <- data[ci.csv@dates %in% as.character(expected[[i]])]
+        expected.val <- data[ci.csv@dates == expected[[i]]]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), as.character(result$ymd[i]), 
                        paste("Idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
@@ -118,7 +118,7 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
       checkIdentical(length(expected), nrow(result), paste("Lengths differ. Expected:", length(expected),"Result:", nrow(result)))
       are.not.all.na(expected, result$ymd)
       for (i in seq_along(expected)) {
-        expected.val <- data[ci.nx.eoy@dates %in% as.character(expected[[i]])]
+        expected.val <- data[ci.nx.eoy@dates == expected[[i]]]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
         checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
