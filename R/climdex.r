@@ -953,7 +953,7 @@ climdex.gsl <- function(ci, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum
 ymd.dates <- function(origin, cal, exact.day, val) {
   origin.pcict <- as.PCICt(origin, cal)
   seconds.per.day <- 86400
-  exact.day.pcict <- origin.pcict + (exact.day - 1) * seconds.per.day
+  exact.day.pcict <- origin.pcict + (ifelse(is.na(exact.day),1,exact.day - 1)) * seconds.per.day
   ymd <- as.PCICt(exact.day.pcict, cal = cal, format = "%Y-%m-%d")
   ymd <- format(ymd, "%Y-%m-%d")
   ymd[is.na(val)] <- NA

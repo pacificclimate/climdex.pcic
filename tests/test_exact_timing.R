@@ -128,6 +128,38 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
   }
 }
 
+climdex.pcic.test.n.or.x.dates.for.winter.season <- function() {
+  test.indices <- c("txx", "tnn", "tnx", "txn")
+  cal <- 365
+  test.dates <- seq(as.PCICt("1960-12-01", cal = cal), as.PCICt("1961-02-28", cal = cal), by = "days")
+  
+  test.tmax <- c(rep(2,2),rep(20, 29), rep(-10, 59))  # Max temperature spikes in December
+  test.tmin <- c(rep(2,2),rep(-10, 29), rep(20, 59))  # Min temperature spikes in December
+  ci.nx.eoy <- climdexInput.raw(tmax = test.tmax, tmin = test.tmin, tmax.dates = test.dates, tmin.dates = test.dates, base.range=c(1960, 1961))
+  
+  for (idx in test.indices) {
+    data <- get.data.for.idx(ci.nx.eoy, idx)
+    
+    freq <- "seasonal"
+    fun <- paste("climdex", idx, sep = ".")
+    
+    result <- do.call(fun, list(ci.nx.eoy, freq = freq, include.exact.dates = TRUE))
+    expected <- get.n.or.x.result(idx, ci.nx.eoy, freq)
+    result$ymd <- as.character(result$ymd)
+    checkIdentical(length(expected), nrow(result), paste("Lengths differ. Expected:", length(expected), "Result:", nrow(result)))
+    are.not.all.na(expected, result$ymd)
+    for (i in seq_along(expected)) {
+      expected.val <- data[ci.nx.eoy@dates == expected[[i]]]
+      expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
+      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected:", as.character(expected[[i]]), "Result:", as.character(result$ymd[i])))
+      checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])),
+                msg = paste("Idx:", idx, "Expected:", as.numeric(expected.val), "Result:", as.numeric(result$val[i])))
+    }
+
+  }
+}
+
+
 # Generic function to get results for rx1day and rx5day indices.
 get.Rxnday.result <- function(idx, ci.csv, freq = c("monthly", "annual", "seasonal"), ndays, center.mean.on.last.day) {
   data <- ci.csv@data$prec
