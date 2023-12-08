@@ -47,7 +47,7 @@ get.data.for.idx <- function(ci, idx) {
     ci@data$tmin
   }
 }
-Are.not.all.na <- function(x,r) {
+are.not.all.na <- function(x,r) {
   checkTrue(any(!is.na(x)))
   checkTrue(any(!is.na(r)))
 }
@@ -282,8 +282,8 @@ climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
     result <- do.call(fun, list(ci.csv, freq = freq, center.mean.on.last.day = center.mean.on.last.day, include.exact.dates = TRUE))
     expected <- get.Rxnday.result(idx, ci.csv, freq, ndays, center.mean.on.last.day)
     result$ymd <- as.character(result$ymd)
-    checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(expected),"climdex result:", length(result$ymd)))
-    Are.not.all.na(expected, result$ymd)
+    checkIdentical(length(expected), nrow(result), paste("Lengths differ. Expected:", length(expected),"Result:", nrow(result)))
+    are.not.all.na(expected, result$ymd)
     for (i in seq_along(result$ymd)) {
       if (!is.na(result$ymd[i])) {
         if (ndays == 5) {
@@ -305,9 +305,9 @@ climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
       }
       
       
-      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-      checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
-                msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
+      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("Idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
+      checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
+                msg = paste("Idx:", idx, "Expected: ", as.numeric(expected.val), "Result: ", as.numeric(result$val[i])))
     }
   }
 }
@@ -353,7 +353,10 @@ get.spell.bounds <- function(ci, idx) {
 
     return(spell.bounds)
   })
+<<<<<<< HEAD
 
+=======
+>>>>>>> 2ce29b2 (Custom checkEquals, fix expected s.h. GSL duration)
   return(do.call(rbind, spell.boundary))
 }
 # Generic to compare the expected and climdex-calculated results for the spell tests.
@@ -371,6 +374,7 @@ check.spell.results <- function(expected, result, idx) {
               msg = paste("Idx:", idx, "Expected:",as.character(expected$start[i]), as.numeric(expected$duration[i]), as.character(expected$end[i]), "Result:", result$start[i], as.numeric(result$duration[i]), result$end[i]))
   }
 }
+
 
 # Test cdd and cwd spells with example data set.
 climdex.pcic.test.spell.boundaries <- function() {
