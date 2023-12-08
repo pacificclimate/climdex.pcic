@@ -37,7 +37,7 @@ get.data.for.idx <- function(ci, idx) {
     ci@data$tmin
   }
 }
-Are.not.all.na <- function(x,r) {
+are.not.all.na <- function(x,r) {
   checkTrue(any(!is.na(x)))
   checkTrue(any(!is.na(r)))
 }
@@ -55,6 +55,18 @@ get.n.or.x.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
   return(expected.exact.date(ci.csv, data, factor.extremes, date.factors, freq, na.mask))
 }
 
+
+is.almost.equal <- function(x, r, tolerance = 0.01) {
+  if (is.na(x) && is.na(r)) {
+    return(TRUE)
+  } else if (is.na(x) || is.na(r)) {
+    return(FALSE)
+  } else {
+    return(abs(x - r) < tolerance)
+  }
+}
+
+
 # Test for TXx, TNn, TNx and TXn indices
 climdex.pcic.test.exact.date.n.or.x.indices <- function() {
   test.indices <- c("txx", "tnn", "tnx", "txn")
@@ -68,15 +80,16 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
       result <- do.call(fun, list(ci.csv, freq = freq, include.exact.dates = TRUE))
       expected <- get.n.or.x.result(idx, ci.csv, freq)
       result$ymd <- as.character(result$ymd)
-      checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(expected),"climdex result:", length(result$ymd)))
-      Are.not.all.na(expected, result$ymd)
+      checkIdentical(length(expected), nrow(result), paste("Lengths differ. Expected:", length(expected),"Result:", nrow(result)))
+      are.not.all.na(expected, result$ymd)
        for (i in seq_along(expected)) {
         expected.val <- data[ci.csv@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
         checkIdentical(as.character(expected[[i]]), as.character(result$ymd[i]), 
-                       paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-        checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
-                  msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
+                       paste("Idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
+        checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
+                  msg = paste("Idx:", idx, "Expected: ", as.numeric(expected.val), "Result: ", as.numeric(result$val[i])))
+        
       }
     }
   }
@@ -102,14 +115,14 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
       result <- do.call(fun, list(ci.nx.eoy, freq = freq, include.exact.dates = TRUE))
       expected <- get.n.or.x.result(idx, ci.nx.eoy, freq)
       result$ymd <- as.character(result$ymd)
-      checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(result),"climdex result:", length(result)))
-      Are.not.all.na(expected, result$ymd)
+      checkIdentical(length(expected), nrow(result), paste("Lengths differ. Expected:", length(expected),"Result:", nrow(result)))
+      are.not.all.na(expected, result$ymd)
       for (i in seq_along(expected)) {
         expected.val <- data[ci.nx.eoy@dates %in% as.character(expected[[i]])]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
-        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-        checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
-                  msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
+        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
+        checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
+                  msg = paste("Idx:", idx, "Expected: ", as.numeric(expected.val), "Result: ", as.numeric(result$val[i])))
       }
     }
   }
@@ -151,8 +164,8 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
       center.mean.on.last.day <- FALSE
       expected <- get.Rxnday.result(idx, ci.csv, freq, ndays, center.mean.on.last.day)
       result$ymd <- as.character(result$ymd)
-      checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(expected),"climdex result:", length(result$ymd)))
-      Are.not.all.na(expected, result$ymd)
+      checkIdentical(length(expected), nrow(result), paste("Lengths Differ. Expected:", length(expected),"Result:", nrow(result)))
+      are.not.all.na(expected, result$ymd)
       for (i in seq_along(result$ymd)) {
         if (!is.na(result$ymd[i])) {
           if (ndays == 5) {
@@ -168,9 +181,9 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
         }
 
 
-        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-        checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
-                  msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
+        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
+        checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
+                  msg = paste("Idx:", idx, "Expected: ", as.numeric(expected.val), "Result: ", as.numeric(result$val[i])))
       }
     }
   }
@@ -186,8 +199,8 @@ climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
     result <- do.call(fun, list(ci.csv, freq = freq, center.mean.on.last.day = center.mean.on.last.day, include.exact.dates = TRUE))
     expected <- get.Rxnday.result(idx, ci.csv, freq, ndays, center.mean.on.last.day)
     result$ymd <- as.character(result$ymd)
-    checkIdentical(length(expected), length(result$ymd), paste("Lengths differ expected:", length(expected),"climdex result:", length(result$ymd)))
-    Are.not.all.na(expected, result$ymd)
+    checkIdentical(length(expected), nrow(result), paste("Lengths differ. Expected:", length(expected),"Result:", nrow(result)))
+    are.not.all.na(expected, result$ymd)
     for (i in seq_along(result$ymd)) {
       if (!is.na(result$ymd[i])) {
         if (ndays == 5) {
@@ -209,9 +222,9 @@ climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
       }
       
       
-      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "result: ", as.character(result$ymd[i])))
-      checkTrue(all.equal(as.numeric(expected.val), as.numeric(result$val[i]), tolerance = 0.01), 
-                msg = paste("idx:", idx, "Expected: ", as.character(expected.val), "result: ", as.character(result$val[i])))
+      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("Idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
+      checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
+                msg = paste("Idx:", idx, "Expected: ", as.numeric(expected.val), "Result: ", as.numeric(result$val[i])))
     }
   }
 }
@@ -257,21 +270,24 @@ get.spell.bounds <- function(ci, idx) {
 
     return(spell.bounds)
   })
-  return(spell.boundary)
+  return(do.call(rbind, spell.boundary))
 }
 # Generic to compare the expected and climdex-calculated results for the spell tests.
 check.spell.results <- function(expected, result, idx) {
-  checkIdentical(length(expected), length(result$start), paste("Lengths differ expected:", length(expected),"climdex result:", length(result$start)))
-  checkIdentical(length(expected), length(result$end), paste("Lengths differ expected:", length(expected),"climdex result:", length(result$end)))
+  checkIdentical(nrow(expected), nrow(result), paste("Lengths Differ. Expected:", nrow(expected), "Result:", nrow(result)))
+  
   for (i in seq_along(result$start)) {
-    if (is.na(expected[[i]]$duration)) {
-      expected[[i]]$start <- NA
-      expected[[i]]$end <- NA
+    if (is.na(expected$duration[i])) {
+      expected$start[i] <- NA
+      expected$end[i] <- NA
     }
-    checkIdentical(as.character(expected[[i]]$start), result$start[i], paste("Start of spells for index: ", idx, " do not agree: Expected:", as.character(expected[[i]]$start), " Result: ", result$start[i]))
-    checkIdentical(as.character(expected[[i]]$end), result$end[i])
+    checkIdentical(as.character(expected$start[i]), result$start[i], paste("Start of spells for index:", idx, "do not agree. Expected:", as.character(expected$start[i]), "Result:", result$start[i]))
+    checkIdentical(as.character(expected$end[i]), result$end[i], paste("End of spells for index:", idx, "do not agree. Expected:", as.character(expected$end[i]), "Result:", result$end[i]))
+    checkTrue(is.almost.equal(as.numeric(expected$duration[i]), as.numeric(result$duration[i])), 
+              msg = paste("Idx:", idx, "Expected:", as.numeric(expected$duration[i]), "Result:", as.numeric(result$duration[i])))
   }
 }
+
 
 # Test cdd and cwd spells with example data set.
 climdex.pcic.test.spell.boundaries <- function() {
@@ -284,8 +300,8 @@ climdex.pcic.test.spell.boundaries <- function() {
     }
 
     expected <- get.spell.bounds(ci.csv, idx)
-    Are.not.all.na(expected, result$start)
-    Are.not.all.na(expected, result$end)
+    are.not.all.na(expected$start, result$start)
+    are.not.all.na(expected$end, result$end)
     check.spell.results(expected, result, idx)
   }
 }
@@ -338,6 +354,12 @@ climdex.pcic.test.no.spell <- function() {
 
     expected <- get.spell.bounds(ci, idx)
     check.spell.results(expected, result, idx)
+    
+    checkTrue(all(is.na(expected$start)))
+    checkTrue(all(is.na(result$start)))
+    checkTrue(all(is.na(expected$end)))
+    checkTrue(all(is.na(result$end)))
+
   }
 }
 
@@ -468,10 +490,10 @@ expected.gsl <- function(ci, include.exact.dates) {
       duration <- 0
     } else if (is.na(end.idx)) {
       end.result <- gsl.test.ymd(year, cal, length(tavg)-1, n.h)
-      duration <- length(tavg) + 1 - start.idx
+      duration <- length(tavg)  - start.idx + 1
     } else {
       end.result <- gsl.test.ymd(year, cal, (ifelse(end.idx > 1, midpoint + end.idx - 1, ifelse(!n.h && next.year.is.leap, midpoint, midpoint + 1))), n.h)
-      duration <- (midpoint + end.idx) - start.idx
+      duration <- difftime(as.Date(end.result),as.Date(start.result))
     }
 
     list(start = start.result, end = end.result, duration = duration)
@@ -517,8 +539,8 @@ expected.gsl <- function(ci, include.exact.dates) {
 test_gsl <- function(ci, test_name) {
   expected <- expected.gsl(ci, include.exact.dates = TRUE)
   result <- climdex.gsl(ci, "GSL", include.exact.dates = TRUE)
-  checkIdentical(length(expected$start), length(result$start), paste("Lengths differ expected:", length(expected$start),"climdex result:", length(result$start)))
-  checkIdentical(length(expected$end), length(result$end), paste("Lengths differ expected:", length(expected),"climdex result:", length(result$end)))
+  checkIdentical(length(expected$start), length(result$start), paste("Lengths differ. Expected:", length(expected$start),"Result:", length(result$start)))
+  checkIdentical(length(expected$end), length(result$end), paste("Lengths differ. Expected:", length(expected),"Result:", length(result$end)))
   
   for (i in seq_along(result$start)) {
     if (test_name == "climdex.pcic.test.na.masks.gsl") {
@@ -528,11 +550,13 @@ test_gsl <- function(ci, test_name) {
       }
     }
     if (test_name != "climdex.pcic.test.no.gsl"){
-      Are.not.all.na(expected$start, result$start)
-      Are.not.all.na(expected$end, result$end)
+      are.not.all.na(expected$start, result$start)
+      are.not.all.na(expected$end, result$end)
     }
-    checkIdentical(expected$start[i], result$start[i], paste("Start of GSL does not match Expected:", as.character(expected$start[i]), " Result: ", result$start[i], " (", test_name, ")"))
-    checkIdentical(expected$end[i], result$end[i], paste("End of GSL does not match Expected:", as.character(expected$end[i]), " Result: ", result$end[i], " (", test_name, ")"))
+    checkIdentical(expected$start[i], result$start[i], paste("Start of GSL does not match. Expected:", as.character(expected$start[i]), " Result: ", result$start[i], " (", test_name, ")"))
+    checkIdentical(expected$end[i], result$end[i], paste("End of GSL does not match. Expected:", as.character(expected$end[i]), " Result: ", result$end[i], " (", test_name, ")"))
+    checkTrue(is.almost.equal(as.numeric(expected$sl[i]), as.numeric(result$sl[i])), 
+              msg = paste("Idx:GSL\n Year:",rownames(result)[i],"\n Expected: ", as.numeric(expected$sl[i]), "Result: ", as.numeric(result$sl[i])))
   }
 }
 
