@@ -302,8 +302,10 @@ get.spell.bounds <- function(ci, idx) {
 
     return(spell.bounds)
   })
+
   return(do.call(rbind, spell.boundary))
 }
+
 # Generic to compare the expected and climdex-calculated results for the spell tests.
 check.spell.results <- function(expected, result, idx) {
   checkIdentical(nrow(expected), nrow(result), paste("Lengths Differ. Expected:", nrow(expected), "Result:", nrow(result)))
@@ -316,7 +318,7 @@ check.spell.results <- function(expected, result, idx) {
     checkIdentical(as.character(expected$start[i]), result$start[i], paste("Start of spells for index:", idx, "do not agree. Expected:", as.character(expected$start[i]), "Result:", result$start[i]))
     checkIdentical(as.character(expected$end[i]), result$end[i], paste("End of spells for index:", idx, "do not agree. Expected:", as.character(expected$end[i]), "Result:", result$end[i]))
     checkTrue(is.almost.equal(as.numeric(expected$duration[i]), as.numeric(result$duration[i])), 
-              msg = paste("Idx:", idx, "Expected:", as.numeric(expected$duration[i]), "Result:", as.numeric(result$duration[i])))
+              msg = paste("Idx:", idx, "Expected:",as.character(expected$start[i]), as.numeric(expected$duration[i]), as.character(expected$end[i]), "Result:", result$start[i], as.numeric(result$duration[i]), result$end[i]))
   }
 }
 
@@ -443,6 +445,33 @@ climdex.pcic.test.na.masks.spell <- function() {
   }
 }
 
+climdex.pcic.test.spells.can.span.years <- function() {
+  test.indices <- c("cdd", "cwd")
+  cal <- 365
+  test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1962-12-31", cal = cal), by = "days")
+
+  for (idx in test.indices) {
+    if (idx == "cdd") {
+      test.prec.data <- rep(2, length(test.dates))
+      test.prec.data[(cal - 20):(cal - 10)] <- 0
+      test.prec.data[(cal - 1):(cal + 4)] <- 0
+      ci <- climdexInput.raw(prec = test.prec.data, prec.dates = test.dates)
+
+      expected <- data.frame(start <- c("1961-12-11", "1961-12-30"), duration <- c(11, 6), end <- c("1961-12-21", "1962-01-04"))
+      result <- climdex.cdd(ci, spells.can.span.years = TRUE, include.exact.dates = TRUE)
+    } else {
+      test.prec.data <- rep(0, length(test.dates))
+      test.prec.data[(cal - 20):(cal - 10)] <- 2
+      test.prec.data[(cal - 1):(cal + 4)] <- 2
+
+      ci <- climdexInput.raw(prec = test.prec.data, prec.dates = test.dates)
+
+      expected <- data.frame(start <- c("1961-12-11", "1961-12-30"), duration <- c(11, 6), end <- c("1961-12-21", "1962-01-04"))
+      result <- climdex.cwd(ci, spells.can.span.years = TRUE, include.exact.dates = TRUE)
+    }
+    check.spell.results(expected, result, idx)
+  }
+}
 # Return start or end of the GSL index as PCICt object in %Y-%m-%d format
 gsl.test.ymd <- function(year, cal, doy, northern.hemisphere) {
   origin <- ifelse(northern.hemisphere, paste(year, "01", "01", sep = "-"), paste(year, "07", "01", sep = "-"))
@@ -673,9 +702,7 @@ check.duration.bounds.in.factors <- function(freq, result, spells.can.span.years
 
 
 climdex.pcic.tests.exact.dates.are.in.factors <- function() {
-  
   test.indices <- c("txx", "tnn", "tnx", "txn", "rx1day", "rx5day")
-  
   for(idx in test.indices){
     fun <- paste("climdex", idx, sep = ".")
     date.factors <- c("annual", "monthly", "seasonal")
