@@ -584,6 +584,41 @@ climdex.pcic.test.spells.can.span.years <- function() {
     check.spell.results(expected, result, idx)
   }
 }
+
+climdex.pcic.test.spells.can.span.leap.year <- function() {
+  test.indices <- c("cdd", "cwd")
+  cal <- "proleptic_gregorian"
+  test.year <- 1964  # Example leap year
+  test.dates <- seq(as.PCICt(paste(test.year, "01-01", sep = "-"), cal = cal),
+                    as.PCICt(paste(test.year, "12-31", sep = "-"), cal = cal), by = "days")
+  cal <- 366
+  for (idx in test.indices) {
+    if (idx == "cdd") {
+      test.prec.data <- rep(2, length(test.dates))
+      test.prec.data[40:(cal - 10)] <- 0
+
+      ci <- climdexInput.raw(prec = test.prec.data, prec.dates = test.dates)
+      
+      expected <- data.frame(start = c(paste(test.year, "02-09", sep = "-")),
+                             duration = c(317),
+                             end = c(paste(test.year, "12-21", sep = "-")))
+      result <- climdex.cdd(ci, spells.can.span.years = TRUE, include.exact.dates = TRUE)
+    } else {
+      test.prec.data <- rep(0, length(test.dates))
+      test.prec.data[40:(cal - 10)] <- 2
+
+      ci <- climdexInput.raw(prec = test.prec.data, prec.dates = test.dates)
+      
+      expected <- data.frame(start = c(paste(test.year, "02-09", sep = "-")),
+                             duration = c(317),
+                             end = c(paste(test.year, "12-21", sep = "-")))
+      result <- climdex.cwd(ci, spells.can.span.years = TRUE, include.exact.dates = TRUE)
+    }
+    check.spell.results(expected, result, idx)
+  }
+}
+
+
 # Return start or end of the GSL index as PCICt object in %Y-%m-%d format
 gsl.test.ymd <- function(year, cal, doy, northern.hemisphere) {
   origin <- ifelse(northern.hemisphere, paste(year, "01", "01", sep = "-"), paste(year, "07", "01", sep = "-"))
@@ -831,6 +866,47 @@ climdex.pcic.tests.exact.dates.are.in.factors <- function() {
   check.duration.bounds.in.factors(freq, result)
 
 }
+
+# climdex.pcic.test.indicies.on.random.datasets <- function(){
+#   for (i in 1:5000){
+#     cal <- 365
+#     test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1967-12-31", cal = cal), by = "days")
+#     test.prec.ran <- c(sample(0:2, length(test.dates), replace = TRUE))
+#     test.tmin.ran <- c(sample(-10:32, length(test.dates), replace = TRUE))
+#     test.tmax.ran <- c(sample(-10:32, length(test.dates), replace = TRUE))
+#     
+# 
+#     years <- format(test.dates, "%Y")
+#     unique.years <- unique(years)
+#     for (year in unique.years) {
+#       year.indices <- which(years == year)
+#       na.indices <- sample(year.indices, sample(1:7, 1))
+#       test.prec.ran[na.indices] <- NA
+#       test.tmin.ran[na.indices] <- NA
+#       test.tmax.ran[na.indices] <- NA
+#     }
+#     
+#     
+#     ci.ran <- climdexInput.raw(tmin =test.tmin.ran, tmax = test.tmax.ran, prec = test.prec.ran, tmin.dates=test.dates, tmax.dates = test.dates, prec.dates = test.dates)
+#     
+#     test.indices <- c("txx", "tnn", "tnx", "txn", "rx1day", "rx5day")
+#     for(idx in test.indices){
+#       fun <- paste("climdex", idx, sep = ".")
+#       date.factors <- c("annual", "monthly", "seasonal")
+#       for (freq in date.factors) {
+#         do.call(fun, list(ci.ran, freq = freq, include.exact.dates = TRUE))
+#         
+#       }
+#     }
+#     
+#     freq<- "annual"
+#     climdex.cdd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
+#     climdex.cwd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
+#     climdex.gsl(ci.ran,"GSL", include.exact.dates = TRUE)
+#   } 
+#   
+#   
+# }
 
 
 checkTypes <- function(result.e.d.vals, result.n.d) {
