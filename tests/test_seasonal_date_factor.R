@@ -15,37 +15,63 @@ unique_seasons <- unique(ci.csv@date.factors$seasonal)
 unique_months <- unique(ci.csv@date.factors$monthly)
 
 climdex.pcic.test.seasonal.na.cases <- function() {
+  
+  start_date <- as.PCICt("1961-01-01", cal = "365")
+  end_date <- as.PCICt("1967-12-31", cal = "365")
+  dates <- seq(start_date, end_date, by = "days")
+  
+  set.seed(123)
+  n <- length(dates)
+  tmax <- runif(n, -10, 35)
+  tmin <- runif(n, -15, 30)
+  prec <- runif(n, 0, 40)
+  
+  na_indices <- sample(1:n, size = round(n * 0.1))
+  tmax[na_indices] <- NA
+  tmin[na_indices] <- NA
+  prec[na_indices] <- NA
+
+  # Create climdexInput object
+  ci.na.test <- climdexInput.raw(tmax = tmax, tmin = tmin, prec = prec, tmax.dates = dates, tmin.dates = dates, prec.dates = dates)
+  ci.na.test
+  
   var.list <- c("tmax", "tmin", "prec", "tavg")
   for (var in var.list) {
-    # Test 1.1: Check if the first season is NA based on the start of the time series
-    # - If the first month of the date series is not a multiple of 3, expect the first season to be NA
-    is_not_start_of_season <- (as.integer(format(ci.csv@dates[1], "%m")) %% 3 != 0)
-    first_season_na <- is.na(ci.csv@namasks$seasonal[[var]][1])
-    checkTrue(is_not_start_of_season && first_season_na)
+    # Check if the first season is NA based on the start of the time series
+    is_not_start_of_season <- ifelse(!is.na(ci.na.test@dates[1]),
+                                     (as.integer(format(ci.na.test@dates[1], "%m")) %% 3 != 0),
+                                     TRUE)
+    first_season_na <- is.na(ci.na.test@namasks$seasonal[[var]][1])
+    checkTrue(is_not_start_of_season == first_season_na, 
+              msg = paste("Start of season NA check failed:", is_not_start_of_season, first_season_na))
     
-    # Test 1.2: Check if the last season is NA based on the end of the time series
-    # - If the last month of the date series + 1 is not a multiple of 3, expect the last season to be NA
-    is_not_end_of_season <- as.integer(format(ci.csv@dates[length(ci.csv@dates)], "%m")) + 1 %% 3 != 0
-    last_season_na <- is.na(ci.csv@namasks$seasonal[[var]][length(ci.csv@namasks$season[[var]])])
-    checkTrue(is_not_end_of_season && last_season_na)
+    # Check if the last season is NA based on the end of the time series
+    is_not_end_of_season <- ifelse(!is.na(ci.na.test@dates[length(ci.na.test@dates)]),
+                                   (as.integer(format(ci.na.test@dates[length(ci.na.test@dates)], "%m"))+1 %% 3 != 0),
+                                   TRUE)
+    last_season_na <- is.na(ci.na.test@namasks$seasonal[[var]][length(ci.na.test@namasks$season[[var]])])
+    checkTrue(is_not_end_of_season == last_season_na, 
+              msg = paste("End of season NA check failed:", is_not_end_of_season, last_season_na))
     
-    # Test 1.3: Check for NA seasons where conditions in 1.1 and 1.2 do not apply
+    
+    # Check for NA seasons where conditions in 1.1 and 1.2 do not apply
     # A season is marked as NA if it contains at least one month with missing data or if the sum of missing days within the season is greater than or equal to max.missing.days$season.
-    unique_seasons <- unique(ci.csv@date.factors$seasonal)
-    unique_months <- unique(ci.csv@date.factors$monthly)
-    na_seasons <- unique_seasons[is.na(ci.csv@namasks$seasonal[[var]])]
-    na_months <- unique_months[is.na(ci.csv@namasks$monthly[[var]])]
+    unique_seasons <- unique(ci.na.test@date.factors$seasonal)
+    unique_months <- unique(ci.na.test@date.factors$monthly)
+    na_seasons <- unique_seasons[is.na(ci.na.test@namasks$seasonal[[var]])]
+    na_months <- unique_months[is.na(ci.na.test@namasks$monthly[[var]])]
     results <- logical(length(na_seasons))
 
     for (i in seq_along(na_seasons)) {
       season <- na_seasons[i]
-      months_of_season <- unique(ci.csv@date.factors$monthly[ci.csv@date.factors$season == season])
+      months_of_season <- unique(ci.na.test@date.factors$monthly[ci.na.test@date.factors$season == season])
       any_month_na <- any(months_of_season %in% na_months)
       results[i] <- any_month_na
-      na_days <- sum(is.na(ci.csv@data[[var]][ci.csv@date.factors$season == season]))
-      results[i] <- any_month_na || (na_days >= ci.csv@max.missing.days[["seasonal"]])
+      na_days <- sum(is.na(ci.na.test@data[[var]][ci.na.test@date.factors$season == season]))
+      results[i] <- any_month_na || (na_days >= ci.na.test@max.missing.days[["seasonal"]])
     }
-    checkTrue(all(results))
+    # Exclude first and last season, as they have been compared in the previous checks
+    checkTrue(all(results[-c(1, length(results))]))
   }
 }
 

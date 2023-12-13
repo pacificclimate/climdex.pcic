@@ -662,8 +662,11 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   season_month_counts <- sapply(unique(date.factors$seasonal), function(season) {
     length(unique(date.factors$monthly[date.factors$seasonal == season]))
   })
-  
-  for (var in present.var.list) {
+  data.vars <- present.var.list
+  if (!is.null(namasks$seasonal$tavg)){
+    data.vars <- c(data.vars, "tavg")
+  }
+  for (var in data.vars) {
     seasonal_namasks <- namasks$seasonal[[var]]
     na_months <- unique(date.factors$monthly)[is.na(namasks$monthly[[var]])]
     seasons_of_na_months <- unique(date.factors$seasonal[date.factors$monthly %in% na_months])

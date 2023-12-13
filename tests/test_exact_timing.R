@@ -37,6 +37,7 @@ get.data.for.idx <- function(ci, idx) {
     ci@data$tmin
   }
 }
+
 are.not.all.na <- function(x,r) {
   checkTrue(any(!is.na(x)))
   checkTrue(any(!is.na(r)))
@@ -55,7 +56,7 @@ get.n.or.x.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
   return(expected.exact.date(ci.csv, data, factor.extremes, date.factors, freq, na.mask))
 }
 
-
+#Custom checkEqual to compare expected and climdex results.
 is.almost.equal <- function(x, r, tolerance = 0.01) {
   if (is.na(x) && is.na(r)) {
     return(TRUE)
@@ -67,7 +68,7 @@ is.almost.equal <- function(x, r, tolerance = 0.01) {
 }
 
 
-# Test for TXx, TNn, TNx and TXn indices
+# Test for TXx, TNn, TNx and TXn indices.
 climdex.pcic.test.exact.date.n.or.x.indices <- function() {
   test.indices <- c("txx", "tnn", "tnx", "txn")
   date.factors <- c("annual", "monthly", "seasonal")
@@ -128,6 +129,7 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
   }
 }
 
+# Check extreme dates in winter season.
 climdex.pcic.test.n.or.x.dates.for.winter.season <- function() {
   test.indices <- c("txx", "tnn", "tnx", "txn")
   cal <- 365
@@ -220,7 +222,7 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
     }
   }
 }
-
+# Check that rx5day works with the mean centered on the last day of the window.
 climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
   date.factors <- c("annual", "monthly", "seasonal")
   ndays <- 5 
@@ -444,7 +446,7 @@ climdex.pcic.test.na.masks.spell <- function() {
     check.spell.results(expected, result, idx)
   }
 }
-
+# Check that the start of the (only) spell for 1962 starts in 1961.
 climdex.pcic.test.spells.can.span.years <- function() {
   test.indices <- c("cdd", "cwd")
   cal <- 365
@@ -473,6 +475,7 @@ climdex.pcic.test.spells.can.span.years <- function() {
   }
 }
 
+# Edge case for different year lengths.
 climdex.pcic.test.spells.can.span.leap.year <- function() {
   test.indices <- c("cdd", "cwd")
   cal <- "proleptic_gregorian"
@@ -695,7 +698,7 @@ climdex.pcic.test.gsl.southern.hemisphere <- function() {
   test.gsl(ci.csv.sh, "climdex.pcic.test.gsl.southern.hemisphere")
 }
 
-
+# Get the season from the year and month of an exact date.
 format.seasons <- function(months, years) {
   ifelse(months %in% c(12, 1, 2), paste("Winter", as.integer(years) - ifelse(months %in% c(1, 2), 1, 0)),
          ifelse(months %in% 3:5, paste("Spring", years),
@@ -705,7 +708,7 @@ format.seasons <- function(months, years) {
          )
   )
 }
-
+# Check that each day in results are in the correct year, month or season.
 check.single.day.in.factors <- function(freq, result) {
   non.na.rows <- !is.na(result$ymd)
   result.formatted <- switch(
@@ -722,7 +725,7 @@ check.single.day.in.factors <- function(freq, result) {
 }
 
 
-
+# Check that all the bounds of a spell, when spells cannot span years are contained within the bounds of a date factor. 
 check.duration.bounds.in.factors <- function(freq, result, spells.can.span.years = F, is.gsl = F) {
   non.na.starts <- !is.na(result$start)
   non.na.ends <- !is.na(result$end)
@@ -735,7 +738,7 @@ check.duration.bounds.in.factors <- function(freq, result, spells.can.span.years
 
 }
 
-
+# Test that the exact dates for all indices except for GSL have exact dates returned are in their associated date factor.
 climdex.pcic.tests.exact.dates.are.in.factors <- function() {
   test.indices <- c("txx", "tnn", "tnx", "txn", "rx1day", "rx5day")
   for(idx in test.indices){
