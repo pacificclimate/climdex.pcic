@@ -47,6 +47,7 @@ get.data.for.idx <- function(ci, idx) {
     ci@data$tmin
   }
 }
+
 are.not.all.na <- function(x,r) {
   checkTrue(any(!is.na(x)))
   checkTrue(any(!is.na(r)))
@@ -495,6 +496,7 @@ climdex.pcic.test.na.masks.spell <- function() {
   }
 }
 # Check that the start of the (only) spell for 1962 starts in 1961.
+<<<<<<< HEAD
 climdex.pcic.test.spells.can.span.years <- function() {
   test.indices <- c("cdd", "cwd")
   cal <- 365
@@ -557,6 +559,8 @@ climdex.pcic.test.spells.can.span.leap.year <- function() {
   }
 }
 
+=======
+>>>>>>> 5832ef2 (Add tavg namasks, comments and improve NA seasons test)
 climdex.pcic.test.spells.can.span.years <- function() {
   test.indices <- c("cdd", "cwd")
   cal <- 365
@@ -585,6 +589,7 @@ climdex.pcic.test.spells.can.span.years <- function() {
   }
 }
 
+# Edge case for different year lengths.
 climdex.pcic.test.spells.can.span.leap.year <- function() {
   test.indices <- c("cdd", "cwd")
   cal <- "proleptic_gregorian"
