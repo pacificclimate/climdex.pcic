@@ -33,7 +33,6 @@ climdex.pcic.test.seasonal.na.cases <- function() {
 
   # Create climdexInput object
   ci.na.test <- climdexInput.raw(tmax = tmax, tmin = tmin, prec = prec, tmax.dates = dates, tmin.dates = dates, prec.dates = dates)
-  ci.na.test
   
   var.list <- c("tmax", "tmin", "prec", "tavg")
   for (var in var.list) {
