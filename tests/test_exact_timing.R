@@ -872,6 +872,55 @@ climdex.pcic.tests.exact.dates.are.in.factors <- function() {
 
 }
 
+
+checkTypes <- function(result.e.d.vals, result.n.d) {
+  for (i in seq_along(result.e.d.vals)){
+    checkIdentical(typeof(result.e.d.vals[i]),typeof(result.n.d[i]), paste("Different types: With exact dates:", typeof(result.e.d.vals[i]), "Without:", typeof(result.n.d[i])))
+  }
+  
+}
+climdex.pcic.test.consistent.indices.return.types <- function() {
+  
+  start_date <- as.PCICt("1961-01-01", cal = "365")
+  end_date <- as.PCICt("1967-12-30", cal = "365")
+  dates <- seq(start_date, end_date, by = "days")
+  
+  set.seed(123)
+  n <- length(dates)
+  tmax <- runif(n, -10, 35)
+  tmin <- runif(n, -15, 30)
+  prec <- runif(n, 0, 40)
+  
+  na_indices <- sample(1:n, size = round(n * 0.1))
+  tmax[na_indices] <- NA
+  tmin[na_indices] <- NA
+  prec[na_indices] <- NA
+  
+  # Create climdexInput object
+  ci.types.test <- climdexInput.raw(tmax = tmax, tmin = tmin, prec = prec, tmax.dates = dates, tmin.dates = dates, prec.dates = dates)
+  test.indices <- c("txx", "tnn", "tnx", "txn", "rx1day", "rx5day")
+  for(idx in test.indices){
+    fun <- paste("climdex", idx, sep = ".")
+    date.factors <- c("annual", "monthly", "seasonal")
+    for (freq in date.factors) {
+      result.e.d <- do.call(fun, list(ci.types.test, freq = freq, include.exact.dates = TRUE))
+      result.n.d <- do.call(fun, list(ci.types.test, freq = freq, include.exact.dates = FALSE))
+      checkTypes(result.e.d$val, result.n.d)
+    }
+  }
+
+  freq<- "annual"
+  result.e.d <- climdex.cdd(ci.types.test, spells.can.span.years = F, include.exact.dates = TRUE)
+  result.n.d <- climdex.cdd(ci.types.test, spells.can.span.years = F, include.exact.dates = F)
+  checkTypes(result.e.d$duration, result.n.d)
+  result.e.d <- climdex.cwd(ci.types.test, spells.can.span.years = F, include.exact.dates = TRUE)
+  result.n.d <- climdex.cwd(ci.types.test, spells.can.span.years = F, include.exact.dates = F)
+  checkTypes(result.e.d$duration, result.n.d)
+  result.e.d <- climdex.gsl(ci.types.test,"GSL", include.exact.dates = TRUE)
+  result.n.d <- climdex.gsl(ci.types.test,"GSL", include.exact.dates = F)
+  checkTypes(result.e.d$sl, result.n.d)
+}
+
 # climdex.pcic.test.indicies.on.random.datasets <- function(){
 #   for (i in 1:5000){
 #     cal <- 365
