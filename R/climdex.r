@@ -1283,7 +1283,7 @@ get.rxnday.params <- function(ci, freq= c("monthly", "annual", "seasonal")) {
 climdex.rx1day <- function(ci, freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE) {
   rxnday.params <- get.rxnday.params(ci, freq)
   ndays <- 1
-  return(nday.consec.prec.max(ndays = ndays, include.exact.dates = include.exact.dates, date.factor = rxnday.params$date.factor, cal = rxnday.params$cal, mask = rxnday.params$mask, daily.prec = rxnday.params$data, freq = freq))
+  return(nday.consec.prec.max(daily.prec = rxnday.params$data, date.factor = rxnday.params$date.factor, ndays = ndays, include.exact.dates = include.exact.dates,  mask = rxnday.params$mask, freq = freq, cal = rxnday.params$cal))
 }
 
 #' Monthly Maximum 5-day Consecutive Precipitation
@@ -1310,7 +1310,7 @@ climdex.rx1day <- function(ci, freq = c("monthly", "annual", "seasonal"), includ
 climdex.rx5day <- function(ci, freq = c("monthly", "annual", "seasonal"), center.mean.on.last.day = FALSE, include.exact.dates = FALSE) {
   rxnday.params <- get.rxnday.params(ci, freq)
   ndays <- 5
-  return(nday.consec.prec.max(ndays = ndays, include.exact.dates = include.exact.dates, center.mean.on.last.day = center.mean.on.last.day, date.factor = rxnday.params$date.factor, cal = rxnday.params$cal, mask = rxnday.params$mask, daily.prec = rxnday.params$data, freq = freq))
+  return(nday.consec.prec.max(daily.prec = rxnday.params$data, date.factor = rxnday.params$date.factor, ndays = ndays, center.mean.on.last.day = center.mean.on.last.day, include.exact.dates = include.exact.dates, mask = rxnday.params$mask, freq = freq, cal = rxnday.params$cal))
 }
 
 #' Simple Precpitation Intensity Index
