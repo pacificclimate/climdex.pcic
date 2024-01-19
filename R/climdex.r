@@ -591,22 +591,6 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   classify_meteorological_season_with_year <- function(date.series) {
     month <- as.integer(format(date.series, "%m"))
     year <- as.integer(format(date.series, format = "%Y"))
-    year_for_season <- year - ifelse(month %in% c(1, 2), 1, 0)
-    
-    # Vector combining season and year
-    season_with_year <- ifelse(month %in% c(12, 1, 2), paste("Winter", year_for_season),
-                               ifelse(month %in% 3:5, paste("Spring", year_for_season),
-                                      ifelse(month %in% 6:8, paste("Summer", year_for_season),
-                                             ifelse(month %in% 9:11, paste("Fall", year_for_season), NA)
-                                      )
-                               )
-    )
-    return(season_with_year)
-  }
-  
-  classify_meteorological_season_with_year <- function(date.series) {
-    month <- as.integer(format(date.series, "%m"))
-    year <- as.integer(format(date.series, format = "%Y"))
     year_for_season <- ifelse(month %in% c(1, 2), year - 1, year)
 
     # Vector combining season and year

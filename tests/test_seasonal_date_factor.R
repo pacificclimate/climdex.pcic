@@ -77,7 +77,7 @@ climdex.pcic.test.seasonal.na.cases <- function() {
 # Test Seasonal Indices:
 # This section handles various scenarios based on the type of index being calculated:
 # - For non-averaged stats (e.g., min, max), the seasonal value is the min/max of the constituent months.
-# - For averaged stats, the seasonal value may differ from the average of the 3 constituent months due to varying month lengths, so it's compared against a calculated dtr (daily temperature range).
+# - For averaged stats, the seasonal value may differ from the average of the 3 constituent months due to varying month lengths, so it's compared against a calculated average dtr (diurnal temperature range).
 # - For percentile calculations, each season's percentile is computed against a weighted monthly percentile.
 
 ci_subset <- function(ci.csv, dates, season) {

@@ -31,11 +31,8 @@ expected.exact.date <- function(ci.csv, data, factor.extremes, date.factors, fre
 }
 
 get.data.for.idx <- function(ci, idx) {
-  if (substr(idx, 2, 2) == "x") {
-    ci@data$tmax
-  } else {
-    ci@data$tmin
-  }
+  var <- climdex.min.max.idx.list[[idx]]$var
+  ci@data[[var]]
 }
 
 are.not.all.na <- function(x,r) {
@@ -70,7 +67,7 @@ is.almost.equal <- function(x, r, tolerance = 0.01) {
 
 # Test for TXx, TNn, TNx and TXn indices.
 climdex.pcic.test.exact.date.n.or.x.indices <- function() {
-  test.indices <- c("txx", "tnn", "tnx", "txn")
+  test.indices <- names(climdex.min.max.idx.list)[grepl("t", names(climdex.min.max.idx.list))]
   date.factors <- c("annual", "monthly", "seasonal")
 
   for (idx in test.indices) {
@@ -99,7 +96,7 @@ climdex.pcic.test.exact.date.n.or.x.indices <- function() {
 # Boundary test that checks if TXx and TNn occur on the last day of the year,
 # and TXn and TNx occur on the first day of the year.
 climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
-  test.indices <- c("txx", "tnn", "tnx", "txn")
+  test.indices <- names(climdex.min.max.idx.list)[grepl("t", names(climdex.min.max.idx.list))]
   date.factors <- c("annual", "monthly", "seasonal")
   cal <- 365
   test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1961-12-31", cal = cal), by = "days")
@@ -121,7 +118,7 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
       for (i in seq_along(expected)) {
         expected.val <- data[ci.nx.eoy@dates == expected[[i]]]
         expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
-        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
+        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("Idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
         checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
                   msg = paste("Idx:", idx, "Expected: ", as.numeric(expected.val), "Result: ", as.numeric(result$val[i])))
       }
@@ -131,7 +128,7 @@ climdex.pcic.test.n.or.x.dates.at.end.of.year <- function() {
 
 # Check extreme dates in winter season.
 climdex.pcic.test.n.or.x.dates.for.winter.season <- function() {
-  test.indices <- c("txx", "tnn", "tnx", "txn")
+  test.indices <- names(climdex.min.max.idx.list)[grepl("t", names(climdex.min.max.idx.list))]
   cal <- 365
   test.dates <- seq(as.PCICt("1960-12-01", cal = cal), as.PCICt("1961-02-28", cal = cal), by = "days")
   
@@ -153,7 +150,7 @@ climdex.pcic.test.n.or.x.dates.for.winter.season <- function() {
     for (i in seq_along(expected)) {
       expected.val <- data[ci.nx.eoy@dates == expected[[i]]]
       expected.val <- ifelse(length(expected.val) == 0, NA, expected.val)
-      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected:", as.character(expected[[i]]), "Result:", as.character(result$ymd[i])))
+      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("Idx:", idx, "Expected:", as.character(expected[[i]]), "Result:", as.character(result$ymd[i])))
       checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])),
                 msg = paste("Idx:", idx, "Expected:", as.numeric(expected.val), "Result:", as.numeric(result$val[i])))
     }
@@ -186,7 +183,7 @@ get.Rxnday.result <- function(idx, ci.csv, freq = c("monthly", "annual", "season
 
 # Test exact dates returned for Rx1day and Rx5day indices.
 climdex.pcic.test.exact.date.rxnd.indices <- function() {
-  test.indices <- c("rx1day", "rx5day")
+  test.indices <- names(climdex.min.max.idx.list)[grepl("r", names(climdex.min.max.idx.list))]
   date.factors <- c("annual", "monthly", "seasonal")
 
   for (idx in test.indices) {
@@ -215,7 +212,7 @@ climdex.pcic.test.exact.date.rxnd.indices <- function() {
         }
 
 
-        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
+        checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("Idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
         checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
                   msg = paste("Idx:", idx, "Expected: ", as.numeric(expected.val), "Result: ", as.numeric(result$val[i])))
       }
@@ -740,7 +737,7 @@ check.duration.bounds.in.factors <- function(freq, result, spells.can.span.years
 
 # Test that the exact dates for all indices except for GSL have exact dates returned are in their associated date factor.
 climdex.pcic.tests.exact.dates.are.in.factors <- function() {
-  test.indices <- c("txx", "tnn", "tnx", "txn", "rx1day", "rx5day")
+  test.indices <- names(climdex.min.max.idx.list)
   for(idx in test.indices){
     fun <- paste("climdex", idx, sep = ".")
     date.factors <- c("annual", "monthly", "seasonal")
@@ -784,7 +781,7 @@ climdex.pcic.test.consistent.indices.return.types <- function() {
   
   # Create climdexInput object
   ci.types.test <- climdexInput.raw(tmax = tmax, tmin = tmin, prec = prec, tmax.dates = dates, tmin.dates = dates, prec.dates = dates)
-  test.indices <- c("txx", "tnn", "tnx", "txn", "rx1day", "rx5day")
+  test.indices <- names(climdex.min.max.idx.list)
   for(idx in test.indices){
     fun <- paste("climdex", idx, sep = ".")
     date.factors <- c("annual", "monthly", "seasonal")
@@ -806,7 +803,7 @@ climdex.pcic.test.consistent.indices.return.types <- function() {
   result.n.d <- climdex.gsl(ci.types.test,"GSL", include.exact.dates = F)
   checkTypes(result.e.d$sl, result.n.d)
 }
-
+# 
 # climdex.pcic.test.indicies.on.random.datasets <- function(){
 #   for (i in 1:5000){
 #     cal <- 365
@@ -814,7 +811,7 @@ climdex.pcic.test.consistent.indices.return.types <- function() {
 #     test.prec.ran <- c(sample(0:2, length(test.dates), replace = TRUE))
 #     test.tmin.ran <- c(sample(-10:32, length(test.dates), replace = TRUE))
 #     test.tmax.ran <- c(sample(-10:32, length(test.dates), replace = TRUE))
-#     
+# 
 # 
 #     years <- format(test.dates, "%Y")
 #     unique.years <- unique(years)
@@ -825,27 +822,27 @@ climdex.pcic.test.consistent.indices.return.types <- function() {
 #       test.tmin.ran[na.indices] <- NA
 #       test.tmax.ran[na.indices] <- NA
 #     }
-#     
-#     
+# 
+# 
 #     ci.ran <- climdexInput.raw(tmin =test.tmin.ran, tmax = test.tmax.ran, prec = test.prec.ran, tmin.dates=test.dates, tmax.dates = test.dates, prec.dates = test.dates)
-#     
-#     test.indices <- c("txx", "tnn", "tnx", "txn", "rx1day", "rx5day")
+# 
+#     test.indices <- names(climdex.min.max.idx.list)
 #     for(idx in test.indices){
 #       fun <- paste("climdex", idx, sep = ".")
 #       date.factors <- c("annual", "monthly", "seasonal")
 #       for (freq in date.factors) {
 #         do.call(fun, list(ci.ran, freq = freq, include.exact.dates = TRUE))
-#         
+# 
 #       }
 #     }
-#     
+# 
 #     freq<- "annual"
 #     climdex.cdd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
 #     climdex.cwd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
 #     climdex.gsl(ci.ran,"GSL", include.exact.dates = TRUE)
-#   } 
-#   
-#   
+#   }
+# 
+# 
 # }
 
 
