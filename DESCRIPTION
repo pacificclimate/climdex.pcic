@@ -1,6 +1,6 @@
 Package: climdex.pcic
-Version: 1.1-11
-Date: 2020-01-21
+Version: 1.2-0
+Date: 2024-01-19
 Title: PCIC Implementation of Climdex Routines
 Author: David Bronaugh <bronaugh@uvic.ca> for the Pacific Climate Impacts
     Consortium
@@ -23,4 +23,4 @@ License: GPL-3
 URL: https://www.r-project.org
 LazyData: yes
 BugReports: https://github.com/pacificclimate/climdex.pcic/issues/
-RoxygenNote: 6.0.1
+RoxygenNote: 7.2.3
