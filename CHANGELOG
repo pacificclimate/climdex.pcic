@@ -1,3 +1,31 @@
+1.2-0:Compute Indices by Seasonal Date Factors and Return Exact Dates
+  SUMMARY
+  This release introduces a feature to return exact dates for climate indices, the extension of the climdexInput
+  data structure to support meteorological seasons for climate indices calculation, and the addition of an
+  automated workflow using GitHub Actions.
+  MAJOR CHANGES:
+    Seasonal Climate Indices Calculation
+      - Expanded `climdexInput` data structure to include meteorological seasons, allowing for calculating climate
+        indices at a seasonal level.
+      - Implemented handling for the winter season (January and February data assigned to the previous year).
+      - Seasonal aggregation now applicable to climate variables: `tmax`, `tmin`, `prec`, and `tavg`.
+      - Introduced NA masks for seasonal data, classifying season-variable pairs with over 6 days of missing data as NA.
+      - Indices with new seasonal availability include `tnn`, `tnx`, `txn`, `txx`, `dtr`, `tn10p`, `tn90p`, `tx10p`, `tx90p`.
+    Exact Dates for Climate Indices
+      - Introduced the ability to return exact dates or date ranges for climate indices, enhancing the depth of data analysis.
+      - Modified existing functions and added new utility functions to support this feature, 
+        including changes to `tapply.fast`, and the introduction of `compute.stat` and `get.rxnday.params`.
+      - Added `include.exact.dates` parameter in relevant functions to provide flexibility in results presentation.
+  MINOR CHANGES:
+    Updated and Expanded Testing
+      - Added tests for new seasonal data aggregation and NA season assignment.
+      - Implemented a test for the new feature to return exact dates for climate indices.
+    Automated Package Checking
+      - Added a new GitHub Actions workflow named 'R-CMD-check' to automate the process of checking the package 
+        for errors, warnings, or notes.
+      - The workflow runs R CMD Check across Linux, MacOS, and Windows environments 
+        using the latest R release and R-devel versions.
+
 1.1-11: Metadata changes requested by Uwe Ligges <ligges@statistik.tu-dortmund.de>
 1.1-10: Revises the method of linking to Rcpp package
 1.1-9: Register native routines and disable symbol search
