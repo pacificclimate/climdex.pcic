@@ -5,14 +5,13 @@
   automated workflow using GitHub Actions.
   MAJOR CHANGES:
     Seasonal Climate Indices Calculation (API CHANGE)
-      - Expanded `climdexInput` data structure to include meteorological seasons, allowing users to calculate climate
-        indices at a seasonal level.
+      - Expanded `climdexInput` data structure now includes meteorological seasons as a possible 
+        date factor for calculating climate indices.
       - Implemented handling for the winter season (January and February data assigned to the previous year).
       - Seasonal aggregation is now applicable to climate variables: `tmax`, `tmin`, `prec`, and `tavg`.
       - Introduced NA masks for seasonal data, classifying season-variable pairs with over 6 days of missing data as NA.
       - Indices with new seasonal aggregation is available for`TNn`, `TNx`, `TNn`, `TXx`, `DTR`, `TN10p`, `TN90p`, `TX10p`, `TX90p`.
-      Note: Due to the introduction of new parameters in this release, you may need to update how you call certain functions. 
-            Please consult the manual pages for detailed information on the new parameters and examples of updated function usage.
+     
     Exact Dates for Climate Indices (API CHANGE)
       - Introduced the ability to return exact dates or date ranges for climate indices.
       - Added an optional parameter `include.exact.dates` to any relevant functions. When this parameter is set,
@@ -21,8 +20,9 @@
       - Indices with the include.exact.dates include: `TNn`, `TNx`, `TXn`, `TXx`, `Rx1day`, `Rx5day`, `CDD`, `CWD`, `GSL`.
       - Modified existing functions and added new utility functions to support this feature, 
         including changes to `tapply.fast`, and the introduction of `compute.stat`, `ymd.dates`, `exact.date`, and `get.rxnday.params`.
-      Note: Due to the introduction of new parameters in this release, you may need to update how you call certain functions. 
-            Please consult the manual pages for detailed information on the new parameters and examples of updated function usage.
+    
+    Note: Due to the introduction of new parameters in this release, you may need to update how you call certain functions. 
+          Please consult the manual pages for detailed information on the new parameters and examples of updated function usage.
 
   MINOR CHANGES:
     Updated and Expanded Testing
