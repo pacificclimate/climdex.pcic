@@ -17,12 +17,12 @@
       - Added an optional parameter `include.exact.dates` to any relevant functions. When this parameter is set,
         the index will return a data frame with rows containing the exact date of a climate extreme, 
         the value of the index for that day, and the date factor (year, month, or season) on which it was calculated.
-      - Indices with the include.exact.dates include: `TNn`, `TNx`, `TXn`, `TXx`, `Rx1day`, `Rx5day`, `CDD`, `CWD`, `GSL`.
+      - Indices with the include.exact.dates parameter include: `TNn`, `TNx`, `TXn`, `TXx`, `Rx1day`, `Rx5day`, `CDD`, `CWD`, `GSL`.
       - Modified existing functions and added new utility functions to support this feature, 
         including changes to `tapply.fast`, and the introduction of `compute.stat`, `ymd.dates`, `exact.date`, and `get.rxnday.params`.
     
     Note: Due to the introduction of new parameters in this release, you may need to update how you call certain functions. 
-          Please consult the manual pages for detailed information on the new parameters and examples of updated function usage.
+          Please consult the manual pages for detailed information on the new parameters.
 
   MINOR CHANGES:
     Updated and Expanded Testing
