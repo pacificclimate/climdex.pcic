@@ -27,7 +27,8 @@
 #' 
 #' @name climdex.pcic
 #' @aliases climdex.pcic-package
-#' @docType package
+#' @keywords internal
+"_PACKAGE"
 #' @seealso \code{\link{climdexInput.raw}}, \code{\link{climdexInput.csv}},
 #' \code{\link{climdexInput-class}}.
 #' @references \url{http://etccdi.pacificclimate.org/list_27_indices.shtml}
@@ -43,7 +44,7 @@
 #' Zhang, X., 2005: Avoiding inhomogeneity in percentile-based indices of
 #' temperature extremes. Journal of Climate 18.11 (2005):1641-.
 #' @keywords climate ts
-#' @useDynLib climdex.pcic
+#' @useDynLib climdex.pcic, .registration = TRUE
 #' @import PCICt Rcpp methods
 NULL
 

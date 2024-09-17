@@ -8,9 +8,12 @@ Maintainer: James Hiebert <hiebert@uvic.ca>
 Depends:
     R (>= 2.12.0),
     PCICt (>= 0.5-4)
+Encoding: UTF-8
 Imports:
     methods,
-    Rcpp (>= 0.11.4)
+    Rcpp (>= 0.11.4),
+    stats,
+    utils
 Suggests:
     compiler,
     RUnit
@@ -23,4 +26,5 @@ License: GPL-3
 URL: https://www.r-project.org
 LazyData: yes
 BugReports: https://github.com/pacificclimate/climdex.pcic/issues/
-RoxygenNote: 7.2.3
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
