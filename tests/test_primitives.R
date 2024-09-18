@@ -121,7 +121,6 @@ climdex.pcic.test.percent.days.op.threshold <- function() {
 
   ## Check this against the known-valid data.
   if(!is.x86)
-    print(is.x86)
     checkEquals(ec.1018935.tx90p, tx90p)
 }
 climdex.pcic.test.growing.season.length <- function() {
