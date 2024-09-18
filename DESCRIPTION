@@ -28,3 +28,16 @@ LazyData: yes
 BugReports: https://github.com/pacificclimate/climdex.pcic/issues/
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.2
+Collate:
+  'input_utils.R'
+  'climdexInput_class.R'
+  'climdex.pcic-package.R'
+  'constants.R'
+  'date_utils.R'
+  'precipitation_indices.R'
+  'series_utils.R'
+  'stats_utils.R'
+  'temperature_indices.R'
+  'threshold_indices.R'
+  'threshold_utils.R'
+

@@ -176,52 +176,6 @@ compute.stat <- function(ci, stat, data.key, freq = c("monthly", "annual", "seas
   return(suppressWarnings(tapply.fast(data, date.factors, stat, na.rm = TRUE)) * mask)
 }
 
-#' Get available indices by name
-#'
-#' This function returns a vector of (function) names of available indices.
-#'
-#' This function takes a climdexInput object as input and returns the names of
-#' all the indices which may be computed or, if \code{get.function.names} is
-#' TRUE (the default), the names of the functions corresponding to the indices.
-#' 
-#' @param ci Object of type climdexInput.
-#' @param function.names Whether to return function names.
-#' @return A vector containing an annual timeseries of precipitation in wet days.
-#'
-#' @examples
-#' library(PCICt)
-#'
-#' ## Create a climdexInput object from some data already loaded in and
-#' ## ready to go.
-#'
-#' ## Parse the dates into PCICt.
-#' tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' tmin.dates <- as.PCICt(do.call(paste, ec.1018935.tmin[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#' prec.dates <- as.PCICt(do.call(paste, ec.1018935.prec[,c("year",
-#' "jday")]), format="%Y %j", cal="gregorian")
-#'
-#' ## Load the data in.
-#' ci <- climdexInput.raw(ec.1018935.tmax$MAX_TEMP,
-#' ec.1018935.tmin$MIN_TEMP, ec.1018935.prec$ONE_DAY_PRECIPITATION,
-#' tmax.dates, tmin.dates, prec.dates, base.range=c(1971, 2000))
-#'
-#' ## Get list of functions which might be run.
-#' func.names <- climdex.get.available.indices(ci)
-#' @export
-climdex.get.available.indices <- function(ci, function.names=TRUE) {
-  available.indices <- list(tmax=c('su', 'id', 'txx', 'txn', 'tx10p', 'tx90p', 'wsdi'),
-                            tmin=c('fd', 'tr', 'tnx', 'tnn', 'tn10p', 'tn90p', 'csdi'),
-                            tavg=c('gsl', 'dtr'),
-                            prec=c('rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot'))
-  if(function.names) {
-    return(paste("climdex", unlist(available.indices[names(ci@data)]), sep="."))
-  } else {
-    return(unlist(available.indices[names(ci@data)], use.names=FALSE))
-  }
-}
-
 ## Returns an n-day running quantile for each day of data (dimensions c(dpy, q))
 running.quantile <- function(data, n, q, dpy, min.fraction) {
   ret <- .Call("running_quantile_windowed", data, n, q, dpy, min.fraction, PACKAGE='climdex.pcic')
