@@ -31,6 +31,10 @@ RoxygenNote: 7.3.2
 Collate:
   'input_utils.R'
   'climdexInput_class.R'
+  'GenericVariable_utils.R'
+  'climdexGenericVariable_class.R'
+  'climdexGenericScalar.R'
+  'climdexGenericVector.R'
   'climdex.pcic-package.R'
   'constants.R'
   'date_utils.R'

@@ -144,3 +144,4 @@ climdex.get.available.indices <- function(ci, function.names=TRUE) {
     return(unlist(available.indices[names(ci@data)], use.names=FALSE))
   }
 }
+
