@@ -17,12 +17,15 @@
 #' @param calendar String representing the calendar type, e.g., "gregorian".
 #' @return A `ClimdexGenericScalar` object containing the processed data.
 #' 
-#' @seealso \code{\link{ClimdexGenericVector.raw}}, \code{\link{ClimdexGenericScalar.csv}}
+#' @seealso \code{\link{climdexGenericVector.raw}}, \code{\link{climdexGenericScalar.csv}}
 #' 
 #' @examples
 #' data <- c(10.5, 12.3, 11.2)
-#' dates <- as.PCICt(c("2000-01-01", "2000-01-02", "2000-01-03"), format = "%Y-%m-%d", cal = "gregorian")
-#' climdexGenericScalar.raw(data, dates, max.missing.days = c(annual = 15, monthly = 3, seasonal = 6))
+#' dates <- as.PCICt(c("2024-01-01", "2024-01-02", "2024-01-03"),
+#'                   format = "%Y-%m-%d", cal = "gregorian")
+#' climdexGenericScalar.raw(data, 
+#'                          dates,
+#'                          max.missing.days = c(annual = 15, monthly = 3, seasonal = 6))
 #' 
 #' @export
 
@@ -44,8 +47,8 @@ climdexGenericScalar.raw <- function(
   filled.list <- generate_filled_list(data, dates, date.series)
   namasks <- generate_namasks(filled.list, date.factors, max.missing.days)
   
-  obj <- new("ClimdexGenericScalar",
-    data = filled.list,
+  obj <- new("climdexGenericScalar",
+    data = filled.list[[1]],
     dates = date.series,
     date.factors = date.factors,
     jdays = jdays,
@@ -78,13 +81,28 @@ climdexGenericScalar.raw <- function(
 #'
 #' @return A `ClimdexGenericScalar` object containing the processed scalar climate data.
 #'
-#' @seealso \code{\link{ClimdexGenericScalar.raw}}, \code{\link{ClimdexGenericVector.csv}}
+#' @seealso \code{\link{climdexGenericScalar.raw}}, \code{\link{climdexGenericVector.csv}}
 #'
 #' @examples
-#' # Example usage:
-#' climdexGenericScalar.csv("data.csv", data.column = "humidity", date.columns = c("year", "month", "day"),
-#'                          date.format = "%Y %m %d", calendar = "gregorian")
+#' # Example usage for scalar data:
 #'
+#' # Simulating CSV data for humidity
+#' csv_data <- "
+#' year,month,day,humidity
+#' 2024,01,01,80
+#' 2024,01,02,82
+#' 2024,01,03,85
+#' "
+#'
+#' # Write the CSV to a temporary file
+#' temp_file <- tempfile(fileext = ".csv")
+#' writeLines(csv_data, temp_file)  
+#'
+#' # Call the climdexGenericScalar.csv function
+#' climdexGenericScalar.csv(temp_file, data.column = "humidity",
+#'                          date.columns = c("year", "month", "day"),
+#'                          date.format = "%Y %m %d", calendar = "gregorian")
+
 #' @export
 
 climdexGenericScalar.csv <- function(
@@ -99,9 +117,8 @@ climdexGenericScalar.csv <- function(
 ) {
 
   GS.csv <- read_csv_data(file, data.column, date.columns, date.format,  na.strings, calendar)
-
   obj <- climdexGenericScalar.raw(
-    data = GS.csv$data,
+    data = GS.csv$data[[1]],
     dates = GS.csv$dates,
     northern.hemisphere = northern.hemisphere,
     max.missing.days = max.missing.days,

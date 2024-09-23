@@ -20,12 +20,13 @@
 #' 
 #' @return A `ClimdexGenericVector` object containing the processed vector data.
 #' 
-#' @seealso \code{\link{ClimdexGenericScalar.raw}}, \code{\link{ClimdexGenericVector.csv}}
+#' @seealso \code{\link{climdexGenericScalar.raw}}, \code{\link{climdexGenericVector.csv}}
 #' 
 #' @examples
 #' primary <- c(5.5, 6.2, 4.8)
 #' secondary <- c("N", "NE", "E")
-#' dates <- as.PCICt(c("2000-01-01", "2000-01-02", "2000-01-03"), format = "%Y-%m-%d", cal = "gregorian")
+#' dates <- as.PCICt(c("2000-01-01", "2000-01-02", "2000-01-03"),
+#'                  format = "%Y-%m-%d", cal = "gregorian")
 #' climdexGenericVector.raw(primary, secondary, dates, format = "cardinal")
 #' 
 #' @export
@@ -40,7 +41,7 @@ climdexGenericVector.raw <- function(
     calendar = "gregorian"
 ) {
 
-  check.generic.argument.validity(list(primary, secondary), dates, calendar)
+  check.generic.argument.validity(primary, dates, max.missing.days)
   
   # Additional validation for format
   if (format %in% c("polar", "cartesian")) {
@@ -66,7 +67,7 @@ climdexGenericVector.raw <- function(
 
   namasks <- generate_namasks(filled.list, date.factors, max.missing.days)
 
-  obj <- new("ClimdexGenericVector",
+  obj <- new("climdexGenericVector",
     primary = filled.primary,
     secondary = filled.secondary,
     dates = date.series,
@@ -104,14 +105,29 @@ climdexGenericVector.raw <- function(
 #'
 #' @return A `ClimdexGenericVector` object containing the processed vector climate data.
 #'
-#' @seealso \code{\link{ClimdexGenericVector.raw}}, \code{\link{ClimdexGenericScalar.csv}}
+#' @seealso \code{\link{climdexGenericVector.raw}}, \code{\link{climdexGenericScalar.csv}}
 #'
 #' @examples
-#' # Example usage:
-#' climdexGenericVector.csv("data.csv", primary.column = "wind_speed", secondary.column = "wind_direction",
-#'                          date.columns = c("year", "month", "day"), date.format = "%Y %m %d",
-#'                          format = "cardinal", calendar = "gregorian")
+#' # Example usage for vector data (e.g., wind speed and direction):
 #'
+#' csv_data <- "
+#' year,month,day,wind_speed,wind_direction
+#' 2024,01,01,10,N
+#' 2024,01,02,12,NE
+#' 2024,01,03,8,E
+#' "
+#'
+#' # Write the CSV to a temporary file
+#' temp_file <- tempfile(fileext = ".csv")
+#' writeLines(csv_data, temp_file) 
+#'
+#' # Call the climdexGenericVector.csv function
+#' climdexGenericVector.csv(temp_file, primary.column = "wind_speed",
+#'                          secondary.column = "wind_direction",
+#'                          date.columns = c("year", "month", "day"),
+#'                          date.format = "%Y %m %d", format = "cardinal",
+#'                          calendar = "gregorian")
+
 #' @export
 
 climdexGenericVector.csv <- function(

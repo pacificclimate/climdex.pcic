@@ -1,5 +1,5 @@
-#' Class definition for ClimdexGenericVariable
-#' @title ClimdexGenericVariable
+#' Class definition for climdexGenericVariable
+#' @title climdexGenericVariable
 #' 
 #' @description
 #' This class represents the base for handling both scalar and vector generic climate data.
@@ -19,7 +19,7 @@
 #' @keywords internal
 
 setClass(
-  "ClimdexGenericVariable",
+  "climdexGenericVariable",
   slots = list(
     dates = "PCICt",
     date.factors = "list",
@@ -31,10 +31,10 @@ setClass(
 )
 
 ## Class definition declaration
-#' @title ClimdexGenericScalar
+#' @title climdexGenericScalar
 #' 
 #' @description
-#' The `ClimdexGenericScalar` class contains scalar climate data (e.g., humidity, snow-depth
+#' The `climdexGenericScalar` class contains scalar climate data (e.g., humidity, snow-depth
 #' ) and other data required for days for calculating basic climate indices.
 #'
 #' @section Slots:
@@ -49,23 +49,23 @@ setClass(
 #' and monthly data.}
 #' }
 #' 
-#' @name ClimdexGenericScalar
-#' @aliases ClimdexGenericScalar-class
-#' @exportClass ClimdexGenericScalar
+#' @name climdexGenericScalar
+#' @aliases climdexGenericScalar-class
+#' @exportClass climdexGenericScalar
 
 setClass(
-  "ClimdexGenericScalar",
-  contains = "ClimdexGenericVariable",
+  "climdexGenericScalar",
+  contains = "climdexGenericVariable",
   slots = list(
     data = "numeric"
   )
 )
 
 ## Class definition declaration
-#' @title ClimdexGenericVector
+#' @title climdexGenericVector
 #' 
 #' @description
-#' The `ClimdexGenericVector` class contains vector climate data (e.g., wind speed and direction), consisting of
+#' The `climdexGenericVector` class contains vector climate data (e.g., wind speed and direction), consisting of
 #' both primary and secondary components, and other data required for days for calculating basic climate indices.
 #'
 #' @details
@@ -97,13 +97,13 @@ setClass(
 #'    and monthly data.}
 #' }
 #' 
-#' @name ClimdexGenericVector
-#' @aliases ClimdexGenericVector-class
-#' @exportClass ClimdexGenericVector
+#' @name climdexGenericVector
+#' @aliases climdexGenericVector-class
+#' @exportClass climdexGenericVector
 
 setClass(
-  "ClimdexGenericVector",
-  contains = "ClimdexGenericVariable",
+  "climdexGenericVector",
+  contains = "climdexGenericVariable",
   slots = list(
     primary = "numeric",
     secondary = "ANY",  # Could be numeric or character, depending on format.
