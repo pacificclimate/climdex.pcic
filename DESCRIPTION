@@ -13,7 +13,8 @@ Imports:
     methods,
     Rcpp (>= 0.11.4),
     stats,
-    utils
+    utils,
+    circular,
 Suggests:
     compiler,
     RUnit
@@ -36,6 +37,7 @@ Collate:
   'climdexGenericScalar.R'
   'climdexGenericVector.R'
   'climdex.pcic-package.R'
+  'generic_stats.R'
   'constants.R'
   'date_utils.R'
   'precipitation_indices.R'

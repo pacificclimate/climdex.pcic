@@ -84,10 +84,16 @@ generate_namasks <- function(filled.list, date.factors, max.missing.days) {
 }
 
 generate_filled_list <- function(data, dates, date.series) {
-  filled.list <- sapply(data, function(x) { 
-    return(create.filled.series(x, trunc(dates), date.series)) }, simplify=FALSE)
-  return(filled.list)
+  if (is.vector(data)) {
+    return(list(create.filled.series(data, trunc(dates), date.series)))
+  } else {
+    filled.list <- sapply(data, function(x) { 
+      return(create.filled.series(x, trunc(dates), date.series)) 
+    }, simplify = FALSE)
+    return(filled.list)
+  }
 }
+
 
 # Reads data from a CSV file, validates it, and converts date columns to PCICt dates.
 read_csv_data <- function(

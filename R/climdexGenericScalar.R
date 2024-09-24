@@ -45,10 +45,10 @@ climdexGenericScalar.raw <- function(
   date.factors = date.info$date.factors
 
   filled.list <- generate_filled_list(data, dates, date.series)
+  names(filled.list) <- "data"
   namasks <- generate_namasks(filled.list, date.factors, max.missing.days)
-  
   obj <- new("climdexGenericScalar",
-    data = filled.list[[1]],
+    data = filled.list[["data"]],
     dates = date.series,
     date.factors = date.factors,
     jdays = jdays,

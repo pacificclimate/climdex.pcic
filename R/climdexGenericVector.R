@@ -23,12 +23,12 @@
 #' @seealso \code{\link{climdexGenericScalar.raw}}, \code{\link{climdexGenericVector.csv}}
 #' 
 #' @examples
-#' primary <- c(5.5, 6.2, 4.8)
+#' 
+#' \dontrun{primary <- c(5.5, 6.2, 4.8)
 #' secondary <- c("N", "NE", "E")
 #' dates <- as.PCICt(c("2000-01-01", "2000-01-02", "2000-01-03"),
 #'                  format = "%Y-%m-%d", cal = "gregorian")
-#' climdexGenericVector.raw(primary, secondary, dates, format = "cardinal")
-#' 
+#' climdexGenericVector.raw(primary, secondary, dates, format = "cardinal")}
 #' @export
 
 climdexGenericVector.raw <- function(
@@ -109,7 +109,7 @@ climdexGenericVector.raw <- function(
 #'
 #' @examples
 #' # Example usage for vector data (e.g., wind speed and direction):
-#'
+#'\dontrun{
 #' csv_data <- "
 #' year,month,day,wind_speed,wind_direction
 #' 2024,01,01,10,N
@@ -127,6 +127,7 @@ climdexGenericVector.raw <- function(
 #'                          date.columns = c("year", "month", "day"),
 #'                          date.format = "%Y %m %d", format = "cardinal",
 #'                          calendar = "gregorian")
+#' }
 
 #' @export
 
