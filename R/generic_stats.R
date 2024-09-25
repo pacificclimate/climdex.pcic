@@ -86,36 +86,92 @@ compute.stat.scalar <- function(scalar_obj,
   return(compute.gen.stat(scalar_obj, stat, scalar_obj@data, freq, include.exact.dates))
 }
 
-
+#' @title Convert Cartesian to Polar Coordinates
+#' @description Converts Cartesian coordinates (u, v) to polar coordinates (speed, direction).
+#' @param u A numeric value representing the x-component (u) of the Cartesian coordinate.
+#' @param v A numeric value representing the y-component (v) of the Cartesian coordinate.
+#' @return A list with two elements:
+#'   \item{speed}{The magnitude of the vector (i.e., the speed).}
+#'   \item{direction}{The direction of the vector in degrees, normalized to the range [0, 360).}
+#' @export
 convert_cartesian_to_polar <- function(u, v) {
+  if (!is.numeric(u) || !is.numeric(v)) {
+    stop("u and v must be numeric.")
+  }
   speed <- sqrt(u^2 + v^2)
+  
+  if (speed == 0) {
+    direction <- NA  # No meaningful direction when speed is 0
+  } else {
+    direction <- (atan2(v, u) * 180 / pi + 360) %% 360
+  }
+  
   direction <- (atan2(v, u) * 180 / pi + 360) %% 360
   return(list(speed = speed, direction = direction))
 }
 
+#' @title Convert Polar to Cartesian Coordinates
+#' @description Converts polar coordinates (speed, direction) to Cartesian coordinates (u, v).
+#' @param speed A numeric value representing the magnitude of the vector.
+#' @param direction A numeric value representing the direction of the vector in degrees.
+#' @return A list with two elements:
+#'   \item{u}{The x-component (u) of the Cartesian coordinate.}
+#'   \item{v}{The y-component (v) of the Cartesian coordinate.}
+#' @export
 convert_polar_to_cartesian <- function(speed, direction) {
+  if (!is.numeric(speed) || !is.numeric(direction)) {
+    stop("speed and direction must be numeric.")
+  }
   radians <- direction * pi / 180
   u <- speed * cos(radians)
   v <- speed * sin(radians)
   return(list(u = u, v = v))
 }
 
+#' @title Convert Degrees to Cardinal Direction
+#' @description Converts a numeric degree value into the corresponding cardinal direction (e.g., N, NE, E).
+#' @param degrees A numeric vector of degrees (0-360) representing the direction.
+#' @return A character vector of cardinal directions corresponding to the degree values.
+#' @export
 convert_degrees_to_cardinal <- function(degrees) {
+  if (!is.numeric(degrees)) {
+    stop("degrees must be a numeric vector.")
+  }
   directions <- c('N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
                   'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N')
   index <- round(degrees / 22.5) %% 16 + 1
   return(directions[index])
 }
 
+#' @title Convert Cardinal Direction to Degrees
+#' @description Converts a cardinal direction (e.g., N, NE, E) into the corresponding degree value.
+#' @param direction A character vector of cardinal directions.
+#' @return A numeric vector of degrees corresponding to the cardinal directions.
+#' @export
 convert_cardinal_to_degrees <- function(direction) {
   cardinal_map <- c(N = 0, NNE = 22.5, NE = 45, ENE = 67.5, E = 90,
                     ESE = 112.5, SE = 135, SSE = 157.5, S = 180,
                     SSW = 202.5, SW = 225, WSW = 247.5, W = 270,
                     WNW = 292.5, NW = 315, NNW = 337.5)
+  
+  direction <- toupper(direction)
+  if (any(!direction %in% names(cardinal_map))) {
+    stop("Invalid cardinal direction provided.")
+  }
   return(cardinal_map[direction])
 }
 
-# Function to filter data based on direction range
+#' @title Filter Data by Direction Range
+#' @description Filters primary data, degrees, and date factors based on a specified range of directions.
+#' @param primary_data A numeric vector of the primary data to be filtered.
+#' @param degrees A numeric vector of direction degrees.
+#' @param date_factors A vector of date factors corresponding to the data.
+#' @param direction.range A numeric vector of length 2 specifying the minimum and maximum degrees for filtering.
+#' @return A list containing:
+#'   \item{primary_data}{The filtered primary data.}
+#'   \item{degrees}{The filtered degrees.}
+#'   \item{date_factors}{The filtered date factors.}
+#' @export
 filter_by_direction_range <- function(primary_data, degrees, date_factors, direction.range) {
   if (!is.numeric(direction.range) || length(direction.range) != 2) {
     stop("direction.range must be a numeric vector of length 2 specifying min and max degrees.")
@@ -145,7 +201,34 @@ filter_by_direction_range <- function(primary_data, degrees, date_factors, direc
   ))
 }
 
+#' @title Compute Circular Mean
+#' @description Computes the circular mean of directional data based on date factors.
+#' @param direction_degrees A numeric vector of direction values in degrees.
+#' @param date.factors A vector of date factors used to group the data.
+#' @param format The format of the result, either "degrees" (default) or "cardinal".
+#' @return A numeric vector of circular means for each date factor group, or a character vector of cardinal directions if `format` is set to "cardinal".
+#' @importFrom circular circular mean.circular sd.circular
+#' @export
 compute_circular_mean <- function(direction_degrees, date.factors, format) {
+  
+  # Check for empty or NULL inputs
+  if (is.null(direction_degrees) || length(direction_degrees) == 0) {
+    stop("direction_degrees cannot be empty or NULL.")
+  }
+  if (is.null(date.factors) || length(date.factors) == 0) {
+    stop("date.factors cannot be empty or NULL.")
+  }
+  
+  # Check if inputs are numeric
+  if (!is.numeric(direction_degrees)) {
+    stop("direction_degrees must be a numeric vector.")
+  }
+  
+  # Check if format is valid
+  if (!format %in% c("degrees", "cardinal")) {
+    stop("format must be either 'degrees' or 'cardinal'.")
+  }
+  
   # Convert directions to 'circular' objects
   directions_circular <- circular::circular(direction_degrees, units = "degrees", modulo = "2pi")
   
@@ -166,7 +249,27 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
   return(circular_mean_result)
 }
 
+#' @title Compute Circular Standard Deviation
+#' @description Computes the circular standard deviation of directional data based on date factors.
+#' @param direction_degrees A numeric vector of direction values in degrees.
+#' @param date.factors A vector of date factors used to group the data.
+#' @return A numeric vector of circular standard deviations for each date factor group, in degrees.
+#' @export
 compute_circular_sd <- function(direction_degrees, date.factors) {
+
+  # Check for empty or NULL inputs
+  if (is.null(direction_degrees) || length(direction_degrees) == 0) {
+    stop("direction_degrees cannot be empty or NULL.")
+  }
+  if (is.null(date.factors) || length(date.factors) == 0) {
+    stop("date.factors cannot be empty or NULL.")
+  }
+  
+  # Check if inputs are numeric
+  if (!is.numeric(direction_degrees)) {
+    stop("direction_degrees must be a numeric vector.")
+  }
+
   # Convert directions to 'circular' objects
   directions_circular <- circular::circular(direction_degrees, units = "degrees", modulo = "2pi")
   
