@@ -61,11 +61,12 @@ climdexGenericVector.raw <- function(
   date.series = date.info$date.series
   date.factors = date.info$date.factors
 
-  filled.list <- generate_filled_list(list(primary, secondary), dates, date.series)
-  filled.primary <- filled.list[[1]]
-  filled.secondary <- filled.list[[2]]
 
-  namasks <- generate_namasks(filled.list, date.factors, max.missing.days)
+  filled.primary <- generate_filled_list(primary, dates, date.series)[[1]]
+  filled.secondary <- generate_filled_list(secondary, dates, date.series)[[1]]
+  filled.secondary[is.na(filled.primary)] <- NA
+  filled.primary[is.na(filled.secondary)] <- NA
+  namasks <- generate_namasks(list(primary = filled.primary, secondary = filled.secondary), date.factors, max.missing.days)
 
   obj <- new("climdexGenericVector",
     primary = filled.primary,

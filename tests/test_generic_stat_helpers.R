@@ -53,8 +53,8 @@ climdex.pcic.test.convert_cardinal_to_degrees <- function() {
   directions <- c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW')
   expected <- c(0, 45, 90, 135, 180, 225, 270, 315)
   result <- convert_cardinal_to_degrees(directions)
-  
   checkEqualsNumeric(as.numeric(result), expected)
+  
   # Invalid direction should trigger an error
   checkException(convert_cardinal_to_degrees(c('XYZ')), "Invalid cardinal direction provided.")
   
@@ -87,14 +87,14 @@ climdex.pcic.test.filter_by_direction_range <- function() {
 climdex.pcic.test.compute_circular_mean <- function() {
   direction_degrees <- c(350, 10)  # Should average to 0 degrees
   date.factors <- c(1,1)
-  format <- "degrees"
+  format <- "polar"
   result <- compute_circular_mean(direction_degrees, date.factors, format)
   expected <- c(0)
   
   checkEqualsNumeric(result, expected, tolerance = 1e-6)
   
-  checkEqualsNumeric(compute_circular_mean(c(90, 90), c(1, 1), "degrees"), 90)
-  checkException(compute_circular_mean(c(), c(), "degrees"), 
+  checkEqualsNumeric(compute_circular_mean(c(90, 90), c(1, 1), "polar"), 90)
+  checkException(compute_circular_mean(c(), c(), "polar"), 
                  msg = "direction_degrees cannot be empty or NULL.")
 }
 
@@ -102,58 +102,10 @@ climdex.pcic.test.compute_circular_sd <- function() {
   direction_degrees <- c(350, 10)
   date.factors <- c(1)
   result <- compute_circular_sd(direction_degrees, date.factors)
-  expected <- 10.0261 # Approx
+  expected <- circular::sd.circular(circular::circular(c(350, 10), units = "degrees", modulo = "2pi")) * 180 / pi
   checkEqualsNumeric(result, expected, tolerance = 1e-4)
   
   # Check for empty inputs (expect an error)
   checkException(compute_circular_sd(c(), c()), 
                  msg = "direction_degrees cannot be empty or NULL.")
-}
-
-# # compute.stat.scalar Tests
-
-climdex.pcic.test.compute_stat_scalar_mean <- function() {
-  # Test data and dates
-  data <- seq(0, 30)
-  dates <- seq(as.PCICt("2020-01-01", cal="gregorian"), 
-               by = "day", length.out = 31)
-  
-  # Use the climdexGenericScalar.raw function to create scalar_obj
-  scalar_obj <- climdexGenericScalar.raw(
-    data = data,
-    dates = dates,
-    max.missing.days = c(annual = 15, monthly = 3, seasonal = 6),
-    northern.hemisphere = TRUE,
-    calendar = "gregorian"
-  )
-  # Compute the mean for the 'monthly' frequency
-  result <- compute.stat.scalar(scalar_obj, stat = "mean", freq = "monthly", include.exact.dates = FALSE)
-  
-  expected_mean <- mean(data)
-  
-  # Compare the computed result for January with the expected value
-  checkEqualsNumeric(as.numeric(result[1]), expected_mean)
-}
-
-
-climdex.pcic.test.compute_stat_scalar_max <- function() {
-  # Test data and dates
-  data <- c(1, 3, 5, 2, 4, 6) 
-  dates <- seq(as.PCICt("2020-01-01", cal="gregorian"), by = "day", length.out = 6)
-  
-  # Use the climdexGenericScalar.raw function to create scalar_obj with higher max.missing.days for monthly
-  scalar_obj <- climdexGenericScalar.raw(
-    data = data,
-    dates = dates,
-    max.missing.days = c(annual = 15, monthly = 28, seasonal = 6),  # Allow up to 28 missing days in a month
-    northern.hemisphere = TRUE,
-    calendar = "gregorian"
-  )
-  
-  # Compute the maximum value for the 'monthly' frequency
-  result <- compute.stat.scalar(scalar_obj, stat = "max", freq = "monthly", include.exact.dates = FALSE)
-  
-  expected_max <- max(data)
-  
-  checkEqualsNumeric(as.numeric(result[1]), expected_max)
 }

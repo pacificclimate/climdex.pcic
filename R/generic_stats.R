@@ -225,8 +225,16 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
   }
   
   # Check if format is valid
-  if (!format %in% c("degrees", "cardinal")) {
-    stop("format must be either 'degrees' or 'cardinal'.")
+  if (!format %in% c("polar", "cardinal")) {
+    stop("format must be either 'polar' or 'cardinal'.")
+  }
+  
+  valid_idx <- !is.na(direction_degrees)
+  direction_degrees <- direction_degrees[valid_idx]
+  date.factors <- date.factors[valid_idx]
+  
+  if (length(direction_degrees) == 0) {
+    return(NA)  # If all are NA, return NA
   }
   
   # Convert directions to 'circular' objects
@@ -318,6 +326,7 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
 #' compute.stat.vector(vector_obj, "circular_mean", "monthly", format = "polar")
 #'}
 #'
+#' @export
 compute.stat.vector <- function(
     climate_obj,
     stat = c("max", "min", "mean", "sum", "circular_mean", "sd", "var", "circular_sd"),
@@ -352,10 +361,10 @@ compute.stat.vector <- function(
   
   # Filter data based on direction range if provided
   if (!is.null(direction.range)) {
-    filtered <- filter_by_direction_range(magnitude, direction_degrees, date.factors, direction.range)
-    magnitude <- filtered$primary_data
-    direction_degrees <- filtered$degrees
-    date.factors <- filtered$date_factors
+    # Set directions outside the range to NA
+    out_of_range <- direction_degrees < direction.range[1] | direction_degrees > direction.range[2]
+    magnitude[out_of_range] <- NA
+    direction_degrees[out_of_range] <- NA
   }
   
   result <- switch(
@@ -370,48 +379,19 @@ compute.stat.vector <- function(
     },
     {
       # For other statistics, compute on magnitude
-      # Create a local copy of climate_obj to avoid modifying the original object
-      local_climate_obj <- climate_obj
-      
-      # Define a unique key for magnitude data
-      magnitude_key <- "magnitude_temp"
-      
-      # Add magnitude data to local_climate_obj@data
-      local_climate_obj@data[[magnitude_key]] <- magnitude
-      
-      # Use existing masks for primary and secondary data
-      primary <- climate_obj@primary
-      secondary <- climate_obj@secondary
-      mask_primary <- climate_obj@namasks[[freq]][[primary]]
-      mask_secondary <- climate_obj@namasks[[freq]][[secondary]]
-      
-      if (!is.null(mask_primary) && !is.null(mask_secondary)) {
-        magnitude_mask <- mask_primary * mask_secondary
-      } else if (!is.null(mask_primary)) {
-        magnitude_mask <- mask_primary
-      } else if (!is.null(mask_secondary)) {
-        magnitude_mask <- mask_secondary
-      } else {
-        # Default mask
-        magnitude_mask <- rep(1, length(unique(date.factors)))
-        names(magnitude_mask) <- unique(date.factors)
-      }
-      
-      # Add the mask to local_climate_obj@namasks
-      local_climate_obj@namasks[[freq]][[magnitude_key]] <- magnitude_mask
-      
       magnitude_stat <- compute.gen.stat(
-        local_climate_obj,
-        stat,
-        magnitude_key,
-        freq = freq,
+        gen.var = climate_obj, 
+        stat = stat, 
+        data = magnitude, 
+        freq = freq, 
         include.exact.dates = include.exact.dates
       )
-      
-      list(magnitude = magnitude_stat)
+      magnitude_mask <- climate_obj@namasks[[freq]][["primary"]]
+      list(magnitude = magnitude_stat * magnitude_mask)
     }
   )
   
   return(result)
 }
+
 

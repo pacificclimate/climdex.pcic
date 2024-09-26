@@ -50,9 +50,17 @@ generate_namasks <- function(filled.list, date.factors, max.missing.days) {
     seasonal = lapply(filled.list, get.na.mask, date.factors$seasonal, max.missing.days["seasonal"]))
     # Vectors: Combine the masks for magnitude and direction
   if ("primary" %in% names(filled.list) && "secondary" %in% names(filled.list)) {
-    namasks$annual$magnitude_direction <- namasks$annual$magnitude * namasks$annual$direction
-    namasks$monthly$magnitude_direction <- namasks$monthly$magnitude * namasks$monthly$direction
-    namasks$seasonal$magnitude_direction <- namasks$seasonal$magnitude * namasks$seasonal$direction
+    # Synchronize annual masks
+    namasks$annual$primary <- namasks$annual$primary * namasks$annual$secondary
+    namasks$annual$secondary <- namasks$annual$primary
+    
+    # Synchronize monthly masks
+    namasks$monthly$primary <- namasks$monthly$primary * namasks$monthly$secondary
+    namasks$monthly$secondary <- namasks$monthly$primary
+    
+    # Synchronize seasonal masks
+    namasks$seasonal$primary <- namasks$seasonal$primary * namasks$seasonal$secondary
+    namasks$seasonal$secondary <- namasks$seasonal$primary
   }
   namasks$annual <- lapply(names(namasks$annual), function(v) {
     d <- namasks$annual[[v]] * as.numeric(tapply(namasks$monthly[[v]], rep(seq_along(namasks$annual[[v]]), each = 12), prod))
