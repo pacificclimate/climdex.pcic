@@ -80,3 +80,66 @@ climdex.pcic.test.scalar.exact.dates <- function() {
                           "Expected exact date:", expected_max_date))
 }
 
+climdex.pcic.test.compute.stat.scalar.sum <- function() {
+  
+  data <- c(1, 2, 3, 4, 5) 
+  dates <- seq(as.PCICt("2020-01-01", cal="gregorian"), by = "day", length.out = 5)
+  
+  scalar_obj <- climdexGenericScalar.raw(
+    data = data,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  # Monthly sum
+  result <- compute.stat.scalar(scalar_obj, stat = "sum", freq = "monthly", include.exact.dates = FALSE)
+  expected_sum <- sum(data)
+  
+  checkEqualsNumeric(as.numeric(result[1]), expected_sum, 
+                     msg = paste("Computed sum:", result[1], "Expected sum:", expected_sum))
+}
+
+climdex.pcic.test.compute.stat.scalar.sd <- function() {
+
+  data <- c(2, 4, 6, 8, 10) 
+  dates <- seq(as.PCICt("2020-01-01", cal="gregorian"), by = "day", length.out = 5)
+  
+  scalar_obj <- climdexGenericScalar.raw(
+    data = data,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  # Monthly SD
+  result <- compute.stat.scalar(scalar_obj, stat = "sd", freq = "monthly", include.exact.dates = FALSE)
+  expected_sd <- sd(data)
+  
+  checkEqualsNumeric(as.numeric(result[1]), expected_sd, tolerance = 1e-6, 
+                     msg = paste("Computed SD:", result[1], "Expected SD:", expected_sd))
+}
+
+climdex.pcic.test.compute.stat.scalar.var <- function() {
+  # Test data and dates
+  data <- c(3, 6, 9, 12, 15) 
+  dates <- seq(as.PCICt("2020-01-01", cal="gregorian"), by = "day", length.out = 5)
+  
+  # Use the climdexGenericScalar.raw function to create scalar_obj
+  scalar_obj <- climdexGenericScalar.raw(
+    data = data,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  # Monthly variance
+  result <- compute.stat.scalar(scalar_obj, stat = "var", freq = "monthly", include.exact.dates = FALSE)
+  expected_var <- var(data)
+  
+  checkEqualsNumeric(as.numeric(result[1]), expected_var, tolerance = 1e-6, 
+                     msg = paste("Computed variance:", result[1], "Expected variance:", expected_var))
+}

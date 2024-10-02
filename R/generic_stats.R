@@ -99,15 +99,10 @@ convert_cartesian_to_polar <- function(u, v) {
   if (!is.numeric(u) || !is.numeric(v)) {
     stop("u and v must be numeric.")
   }
+
   speed <- sqrt(u^2 + v^2)
+  direction <- ifelse(speed == 0, NA, (atan2(v, u) * 180 / pi + 360) %% 360)
   
-  if (speed == 0) {
-    direction <- NA  # No meaningful direction when speed is 0
-  } else {
-    direction <- (atan2(v, u) * 180 / pi + 360) %% 360
-  }
-  
-  direction <- (atan2(v, u) * 180 / pi + 360) %% 360
   return(list(speed = speed, direction = direction))
 }
 
@@ -135,13 +130,59 @@ convert_polar_to_cartesian <- function(speed, direction) {
 #' @return A character vector of cardinal directions corresponding to the degree values.
 #' @export
 convert_degrees_to_cardinal <- function(degrees) {
+
   if (!is.numeric(degrees)) {
     stop("degrees must be a numeric vector.")
   }
+  
+  # Normalize degrees to [0, 360)
+  degrees_normalized <- (degrees + 360) %% 360
+  
   directions <- c('N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
                   'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N')
-  index <- round(degrees / 22.5) %% 16 + 1
+  index <- round(degrees_normalized / 22.5) %% 16 + 1
   return(directions[index])
+}
+
+#' @title Compute Directions and Magnitudes Based on Format
+#' @description Internal helper function that computes directions and magnitudes for 
+#' climate data, depending on the specified format ("cartesian", "polar", or "cardinal").
+#' @param format A character string specifying the format of the input data. 
+#' Must be one of "cartesian", "polar", or "cardinal".
+#' @param primary A numeric vector representing the primary data (e.g., speed for polar format).
+#' @param secondary A numeric or character vector representing the secondary data 
+#' (e.g., direction in degrees for polar, or cardinal direction for cardinal format).
+#' @return A list with two elements:
+#'   \item{magnitude}{A numeric vector representing the magnitude of the data.}
+#'   \item{direction_degrees}{A numeric vector representing the direction in degrees (0-360).}
+#'   NA values are preserved in the result for entries that do not have valid data.
+#' @note This is an internal function and should not be called directly by users.
+#' @keywords internal
+compute_directions_and_magnitudes <- function(format, primary, secondary) {
+  valid_idx <- !is.na(secondary)
+  direction_degrees <- rep(NA, length(secondary))
+  magnitude <- rep(NA, length(primary))
+  
+  switch(
+    format,
+    "cartesian" = {
+      valid_idx <- valid_idx & !is.na(primary)
+      polar_data <- convert_cartesian_to_polar(primary[valid_idx], secondary[valid_idx])
+      magnitude[valid_idx] <- polar_data$speed
+      direction_degrees[valid_idx] <- polar_data$direction
+      warning(simpleWarning("Input data is in cartesian format; output will be in polar format."))
+    },
+    "cardinal" = {
+      direction_degrees[valid_idx] <- sapply(secondary[valid_idx], convert_cardinal_to_degrees)
+      magnitude <- primary
+    },
+    "polar" = {
+      direction_degrees[valid_idx] <- as.numeric(secondary[valid_idx])
+      magnitude <- primary
+    }
+  )
+  
+  return(list(magnitude = magnitude, direction_degrees = direction_degrees))
 }
 
 #' @title Convert Cardinal Direction to Degrees
@@ -169,9 +210,9 @@ convert_cardinal_to_degrees <- function(direction) {
 #' @param date_factors A vector of date factors corresponding to the data.
 #' @param direction.range A numeric vector of length 2 specifying the minimum and maximum degrees for filtering.
 #' @return A list containing:
-#'   \item{primary_data}{The filtered primary data.}
-#'   \item{degrees}{The filtered degrees.}
-#'   \item{date_factors}{The filtered date factors.}
+#'   \item{primary_data}{The filtered primary data, setting values outside the range to NA.}
+#'   \item{degrees}{The filtered degrees, setting values outside the range to NA.}
+#'   \item{date_factors}{The filtered date factors, keeping all values intact.}
 #' @export
 filter_by_direction_range <- function(primary_data, degrees, date_factors, direction.range) {
   if (!is.numeric(direction.range) || length(direction.range) != 2) {
@@ -190,17 +231,17 @@ filter_by_direction_range <- function(primary_data, degrees, date_factors, direc
     within_range <- degrees_normalized >= min_dir & degrees_normalized <= max_dir
   }
   
-  # Apply the filter to data and date factors
-  primary_data_filtered <- primary_data[within_range]
-  degrees_filtered <- degrees[within_range]
-  date_factors_filtered <- date_factors[within_range]
+  # Apply the filter and set values outside the range to NA
+  primary_data_filtered <- ifelse(within_range, primary_data, NA)
+  degrees_filtered <- ifelse(within_range, degrees, NA)
   
   return(list(
     primary_data = primary_data_filtered,
     degrees = degrees_filtered,
-    date_factors = date_factors_filtered
+    date_factors = date_factors  # Date factors are not filtered, so remain intact
   ))
 }
+
 
 #' @title Compute Circular Mean
 #' @description Computes the circular mean of directional data based on date factors.
@@ -225,10 +266,6 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
     stop("direction_degrees must be a numeric vector.")
   }
   
-  # Check if format is valid
-  if (!format %in% c("polar", "cardinal")) {
-    stop("format must be either 'polar' or 'cardinal'.")
-  }
   
   valid_idx <- !is.na(direction_degrees)
   direction_degrees <- direction_degrees[valid_idx]
@@ -343,36 +380,21 @@ compute.stat.vector <- function(
   date.factors <- climate_obj@date.factors[[freq]]
   
   # Convert all data to polar coordinates (magnitude and direction in degrees)
-  switch(
-    format,
-    "cartesian" = {
-      polar_data <- convert_cartesian_to_polar(climate_obj@primary, climate_obj@secondary)
-      magnitude <- polar_data$speed
-      direction_degrees <- polar_data$direction
-    },
-    "cardinal" = {
-      direction_degrees <- sapply(climate_obj@secondary, convert_cardinal_to_degrees)
-      magnitude <- climate_obj@primary
-    },
-    "polar" = {
-      magnitude <- climate_obj@primary
-      direction_degrees <- as.numeric(climate_obj@secondary)
-    }
+  directions_magnitudes <- compute_directions_and_magnitudes(
+    format, 
+    climate_obj@primary, 
+    climate_obj@secondary
   )
+  magnitude <- directions_magnitudes$magnitude
+  direction_degrees <- directions_magnitudes$direction_degrees
+  
   
   # Filter data based on direction range if provided
   if (!is.null(direction.range)) {
-    # Check if the range crosses the 360-degree boundary
-    if (direction.range[1] > direction.range[2]) {
-      # Directions are either >= direction.range[1] or <= direction.range[2]
-      out_of_range <- !(direction_degrees >= direction.range[1] | direction_degrees <= direction.range[2])
-    } else {
-      # Directions are between direction.range[1] and direction.range[2]
-      out_of_range <- !(direction_degrees >= direction.range[1] & direction_degrees <= direction.range[2])
-    }
-    # Set directions and magnitudes outside the range to NA
-    magnitude[out_of_range] <- NA
-    direction_degrees[out_of_range] <- NA
+    filtered <- filter_by_direction_range(magnitude, direction_degrees, date.factors, direction.range)
+    magnitude <- filtered$primary_data
+    direction_degrees <- filtered$degrees
+    date.factors <- filtered$date_factors
   }
 
   result <- switch(

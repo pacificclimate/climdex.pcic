@@ -338,3 +338,111 @@ climdex.pcic.test.compute.stat.vector.no.data.in.direction.range <- function() {
   result$magnitude[1]
   checkTrue(is.na(result$magnitude[1]), "Expected NA result when no data is in the specified direction range.")
 }
+
+climdex.pcic.test.compute.stat.vector.cartesian.format <- function() {
+  u <- c(5, 10, 15)
+  v <- c(5, 0, -5)  # Cartesian components
+  
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 3)
+  
+  vector_obj <- climdexGenericVector.raw(
+    primary = u,
+    secondary = v,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    format = "cartesian",
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  # Monthly mean
+  result <- compute.stat.vector(
+    vector_obj,
+    stat = "mean",
+    freq = "monthly",
+    format = "cartesian", 
+    include.exact.dates = FALSE
+  )
+  
+  # Convert u and v to magnitude and direction
+  polar_data <- convert_cartesian_to_polar(u, v)
+  expected_mean_magnitude <- mean(polar_data$speed)
+  
+  checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_mean_magnitude, tolerance = 1e-6,
+                     msg = paste("Computed mean magnitude:", result$magnitude[1], 
+                                 "Expected mean magnitude:", expected_mean_magnitude))
+  # Test 2: Monthly circular mean
+  result_circular_mean <- compute.stat.vector(
+    vector_obj,
+    stat = "circular_mean",
+    freq = "monthly",
+    format = "cartesian",
+    include.exact.dates = FALSE
+  )
+  
+  expected_circular_mean <- compute_circular_mean(polar_data$direction, rep(1, length(polar_data$direction)), "polar")
+  
+  checkEqualsNumeric(as.numeric(result_circular_mean$direction[1]), expected_circular_mean, tolerance = 1e-6,
+                     msg = paste("Computed circular mean direction:", result_circular_mean$direction[1],
+                                 "Expected circular mean direction:", expected_circular_mean))
+}
+
+climdex.pcic.test.compute.stat.vector.cardinal.format <- function() {
+  speed <- c(5, 10, 15)
+  direction <- c('N', 'E', 'S')  # Cardinal directions
+  
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 3)
+  
+  vector_obj <- climdexGenericVector.raw(
+    primary = speed,        
+    secondary = direction,  
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    format = "cardinal",       
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  result <- compute.stat.vector(
+    vector_obj,
+    stat = "mean",
+    freq = "monthly",
+    format = "cardinal",
+    include.exact.dates = FALSE
+  )
+  
+  expected_mean_speed <- mean(speed)
+  
+  checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_mean_speed, tolerance = 1e-6)
+}
+
+climdex.pcic.test.compute.stat.vector.inverted.direction.range <- function() {
+  speed <- c(5, 10, 15, 20)
+  direction <- c(45, 90, 135, 180)
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 4)
+  
+  vector_obj <- climdexGenericVector.raw(
+    primary = speed,
+    secondary = direction,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    format = "polar",
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  # Monthly mean, filter from 270 to 90 degrees
+  result <- compute.stat.vector(
+    vector_obj,
+    stat = "mean",
+    freq = "monthly",
+    format = "polar",
+    include.exact.dates = FALSE,
+    direction.range = c(270, 90)
+  )
+  
+  filtered_speeds <- speed[direction <= 90 | direction >= 270]  # Filtering with inverted bounds
+  expected_mean_magnitude <- mean(filtered_speeds)
+  
+  checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_mean_magnitude)
+}
