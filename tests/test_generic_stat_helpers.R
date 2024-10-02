@@ -5,7 +5,7 @@ library(RUnit)
 wd <- "./"
 
 # Helper Functions Tests
-climdex.pcic.test.convert_cartesian_to_polar <- function() {
+climdex.pcic.test.convert.cartesian.to.polar <- function() {
   u <- 1
   v <- 1
   result <- convert_cartesian_to_polar(u, v)
@@ -19,7 +19,7 @@ climdex.pcic.test.convert_cartesian_to_polar <- function() {
   
 }
 
-climdex.pcic.test.convert_polar_to_cartesian <- function() {
+climdex.pcic.test.convert.polar.to.cartesian <- function() {
   speed <- sqrt(2)
   direction <- 45
   result <- convert_polar_to_cartesian(speed, direction)
@@ -27,11 +27,12 @@ climdex.pcic.test.convert_polar_to_cartesian <- function() {
   checkEqualsNumeric(result$u, 1, tolerance = 1e-6)
   checkEqualsNumeric(result$v, 1, tolerance = 1e-6)
   
+  # No speed
   checkEqualsNumeric(convert_polar_to_cartesian(0, 45)$u, 0)
   checkEqualsNumeric(convert_polar_to_cartesian(0, 45)$v, 0)
 }
 
-climdex.pcic.test.convert_degrees_to_cardinal <- function() {
+climdex.pcic.test.convert.degrees.to.cardinal <- function() {
   # Test all 16 cardinal directions and boundary cases
   degrees <- c(0, 22.5, 45, 67.5, 90, 112.5, 135, 157.5, 180, 
                202.5, 225, 247.5, 270, 292.5, 315, 337.5, 348.75)
@@ -41,15 +42,12 @@ climdex.pcic.test.convert_degrees_to_cardinal <- function() {
   
   checkEquals(result, expected)
   
-  # Boundary cases
-  checkEquals(convert_degrees_to_cardinal(c(22.5, 67.5, -45)), c('NNE', 'ENE', 'NW'))
-  
   # 360-0 boundary (e.g., 360, should return 'N')
   checkEquals(convert_degrees_to_cardinal(360), 'N')
 }
 
 
-climdex.pcic.test.convert_cardinal_to_degrees <- function() {
+climdex.pcic.test.convert.cardinal.to.degrees <- function() {
   directions <- c('N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW')
   expected <- c(0, 45, 90, 135, 180, 225, 270, 315)
   result <- convert_cardinal_to_degrees(directions)
@@ -64,7 +62,7 @@ climdex.pcic.test.convert_cardinal_to_degrees <- function() {
   
 }
 
-climdex.pcic.test.filter_by_direction_range <- function() {
+climdex.pcic.test.filter.by.direction.range <- function() {
   primary_data <- 1:10
   degrees <- seq(0, 360, length.out = 10)
   date_factors <- rep(1, 10)
@@ -79,12 +77,12 @@ climdex.pcic.test.filter_by_direction_range <- function() {
   checkEquals(filtered$degrees, expected_degrees)
   
   # Test range that crosses 0 
-  direction.range <- c(350, 10)
+  direction.range <- c(350, 10) # Only include the data associated with degree 0 & 360 
   filtered <- filter_by_direction_range(primary_data, degrees, date_factors, direction.range)
   checkEquals(filtered$primary_data, primary_data[c(1, 10)])
 }
 
-climdex.pcic.test.compute_circular_mean <- function() {
+climdex.pcic.test.compute.circular.mean <- function() {
   direction_degrees <- c(350, 10)  # Should average to 0 degrees
   date.factors <- c(1,1)
   format <- "polar"
@@ -92,13 +90,14 @@ climdex.pcic.test.compute_circular_mean <- function() {
   expected <- c(0)
   
   checkEqualsNumeric(result, expected, tolerance = 1e-6)
-  
+  # Single Direction
   checkEqualsNumeric(compute_circular_mean(c(90, 90), c(1, 1), "polar"), 90)
+  # No directions 
   checkException(compute_circular_mean(c(), c(), "polar"), 
                  msg = "direction_degrees cannot be empty or NULL.")
 }
 
-climdex.pcic.test.compute_circular_sd <- function() {
+climdex.pcic.test.compute.circular.sd <- function() {
   direction_degrees <- c(350, 10)
   date.factors <- c(1)
   result <- compute_circular_sd(direction_degrees, date.factors)

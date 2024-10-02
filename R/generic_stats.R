@@ -48,7 +48,8 @@ compute.gen.stat <- function(gen.var, stat, data, freq = c("monthly", "annual", 
   cal <- attr(gen.var@dates, "cal")
 
   result <- suppressWarnings(tapply.fast(data, date.factors, stat, na.rm = TRUE))
- 
+  # When you compute stats on all NA values with na.rm = TRUE, R returns NaN (Not a Number) instead of NA.
+  result[!is.finite(result)] <- NA
   if (include.exact.dates) {
     return(exact.date(stat, data, date.factors, freq, cal, mask))
   }
@@ -158,7 +159,7 @@ convert_cardinal_to_degrees <- function(direction) {
   if (any(!direction %in% names(cardinal_map))) {
     stop("Invalid cardinal direction provided.")
   }
-  return(cardinal_map[direction])
+  return(unname(cardinal_map[direction]))
 }
 
 #' @title Filter Data by Direction Range
@@ -246,7 +247,7 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
   # Convert back to degrees
   circular_mean_degrees <- as.numeric(circular_mean)
   circular_mean_degrees <- (circular_mean_degrees + 360) %% 360  # Normalize to [0, 360)
-  
+  circular_mean_degrees[is.nan(circular_mean_degrees)] <- NA
   # Convert to cardinal if format is 'cardinal'
   if (format == "cardinal") {
     circular_mean_result <- sapply(circular_mean_degrees, convert_degrees_to_cardinal)
@@ -284,7 +285,7 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
   # Compute circular standard deviation
   circular_sd <- tapply(directions_circular, date.factors, circular::sd.circular, na.rm = TRUE)
   circular_sd_degrees <- as.numeric(circular_sd) * (180 / pi)  # Convert from radians to degrees
-  
+  circular_sd_degrees[is.nan(circular_sd_degrees)] <- NA
   return(circular_sd_degrees)
 }
 
@@ -361,21 +362,31 @@ compute.stat.vector <- function(
   
   # Filter data based on direction range if provided
   if (!is.null(direction.range)) {
-    # Set directions outside the range to NA
-    out_of_range <- direction_degrees < direction.range[1] | direction_degrees > direction.range[2]
+    # Check if the range crosses the 360-degree boundary
+    if (direction.range[1] > direction.range[2]) {
+      # Directions are either >= direction.range[1] or <= direction.range[2]
+      out_of_range <- !(direction_degrees >= direction.range[1] | direction_degrees <= direction.range[2])
+    } else {
+      # Directions are between direction.range[1] and direction.range[2]
+      out_of_range <- !(direction_degrees >= direction.range[1] & direction_degrees <= direction.range[2])
+    }
+    # Set directions and magnitudes outside the range to NA
     magnitude[out_of_range] <- NA
     direction_degrees[out_of_range] <- NA
   }
-  
+
   result <- switch(
     stat,
     "circular_mean" = {
       direction_result <- compute_circular_mean(direction_degrees, date.factors, format)
-      list(direction = direction_result)
+      dir_mask <- climate_obj@namasks[[freq]][["secondary"]]
+      list(direction = direction_result * dir_mask)
     },
     "circular_sd" = {
       circular_sd_degrees <- compute_circular_sd(direction_degrees, date.factors)
-      list(circular_sd = circular_sd_degrees)
+      dir_mask <- climate_obj@namasks[[freq]][["secondary"]]
+      
+      list(circular_sd = circular_sd_degrees * dir_mask)
     },
     {
       # For other statistics, compute on magnitude
@@ -386,8 +397,9 @@ compute.stat.vector <- function(
         freq = freq, 
         include.exact.dates = include.exact.dates
       )
-      magnitude_mask <- climate_obj@namasks[[freq]][["primary"]]
-      list(magnitude = magnitude_stat * magnitude_mask)
+      
+      
+      list(magnitude = magnitude_stat)
     }
   )
   

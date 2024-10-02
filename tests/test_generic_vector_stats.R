@@ -4,10 +4,8 @@ library(circular)
 # Setup
 wd <- "./"
 
-# 
 # # compute.stat.vector Tests
-
-# Helper function to update primary and secondary values in a vector object. Dates need to be readded to avoid data-date length 
+# Helper function to update primary and secondary values in a vector object. Dates need to be readded to avoid data-date length mismatch.
 update_vector_obj <- function(base_vector_obj, primary, secondary, dates) {
   return(climdexGenericVector.raw(
     primary = primary,
@@ -21,15 +19,13 @@ update_vector_obj <- function(base_vector_obj, primary, secondary, dates) {
 }
 
 
-climdex.pcic.test.compute_stat_vector_circular_mean <- function() {
+climdex.pcic.test.compute.stat.vector.circular.mean <- function() {
   # Common setup for the vector object
-  speed <- c(5, 5)  # Speed values
-  direction <- c(350, 10)  # Direction values in degrees
-  
-  # Use PCICt and seq to create a date sequence
+  speed <- c(5, 5)  
+  direction <- c(350, 10)
   dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 2)
   
-  # Create a base vector object using ClimdexGenericVector.raw
+  # Create a base vector object
   base_vector_obj <- climdexGenericVector.raw(
     primary = speed,        
     secondary = direction,  
@@ -91,15 +87,12 @@ climdex.pcic.test.compute_stat_vector_circular_mean <- function() {
 
 
 
-climdex.pcic.test.compute_stat_vector_circular_sd <- function() {
-  # Common setup for the vector object
-  speed <- c(5, 5)  # Speed values
-  direction <- c(350, 10)  # Direction values in degrees
+climdex.pcic.test.compute.stat.vector.circular.sd <- function() {
   
-  # Use PCICt and seq to create a date sequence
+  speed <- c(5, 5)
+  direction <- c(350, 10)
   dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 2)
   
-  # Create a base vector object using ClimdexGenericVector.raw
   base_vector_obj <- climdexGenericVector.raw(
     primary = speed,        
     secondary = direction,  
@@ -162,14 +155,11 @@ climdex.pcic.test.compute_stat_vector_circular_sd <- function() {
 }
 
 
-climdex.pcic.test.compute_stat_vector_mean_magnitude <- function() {
-  # Test data: speed and direction values
+climdex.pcic.test.compute.stat.vector.mean.magnitude <- function() {
+
   speed <- c(5, 10, 15)  
   direction <- c(0, 90, 180)
-  
-  # Generate dates using PCICt (calendar type: gregorian)
   dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 3)
-  
 
   vector_obj <- climdexGenericVector.raw(
     primary = speed,  
@@ -181,7 +171,7 @@ climdex.pcic.test.compute_stat_vector_mean_magnitude <- function() {
     calendar = "gregorian"  
   )
   
-  # Compute the mean magnitude for the 'monthly' frequency
+  # Monthly mean
   result <- compute.stat.vector(
     vector_obj,
     stat = "mean",  
@@ -196,7 +186,7 @@ climdex.pcic.test.compute_stat_vector_mean_magnitude <- function() {
                      msg = paste("Result magnitude differs from expected:", result$magnitude))
 }
 
-climdex.pcic.test.compute_stat_vector_filtered_direction_range <- function() {
+climdex.pcic.test.compute.stat.vector.filtered.direction.range <- function() {
   
   speed <- c(5, 10, 15, 20)
   direction <- c(45, 90, 135, 180)
@@ -212,7 +202,7 @@ climdex.pcic.test.compute_stat_vector_filtered_direction_range <- function() {
     calendar = "gregorian"
   )
   
-  # Compute the max statistic, filtered by the direction range (90 to 135 degrees)
+  # Monthly max, filter by 90 to 135 degrees
   result <- compute.stat.vector(
     vector_obj,
     stat = "max",
@@ -228,4 +218,123 @@ climdex.pcic.test.compute_stat_vector_filtered_direction_range <- function() {
   checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_max_magnitude)
 }
 
+climdex.pcic.test.compute.stat.vector.missing.values <- function() {
+  speed <- c(5, 10, NA, 20) # One NA speed
+  direction <- c(45, 90, 135, NA)  # One NA direction
+  
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 4)
+  
+  vector_obj <- climdexGenericVector.raw(
+    primary = speed,
+    secondary = direction,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    format = "polar",
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  # Monthly mean 
+  result <- compute.stat.vector(
+    vector_obj,
+    stat = "mean",
+    freq = "monthly",
+    format = "polar",
+    include.exact.dates = FALSE
+  )
+  valid_entries <- !is.na(speed) & !is.na(direction)
+  expected_mean_magnitude <- mean(speed[valid_entries], na.rm = TRUE)  # Mean of 5 and 10 (only valid entries)
+  checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_mean_magnitude, 
+                     msg = paste("Result magnitude differs from expected. Result:", result$magnitude))
+}
 
+climdex.pcic.test.compute.stat.vector.overlapping.years <- function() {
+  # Full winter season (Dec-Feb)
+  set.seed(123)
+  speed <- runif(90, min = 5, max = 20)  
+  direction <- runif(90, min = 0, max = 360)  
+  
+  dates <- seq(as.PCICt("2019-12-01", cal = "gregorian"), by = "day", length.out = 90)
+  
+  vector_obj <- climdexGenericVector.raw(
+    primary = speed,
+    secondary = direction,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 3, seasonal = 6),
+    format = "polar",
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  # Seasonal mean (expect it to compute correctly across Dec-Feb)
+  result <- compute.stat.vector(
+    vector_obj,
+    stat = "mean",
+    freq = "seasonal",
+    format = "polar",
+    include.exact.dates = FALSE
+  )
+  expected_mean_speed <- mean(speed)
+
+  checkEqualsNumeric(as.numeric(result$magnitude["Winter 2019"]), expected_mean_speed, 
+                     msg = paste("Computed seasonal mean:", result$magnitude[1], 
+                                 "Expected seasonal mean:", expected_mean_speed))
+}
+
+climdex.pcic.test.compute.stat.vector.filtered.direction.crossing.360 <- function() {
+  speed <- c(5, 10, 15, 20)
+  direction <- c(350, 10, 135, 180)  # Directions crossing the 360-degree boundary
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 4)
+  
+  vector_obj <- climdexGenericVector.raw(
+    primary = speed,
+    secondary = direction,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    format = "polar",
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  # Monthly max, filter by 350 to 10 degrees
+  result <- compute.stat.vector(
+    vector_obj,
+    stat = "max",
+    freq = "monthly",
+    format = "polar",
+    include.exact.dates = FALSE,
+    direction.range = c(350, 10)
+  )
+  result
+  filtered_speeds <- speed[direction >= 350 | direction <= 10]
+  expected_max_magnitude <- max(filtered_speeds)
+  checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_max_magnitude)
+}
+
+climdex.pcic.test.compute.stat.vector.no.data.in.direction.range <- function() {
+  speed <- c(5, 10, 15, 20)
+  direction <- c(45, 90, 135, 180)
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 4)
+  
+  vector_obj <- climdexGenericVector.raw(
+    primary = speed,
+    secondary = direction,
+    dates = dates,
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    format = "polar",
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  # Monthly max, filter by 270 to 360 degrees
+  result <- compute.stat.vector(
+    vector_obj,
+    stat = "max",
+    freq = "monthly",
+    format = "polar",
+    include.exact.dates = FALSE,
+    direction.range = c(270, 360)
+  )
+  result
+  result$magnitude[1]
+  checkTrue(is.na(result$magnitude[1]), "Expected NA result when no data is in the specified direction range.")
+}
