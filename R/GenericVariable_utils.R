@@ -3,6 +3,17 @@ check.generic.argument.validity <- function( data, dates, max.missing.days) {
   
   stopifnot(length(max.missing.days) == 3 && all(c("annual", "monthly", "seasonal") %in% names(max.missing.days)))
   
+  
+  # Check that required arguments are provided
+  if (missing(data)) {
+    stop("Primary data argument is missing.")
+  }
+
+  if (missing(dates)) {
+    stop("Argument 'dates' is missing.")
+  }
+  
+  
   if (!is.numeric(data)) {
     stop("Primary Data must be numeric.")
   }

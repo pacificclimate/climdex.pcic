@@ -40,9 +40,15 @@ climdexGenericVector.raw <- function(
     northern.hemisphere = TRUE,
     calendar = "gregorian"
 ) {
-
-  check.generic.argument.validity(primary, dates, max.missing.days)
   
+  check.generic.argument.validity(primary, dates, max.missing.days)
+  if (missing(secondary)) {
+    stop("Secondary data argument is missing.")
+  }
+  # Check that primary, secondary, and dates have the same length
+  if (length(primary) != length(secondary) || length(primary) != length(dates)) {
+    stop("Lengths of 'primary', 'secondary', and 'dates' must be equal.")
+  }
   # Additional validation for format
   if (format %in% c("polar", "cartesian")) {
     if (!is.numeric(secondary)) {
