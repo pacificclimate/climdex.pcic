@@ -80,6 +80,7 @@ climdexGenericVector.raw <- function(
     dates = date.series,
     format = format,
     date.factors = date.factors,
+    jdays = jdays,
     namasks = namasks,
     max.missing.days = max.missing.days,
     northern.hemisphere = northern.hemisphere)
