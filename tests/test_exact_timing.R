@@ -803,46 +803,6 @@ climdex.pcic.test.consistent.indices.return.types <- function() {
   result.n.d <- climdex.gsl(ci.types.test,"GSL", include.exact.dates = F)
   checkTypes(result.e.d$sl, result.n.d)
 }
-# 
-# climdex.pcic.test.indicies.on.random.datasets <- function(){
-#   for (i in 1:5000){
-#     cal <- 365
-#     test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1967-12-31", cal = cal), by = "days")
-#     test.prec.ran <- c(sample(0:2, length(test.dates), replace = TRUE))
-#     test.tmin.ran <- c(sample(-10:32, length(test.dates), replace = TRUE))
-#     test.tmax.ran <- c(sample(-10:32, length(test.dates), replace = TRUE))
-# 
-# 
-#     years <- format(test.dates, "%Y")
-#     unique.years <- unique(years)
-#     for (year in unique.years) {
-#       year.indices <- which(years == year)
-#       na.indices <- sample(year.indices, sample(1:7, 1))
-#       test.prec.ran[na.indices] <- NA
-#       test.tmin.ran[na.indices] <- NA
-#       test.tmax.ran[na.indices] <- NA
-#     }
-# 
-# 
-#     ci.ran <- climdexInput.raw(tmin =test.tmin.ran, tmax = test.tmax.ran, prec = test.prec.ran, tmin.dates=test.dates, tmax.dates = test.dates, prec.dates = test.dates)
-# 
-#     test.indices <- names(climdex.min.max.idx.list)
-#     for(idx in test.indices){
-#       fun <- paste("climdex", idx, sep = ".")
-#       date.factors <- c("annual", "monthly", "seasonal")
-#       for (freq in date.factors) {
-#         do.call(fun, list(ci.ran, freq = freq, include.exact.dates = TRUE))
-# 
-#       }
-#     }
-# 
-#     freq<- "annual"
-#     climdex.cdd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
-#     climdex.cwd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
-#     climdex.gsl(ci.ran,"GSL", include.exact.dates = TRUE)
-#   }
-# 
-# 
-# }
+
 
 
