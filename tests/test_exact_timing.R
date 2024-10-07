@@ -260,46 +260,6 @@ climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
   }
 }
 
-climdex.pcic.test.rx5d.center.mean.on.last.day <- function() {
-  date.factors <- c("annual", "monthly", "seasonal")
-  ndays <- 5 
-  idx <-"rx5day"
-  fun <- "climdex.rx5day"
-  for (freq in date.factors) {
-    center.mean.on.last.day <- TRUE
-    result <- do.call(fun, list(ci.csv, freq = freq, center.mean.on.last.day = center.mean.on.last.day, include.exact.dates = TRUE))
-    expected <- get.Rxnday.result(idx, ci.csv, freq, ndays, center.mean.on.last.day)
-    result$ymd <- as.character(result$ymd)
-    checkIdentical(length(expected), nrow(result), paste("Lengths differ. Expected:", length(expected),"Result:", nrow(result)))
-    are.not.all.na(expected, result$ymd)
-    for (i in seq_along(result$ymd)) {
-      if (!is.na(result$ymd[i])) {
-        if (ndays == 5) {
-          if(center.mean.on.last.day){
-            window.start <- expected[[i]] - 4 * 86400
-            window.end <- expected[[i]] 
-            expected.val <- sum(ci.csv@data$prec[ci.csv@dates >= window.start & ci.csv@dates <= window.end], na.rm = TRUE)
-          }
-          else{
-            window.start <- expected[[i]] - 2 * 86400
-            window.end <- expected[[i]] + 2 * 86400
-            expected.val <- sum(ci.csv@data$prec[ci.csv@dates >= window.start & ci.csv@dates <= window.end], na.rm = TRUE)
-          }
-
-        }
-      } else {
-        expected.val <- NA
-        checkTrue(is.na(expected[[i]]) && is.na(result$val[i]))
-      }
-      
-      
-      checkIdentical(as.character(expected[[i]]), result$ymd[i], paste("Idx:", idx, "Expected: ", as.character(expected[[i]]), "Result: ", as.character(result$ymd[i])))
-      checkTrue(is.almost.equal(as.numeric(expected.val), as.numeric(result$val[i])), 
-                msg = paste("Idx:", idx, "Expected: ", as.numeric(expected.val), "Result: ", as.numeric(result$val[i])))
-    }
-  }
-}
-
 
 # Find the longest consecutive true values in a boolean array.
 find.longest.consecutive.true <- function(bool.array) {
@@ -478,73 +438,12 @@ climdex.pcic.test.na.masks.spell <- function() {
     } else {
       result <- climdex.cwd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
     }
+
     expected <- get.spell.bounds(ci.ran, idx)
     check.spell.results(expected, result, idx)
   }
 }
 # Check that the start of the (only) spell for 1962 starts in 1961.
-climdex.pcic.test.spells.can.span.years <- function() {
-  test.indices <- c("cdd", "cwd")
-  cal <- 365
-  test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1962-12-31", cal = cal), by = "days")
-
-  for (idx in test.indices) {
-    if (idx == "cdd") {
-      test.prec.data <- rep(2, length(test.dates))
-      test.prec.data[(cal - 20):(cal - 10)] <- 0
-      test.prec.data[(cal - 1):(cal + 4)] <- 0
-      ci <- climdexInput.raw(prec = test.prec.data, prec.dates = test.dates)
-
-      expected <- data.frame(start <- c("1961-12-11", "1961-12-30"), duration <- c(11, 6), end <- c("1961-12-21", "1962-01-04"))
-      result <- climdex.cdd(ci, spells.can.span.years = TRUE, include.exact.dates = TRUE)
-    } else {
-      test.prec.data <- rep(0, length(test.dates))
-      test.prec.data[(cal - 20):(cal - 10)] <- 2
-      test.prec.data[(cal - 1):(cal + 4)] <- 2
-
-      ci <- climdexInput.raw(prec = test.prec.data, prec.dates = test.dates)
-
-      expected <- data.frame(start <- c("1961-12-11", "1961-12-30"), duration <- c(11, 6), end <- c("1961-12-21", "1962-01-04"))
-      result <- climdex.cwd(ci, spells.can.span.years = TRUE, include.exact.dates = TRUE)
-    }
-    check.spell.results(expected, result, idx)
-  }
-}
-
-# Edge case for different year lengths.
-climdex.pcic.test.spells.can.span.leap.year <- function() {
-  test.indices <- c("cdd", "cwd")
-  cal <- "proleptic_gregorian"
-  test.year <- 1964  # Example leap year
-  test.dates <- seq(as.PCICt(paste(test.year, "01-01", sep = "-"), cal = cal),
-                    as.PCICt(paste(test.year, "12-31", sep = "-"), cal = cal), by = "days")
-  cal <- 366
-  for (idx in test.indices) {
-    if (idx == "cdd") {
-      test.prec.data <- rep(2, length(test.dates))
-      test.prec.data[40:(cal - 10)] <- 0
-
-      ci <- climdexInput.raw(prec = test.prec.data, prec.dates = test.dates)
-      
-      expected <- data.frame(start = c(paste(test.year, "02-09", sep = "-")),
-                             duration = c(317),
-                             end = c(paste(test.year, "12-21", sep = "-")))
-      result <- climdex.cdd(ci, spells.can.span.years = TRUE, include.exact.dates = TRUE)
-    } else {
-      test.prec.data <- rep(0, length(test.dates))
-      test.prec.data[40:(cal - 10)] <- 2
-
-      ci <- climdexInput.raw(prec = test.prec.data, prec.dates = test.dates)
-      
-      expected <- data.frame(start = c(paste(test.year, "02-09", sep = "-")),
-                             duration = c(317),
-                             end = c(paste(test.year, "12-21", sep = "-")))
-      result <- climdex.cwd(ci, spells.can.span.years = TRUE, include.exact.dates = TRUE)
-    }
-    check.spell.results(expected, result, idx)
-  }
-}
-
 climdex.pcic.test.spells.can.span.years <- function() {
   test.indices <- c("cdd", "cwd")
   cal <- 365
@@ -855,96 +754,6 @@ climdex.pcic.tests.exact.dates.are.in.factors <- function() {
   check.duration.bounds.in.factors(freq, result)
 
 }
-
-
-checkTypes <- function(result.e.d.vals, result.n.d) {
-  for (i in seq_along(result.e.d.vals)){
-    checkIdentical(typeof(result.e.d.vals[i]),typeof(result.n.d[i]), paste("Different types: With exact dates:", typeof(result.e.d.vals[i]), "Without:", typeof(result.n.d[i])))
-  }
-  
-}
-climdex.pcic.test.consistent.indices.return.types <- function() {
-  
-  start_date <- as.PCICt("1961-01-01", cal = "365")
-  end_date <- as.PCICt("1967-12-30", cal = "365")
-  dates <- seq(start_date, end_date, by = "days")
-  
-  set.seed(123)
-  n <- length(dates)
-  tmax <- runif(n, -10, 35)
-  tmin <- runif(n, -15, 30)
-  prec <- runif(n, 0, 40)
-  
-  na_indices <- sample(1:n, size = round(n * 0.1))
-  tmax[na_indices] <- NA
-  tmin[na_indices] <- NA
-  prec[na_indices] <- NA
-  
-  # Create climdexInput object
-  ci.types.test <- climdexInput.raw(tmax = tmax, tmin = tmin, prec = prec, tmax.dates = dates, tmin.dates = dates, prec.dates = dates)
-  test.indices <- names(climdex.min.max.idx.list)
-  for(idx in test.indices){
-    fun <- paste("climdex", idx, sep = ".")
-    date.factors <- c("annual", "monthly", "seasonal")
-    for (freq in date.factors) {
-      result.e.d <- do.call(fun, list(ci.types.test, freq = freq, include.exact.dates = TRUE))
-      result.n.d <- do.call(fun, list(ci.types.test, freq = freq, include.exact.dates = FALSE))
-      checkTypes(result.e.d$val, result.n.d)
-    }
-  }
-
-  freq<- "annual"
-  result.e.d <- climdex.cdd(ci.types.test, spells.can.span.years = F, include.exact.dates = TRUE)
-  result.n.d <- climdex.cdd(ci.types.test, spells.can.span.years = F, include.exact.dates = F)
-  checkTypes(result.e.d$duration, result.n.d)
-  result.e.d <- climdex.cwd(ci.types.test, spells.can.span.years = F, include.exact.dates = TRUE)
-  result.n.d <- climdex.cwd(ci.types.test, spells.can.span.years = F, include.exact.dates = F)
-  checkTypes(result.e.d$duration, result.n.d)
-  result.e.d <- climdex.gsl(ci.types.test,"GSL", include.exact.dates = TRUE)
-  result.n.d <- climdex.gsl(ci.types.test,"GSL", include.exact.dates = F)
-  checkTypes(result.e.d$sl, result.n.d)
-}
-# 
-# climdex.pcic.test.indicies.on.random.datasets <- function(){
-#   for (i in 1:5000){
-#     cal <- 365
-#     test.dates <- seq(as.PCICt("1961-01-01", cal = cal), as.PCICt("1967-12-31", cal = cal), by = "days")
-#     test.prec.ran <- c(sample(0:2, length(test.dates), replace = TRUE))
-#     test.tmin.ran <- c(sample(-10:32, length(test.dates), replace = TRUE))
-#     test.tmax.ran <- c(sample(-10:32, length(test.dates), replace = TRUE))
-# 
-# 
-#     years <- format(test.dates, "%Y")
-#     unique.years <- unique(years)
-#     for (year in unique.years) {
-#       year.indices <- which(years == year)
-#       na.indices <- sample(year.indices, sample(1:7, 1))
-#       test.prec.ran[na.indices] <- NA
-#       test.tmin.ran[na.indices] <- NA
-#       test.tmax.ran[na.indices] <- NA
-#     }
-# 
-# 
-#     ci.ran <- climdexInput.raw(tmin =test.tmin.ran, tmax = test.tmax.ran, prec = test.prec.ran, tmin.dates=test.dates, tmax.dates = test.dates, prec.dates = test.dates)
-# 
-#     test.indices <- names(climdex.min.max.idx.list)
-#     for(idx in test.indices){
-#       fun <- paste("climdex", idx, sep = ".")
-#       date.factors <- c("annual", "monthly", "seasonal")
-#       for (freq in date.factors) {
-#         do.call(fun, list(ci.ran, freq = freq, include.exact.dates = TRUE))
-# 
-#       }
-#     }
-# 
-#     freq<- "annual"
-#     climdex.cdd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
-#     climdex.cwd(ci.ran, spells.can.span.years = F, include.exact.dates = TRUE)
-#     climdex.gsl(ci.ran,"GSL", include.exact.dates = TRUE)
-#   }
-# 
-# 
-# }
 
 
 checkTypes <- function(result.e.d.vals, result.n.d) {

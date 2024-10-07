@@ -2207,11 +2207,11 @@ climdex.quantile <- function(x, q=c(0, 0.25, 0.5, 0.75, 1)) {
 #'
 #' @examples
 #' 
-#' \dontrun{ 
-#' running.mean(c(1, 2, 3, 4, 5, 6), 2) 
+#' \dontrun{
+#' running.mean(c(1, 2, 3, 4, 5, 6), 2)
 #' }
-#' \dontrun{ 
-#' running.mean(c(5, 5, 5, 5, 5), 4) 
+#' \dontrun{
+#' running.mean(c(5, 5, 5, 5, 5), 4)
 #' }
 running.mean <- function(vec, bin){
   vec = as.vector(vec)
