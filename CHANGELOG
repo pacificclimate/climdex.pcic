@@ -30,10 +30,8 @@
       - Implemented testing for the new feature to return exact dates for climate indices.
       - Added `constants.R`, which includes lists of related indices and what climate variables and statistics are used to calculate them.
     Automated Package Checking
-      - Added a new GitHub Actions workflow named 'R-CMD-check' to automate the process of checking the package 
+      - Added new GitHub Actions workflows to automate the process of checking the package 
         for errors, warnings, or notes.
-      - The workflow runs R CMD Check across Linux, MacOS, and Windows environments 
-        using the latest R release and R-devel versions.
 
 1.1-11: Metadata changes requested by Uwe Ligges <ligges@statistik.tu-dortmund.de>
 1.1-10: Revises the method of linking to Rcpp package
