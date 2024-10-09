@@ -12,7 +12,7 @@ climdex.pcic.test.intake.routines <- function() {
                    'dtr', 'rx1day', 'rx5day', 'sdii', 'r10mm', 'r20mm', 'rnnmm', 'cdd', 'cwd', 'r95ptot', 'r99ptot', 'prcptot')
 
   threshold.indices.to.exclude.on.x86 <- c("tx10p", "tx90p", "wsdi", "tn10p", "tn90p", "csdi", "r95ptot", "r99ptot")
-  is.x86 <- !(climdex.quantile(c(0, 1, 2), 0.3) == quantile(c(0, 1, 2), 0.3, type=8))
+  is.x86 <- Sys.info()["machine"] == "x86_64" 
   
   for(i in 1:7) {
     include.tmax <- i %% 2

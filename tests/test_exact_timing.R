@@ -805,4 +805,3 @@ climdex.pcic.test.consistent.indices.return.types <- function() {
 }
 
 
-

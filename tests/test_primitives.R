@@ -106,7 +106,7 @@ climdex.pcic.test.number.days.op.threshold <- function() {
 }
 
 climdex.pcic.test.percent.days.op.threshold <- function() {
-  is.x86 <- !(climdex.quantile(c(0, 1, 2), 0.3) == quantile(c(0, 1, 2), 0.3, type=8))
+  is.x86 <- Sys.info()["machine"] == "x86_64" 
   
   ## Parse the dates into PCICt.
   tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year", "jday")]), format="%Y %j", cal="gregorian")
@@ -123,7 +123,6 @@ climdex.pcic.test.percent.days.op.threshold <- function() {
   if(!is.x86)
     checkEquals(ec.1018935.tx90p, tx90p)
 }
-
 climdex.pcic.test.growing.season.length <- function() {
   ## Parse the dates into PCICt.
  tmax.dates <- as.PCICt(do.call(paste, ec.1018935.tmax[,c("year", "jday")]), format="%Y %j", cal="gregorian")
