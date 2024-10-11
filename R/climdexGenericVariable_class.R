@@ -30,7 +30,7 @@ setClass(
   )
 )
 
-## Class definition declaration
+## Class definition for climdexGenericScalar
 #' @title climdexGenericScalar
 #' 
 #' @description
@@ -61,7 +61,7 @@ setClass(
   )
 )
 
-## Class definition declaration
+## Class definition for climdexGenericVector
 #' @title climdexGenericVector
 #' 
 #' @description
@@ -75,8 +75,7 @@ setClass(
 #' \itemize{
 #'   \item \strong{polar}: When the format is `"polar"`, the `primary` slot represents magnitude (e.g., wind speed),
 #'   and the `secondary` slot must be numeric and represents direction in degrees (e.g., wind direction, where 0° is North).
-#'   \item \strong{cartesian}: In `"cartesian"` format, `primary` and `secondary` both represent numeric values, typically the
-#'   x and y components of a vector (e.g., velocity components in the x and y directions).
+#'   \item \strong{cartesian}: In `"cartesian"` format, `primary` and `secondary` both represent the numeric x and y components of a vector (e.g., velocity components in the x and y directions).
 #'   \item \strong{cardinal}: When the format is `"cardinal"`, the `primary` slot still represents a numeric value (e.g., wind speed),
 #'   but the `secondary` slot is a character vector representing cardinal directions (e.g., "N", "NE", "E", etc.).
 #' }

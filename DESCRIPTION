@@ -10,11 +10,11 @@ Depends:
     PCICt (>= 0.5-4)
 Encoding: UTF-8
 Imports:
+    circular,
     methods,
     Rcpp (>= 0.11.4),
     stats,
-    utils,
-    circular,
+    utils
 Suggests:
     compiler,
     RUnit

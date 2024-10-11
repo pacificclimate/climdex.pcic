@@ -96,7 +96,7 @@ climdexGenericVector.raw <- function(
 #' @details
 #' This function reads vector climate data, consisting of primary and secondary components (e.g., magnitude and direction),
 #' from a CSV file. It validates the data and constructs a `ClimdexGenericVector` object that can be used to compute
-#' climate indices or for further analysis. The format of the vector data (e.g., `polar`, `cartesian`, or `cardinal`)
+#' climate indices. The format of the vector data (e.g., `polar`, `cartesian`, or `cardinal`)
 #' must be specified.
 #'
 #' @param file The file path to the CSV containing the vector climate data.

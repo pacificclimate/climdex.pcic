@@ -65,10 +65,10 @@ climdexGenericScalar.raw <- function(
 #' Reads scalar climate data from a CSV file and creates a `ClimdexGenericScalar` object.
 #'
 #' @details
-#' This function reads scalar climate data (e.g., humidity, snow-depth) from a CSV file, validates the data,
+#' This function reads scalar climate data (e.g., humidity, snow-depth) from a CSV file
 #' and generates a `ClimdexGenericScalar` object.
 #'
-#' The CSV file should contain the climate data in the specified columns, and the date fields should be provided in separate columns.
+#' The CSV file should contain the climate data in a specified column, and the date fields should be provided in separate columns.
 #'
 #' @param file The file path to the CSV containing the scalar climate data.
 #' @param data.column The name of the column containing the scalar data in the CSV file.
