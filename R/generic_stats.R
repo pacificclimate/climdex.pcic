@@ -305,15 +305,18 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
   direction_degrees <- direction_degrees[valid_idx]
   date.factors <- date.factors[valid_idx]
   
-  if (length(direction_degrees) == 0) {
-    return(NA)  # If all are NA, return NA
-  }
-  
   # Convert directions to 'circular' objects
   directions_circular <- circular::circular(direction_degrees, units = "degrees", modulo = "2pi")
   
   # Compute circular mean
-  circular_mean <- tapply(directions_circular, date.factors, circular::mean.circular, na.rm = TRUE)
+  circular_mean <- tapply(directions_circular, date.factors, function(x) {
+    if (all(is.na(x))) {
+      return(NA)  # Return NA if the entire group is NA
+    } else {
+      return(circular::mean.circular(x, na.rm = TRUE))
+    }
+  })
+  
   
   # Convert back to degrees
   circular_mean_degrees <- as.numeric(circular_mean)
@@ -354,7 +357,14 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
   directions_circular <- circular::circular(direction_degrees, units = "degrees", modulo = "2pi")
   
   # Compute circular standard deviation
-  circular_sd <- tapply(directions_circular, date.factors, circular::sd.circular, na.rm = TRUE)
+  circular_sd <- tapply(directions_circular, date.factors, function(x) {
+    if (all(is.na(x))) {
+      return(NA)  # Return NA if the entire group is NA
+    } else {
+      return(circular::sd.circular(x, na.rm = TRUE))
+    }
+  })
+  
   circular_sd_degrees <- as.numeric(circular_sd) * (180 / pi)  # Convert from radians to degrees
   circular_sd_degrees[is.nan(circular_sd_degrees)] <- NA
   return(circular_sd_degrees)

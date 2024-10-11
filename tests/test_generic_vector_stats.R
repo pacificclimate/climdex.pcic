@@ -304,7 +304,6 @@ climdex.pcic.test.compute.stat.vector.filtered.direction.crossing.360 <- functio
     include.exact.dates = FALSE,
     direction.range = c(350, 10)
   )
-  result
   filtered_speeds <- speed[direction >= 350 | direction <= 10]
   expected_max_magnitude <- max(filtered_speeds)
   checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_max_magnitude)
@@ -334,7 +333,7 @@ climdex.pcic.test.compute.stat.vector.no.data.in.direction.range <- function() {
     include.exact.dates = FALSE,
     direction.range = c(270, 360)
   )
-  result
+
   result$magnitude[1]
   checkTrue(is.na(result$magnitude[1]), "Expected NA result when no data is in the specified direction range.")
 }

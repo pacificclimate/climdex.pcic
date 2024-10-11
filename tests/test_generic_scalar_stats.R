@@ -62,15 +62,13 @@ climdex.pcic.test.scalar.exact.dates <- function() {
     northern.hemisphere = TRUE,
     calendar = "gregorian"
   )
-  # Monthly max
-  result <- compute.stat.scalar(scalar_obj, stat = "max", freq = "monthly", include.exact.dates = TRUE)
-  
+  # Annual max
+  result <- compute.stat.scalar(scalar_obj, stat = "max", freq = "annual", include.exact.dates = TRUE)
   expected_max <- max(data)
   max_index <- which.max(data)
   expected_max_date <- dates[max_index]
-  
   computed_exact_date <- as.PCICt(result$ymd[1], cal = "gregorian")
-  
+
   checkEqualsNumeric(as.numeric(result$val[1]), expected_max, 
                      msg = paste("Computed max statistic:", result$val[1], 
                                  "Expected max statistic:", expected_max))
@@ -117,7 +115,6 @@ climdex.pcic.test.compute.stat.scalar.sd <- function() {
   # Monthly SD
   result <- compute.stat.scalar(scalar_obj, stat = "sd", freq = "monthly", include.exact.dates = FALSE)
   expected_sd <- sd(data)
-  
   checkEqualsNumeric(as.numeric(result[1]), expected_sd, tolerance = 1e-6, 
                      msg = paste("Computed SD:", result[1], "Expected SD:", expected_sd))
 }
