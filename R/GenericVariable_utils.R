@@ -1,7 +1,9 @@
 # Utility function to validate arguments for scalar and vector data.
 check.generic.argument.validity <- function( data, dates, max.missing.days) {
   
-  stopifnot(length(max.missing.days) == 3 && all(c("annual", "monthly", "seasonal") %in% names(max.missing.days)))
+  if (length(max.missing.days) != 3 || !all(c("annual", "monthly", "seasonal") %in% names(max.missing.days))) {
+    stop("max.missing.days must be a named vector with 'annual', 'monthly', and 'seasonal' elements.")
+  }
   
   
   # Check that required arguments are provided
