@@ -8,7 +8,7 @@ climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pc
   speed[1:10] <- NA        # First 10 days of January missing
   speed[60:80] <- NA       # 21 days missing in March
   speed[200:220] <- NA     # 21 days missing in July
-  
+
   # Define max missing days thresholds
   max_missing_days <- c(annual = 15, monthly = 5, seasonal = 15)
   
@@ -37,7 +37,8 @@ climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pc
   seasons_expected_na <- names(seasonal_missing_days_primary[seasonal_missing_days_primary > max_missing_days["seasonal"]])
   
   # Adjust for the extra season (Winter-2019) that is automatically marked as NA
-  all_seasons <- names(vector_obj@namasks$seasonal$primary)
+  all_seasons <- levels(vector_obj@date.factors$seasonal)
+  all_seasons
   first_season <- all_seasons[1]
   last_season <- all_seasons[length(all_seasons)]
   incomplete_seasons <- c(first_season, last_season)
@@ -47,7 +48,7 @@ climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pc
   
   # Check that the total number of NA seasons matches the expected count
   seasonal_namasks_primary <- vector_obj@namasks$seasonal$primary
-  actual_na_seasons <- names(seasonal_namasks_primary)[is.na(seasonal_namasks_primary)]
+  actual_na_seasons <- all_seasons[is.na(seasonal_namasks_primary)]
   
   checkEquals(length(actual_na_seasons), length(total_expected_na_seasons),
               msg = paste("Total number of NA seasons does not match expected (expected ", length(total_expected_na_seasons), ").", sep=""))
