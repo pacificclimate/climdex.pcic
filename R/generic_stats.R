@@ -89,6 +89,14 @@ compute.stat.scalar <- function(scalar_obj,
 
 #' @title Convert Cartesian to Polar Coordinates
 #' @description Converts Cartesian coordinates (u, v) to polar coordinates (speed, direction).
+#'
+#' @details
+#' The formulas used for the conversion are as follows:
+#' - **Speed** (magnitude): \eqn{\text{speed} = \sqrt{u^2 + v^2}}
+#' - **Direction** (angle in degrees): \eqn{\text{direction} = \left( \frac{\text{atan2}(v, u) \times 180}{\pi} + 360 \right) \mod 360}
+#' 
+#' The function ensures the direction is normalized to the range [0, 360) degrees.
+#'
 #' @param u A numeric value representing the x-component (u) of the Cartesian coordinate.
 #' @param v A numeric value representing the y-component (v) of the Cartesian coordinate.
 #' @return A list with two elements:
@@ -108,6 +116,14 @@ convert_cartesian_to_polar <- function(u, v) {
 
 #' @title Convert Polar to Cartesian Coordinates
 #' @description Converts polar coordinates (speed, direction) to Cartesian coordinates (u, v).
+#'
+#' @details 
+#' The formulas used for the conversion are as follows:
+#' - **x-component (u)**: \eqn{u = \text{speed} \times \cos(\text{direction} \times \frac{\pi}{180})}
+#' - **y-component (v)**: \eqn{v = \text{speed} \times \sin(\text{direction} \times \frac{\pi}{180})}
+#' 
+#' The direction is in degrees and is converted to radians for the trigonometric calculations.
+#'
 #' @param speed A numeric value representing the magnitude of the vector.
 #' @param direction A numeric value representing the direction of the vector in degrees.
 #' @return A list with two elements:
@@ -126,6 +142,16 @@ convert_polar_to_cartesian <- function(speed, direction) {
 
 #' @title Convert Degrees to Cardinal Direction
 #' @description Converts a numeric degree value into the corresponding cardinal direction (e.g., N, NE, E).
+#'
+#' @details
+#' The conversion is based on dividing the 360-degree circle into 16 equal sectors. The degrees corresponding to cardinal directions are as follows:
+#' - **0° or 360°**: N
+#' - **22.5°**: NNE
+#' - **45°**: NE
+#' - **...** and so on, up to **337.5°** for NNW.
+#'
+#' The degree input is normalized to the range [0, 360) before conversion.
+#'
 #' @param degrees A numeric vector of degrees (0-360) representing the direction.
 #' @return A character vector of cardinal directions corresponding to the degree values.
 #' @export
@@ -187,6 +213,14 @@ compute_directions_and_magnitudes <- function(format, primary, secondary) {
 
 #' @title Convert Cardinal Direction to Degrees
 #' @description Converts a cardinal direction (e.g., N, NE, E) into the corresponding degree value.
+#'
+#' @details
+#' The conversion is based on dividing the 360-degree circle into 16 equal sectors. The cardinal directions corresponding to degrees are as follows:
+#' - **N**: 0° or 360°
+#' - **NNE**: 22.5°
+#' - **NE**: 45°
+#' - **...** and so on, up to **NNW** at 337.5°.
+#'
 #' @param direction A character vector of cardinal directions.
 #' @return A numeric vector of degrees corresponding to the cardinal directions.
 #' @export
@@ -347,10 +381,10 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
 #' If `include.exact.dates = TRUE`, the function returns exact dates for the max/min statistics.
 #'
 #' @details
-#' The function computes the specified statistic for both the magnitude (primary component) and direction (secondary component) of the vector data.
+#' The function computes the specified statistic for the magnitude (primary component) or direction (secondary component) of the vector data.
 #' It supports additional statistics like `circular_mean` and `circular_sd` for directional data.
 #' If `include.exact.dates = TRUE`, exact dates are returned for max/min statistics.
-#' The function can also filter the data based on a specified range of directions (using `direction.range`).
+#' The function can also filter the data based on a specified degree range of directions (using `direction.range`).
 #'
 #' @seealso \code{\link{compute.stat.scalar}}, \code{\link{compute.gen.stat}}
 #'
