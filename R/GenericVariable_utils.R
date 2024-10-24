@@ -1,5 +1,5 @@
 # Utility function to validate arguments for scalar and vector data.
-check.generic.argument.validity <- function( data, dates, max.missing.days) {
+check.generic.argument.validity <- function( data, dates, max.missing.days, calendar) {
   
   if (length(max.missing.days) != 3 || !all(c("annual", "monthly", "seasonal") %in% names(max.missing.days))) {
     stop("max.missing.days must be a named vector with 'annual', 'monthly', and 'seasonal' elements.")
@@ -26,6 +26,13 @@ check.generic.argument.validity <- function( data, dates, max.missing.days) {
   
   if(!is.null(dates) && !inherits(dates, "PCICt"))
       stop(paste("Dates must be of class PCICt."))
+  
+  # Calendar check: verify it matches one of the recognized types
+  valid_calendars <- c("360_day", "360", "365_day", "365", "noleap", "gregorian", "proleptic_gregorian")
+  if (!calendar %in% valid_calendars) {
+    stop(paste("Invalid calendar type:", calendar, 
+               ". Accepted types are '360_day', '360', '365_day', '365', 'noleap', 'gregorian', 'proleptic_gregorian'."))
+  }
 }
 
 # Utility function to handle date ranges and generate date factors.
@@ -125,6 +132,16 @@ read_csv_data <- function(
     na.strings,
     calendar
 ) {
+  
+  calling_func <- as.character(sys.call(-1)[[1]])
+  
+  # Ensure that the number of data columns matches the type of the calling function
+  if (grepl("Scalar", calling_func, ignore.case = TRUE) && length(data.columns) != 1) {
+    stop("For scalar data, 'data.columns' should contain exactly 1 column.")
+  } else if (grepl("Vector", calling_func, ignore.case = TRUE) && length(data.columns) != 2) {
+    stop("For vector data, 'data.columns' should contain exactly 2 columns.")
+  }
+  
   # Read the CSV file
   GV.csv <- read.csv(file, na.strings = na.strings)
   

@@ -37,7 +37,7 @@ climdexGenericScalar.raw <- function(
   calendar = "gregorian"
 ) {
   
-  check.generic.argument.validity(data,dates,max.missing.days)
+  check.generic.argument.validity(data,dates,max.missing.days,calendar)
 
   date.info <- date_info(dates)
   jdays = date.info$jdays
