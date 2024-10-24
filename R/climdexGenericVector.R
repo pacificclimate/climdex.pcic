@@ -41,7 +41,7 @@ climdexGenericVector.raw <- function(
     calendar = "gregorian"
 ) {
   
-  check.generic.argument.validity(primary, dates, max.missing.days)
+  check.generic.argument.validity(primary, dates, max.missing.days, calendar)
   if (missing(secondary)) {
     stop("Secondary data argument is missing.")
   }
@@ -49,6 +49,9 @@ climdexGenericVector.raw <- function(
   if (length(primary) != length(secondary) || length(primary) != length(dates)) {
     stop("Lengths of 'primary', 'secondary', and 'dates' must be equal.")
   }
+  # Convert the format to lowercase to allow case-insensitive input
+  format <- tolower(format)
+  
   # Additional validation for format
   if (format %in% c("polar", "cartesian")) {
     if (!is.numeric(secondary)) {
@@ -104,7 +107,6 @@ climdexGenericVector.raw <- function(
 #' @param secondary.column The name of the column containing the secondary data (e.g., direction) in the CSV file.
 #' @param date.columns A vector of column names or indices corresponding to the date fields in the CSV file.
 #' @param date.format A string representing the format of the date fields.
-#' @param name A name for the vector data (for reference purposes).
 #' @param format A string specifying the format of the vector data. Must be one of `"polar"`, `"cartesian"`, or `"cardinal"`.
 #' @param na.strings A character vector of strings to interpret as `NA`.
 #' @param max.missing.days A named vector specifying the maximum number of missing days allowed for annual, monthly, and seasonal periods.
@@ -145,7 +147,6 @@ climdexGenericVector.csv <- function(
     secondary.column,
     date.columns,
     date.format,
-    name,
     format = "polar",
     na.strings = NULL,
     max.missing.days = c(annual = 15, monthly = 3, seasonal = 6),
