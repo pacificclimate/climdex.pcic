@@ -301,10 +301,6 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
   }
   
   
-  valid_idx <- !is.na(direction_degrees)
-  direction_degrees <- direction_degrees[valid_idx]
-  date.factors <- date.factors[valid_idx]
-  
   # Convert directions to 'circular' objects
   directions_circular <- circular::circular(direction_degrees, units = "degrees", modulo = "2pi")
   
@@ -328,7 +324,7 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
   } else {
     circular_mean_result <- circular_mean_degrees
   }
-  
+  names(circular_mean_result) <- levels(date.factors)
   return(circular_mean_result)
 }
 
@@ -352,7 +348,7 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
   if (!is.numeric(direction_degrees)) {
     stop("direction_degrees must be a numeric vector.")
   }
-
+  
   # Convert directions to 'circular' objects
   directions_circular <- circular::circular(direction_degrees, units = "degrees", modulo = "2pi")
   
@@ -367,6 +363,7 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
   
   circular_sd_degrees <- as.numeric(circular_sd) * (180 / pi)  # Convert from radians to degrees
   circular_sd_degrees[is.nan(circular_sd_degrees)] <- NA
+  names(circular_sd_degrees) <- levels(date.factors)
   return(circular_sd_degrees)
 }
 
