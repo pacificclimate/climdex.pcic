@@ -251,31 +251,6 @@ climdexInput.raw <- function(tmax=NULL, tmin=NULL, prec=NULL, tmax.dates=NULL, t
   new.date.range <- as.PCICt(paste(as.numeric(format(range(all.dates), "%Y", tz="GMT")), c("01-01", last.day.of.year), sep="-"), cal=cal)
   date.series <- seq(new.date.range[1], new.date.range[2], by="day")
   jdays <- get.jdays.replaced.feb29(get.jdays(date.series))
-  
-  # Classify meteorological seasons with associated years. This includes 
-  # handling for the winter season, where data in the months of January and 
-  # February are assigned to the winter season of the previous year.
-  # 
-  # Seasons are defined as the meteorological seasons:
-  #  - 'Winter': December, January, February
-  #  - 'Spring': March, April, May
-  #  - 'Summer': June, July, August
-  #  - 'Fall': September, October, November
-  classify_meteorological_season_with_year <- function(date.series) {
-    month <- as.integer(format(date.series, "%m"))
-    year <- as.integer(format(date.series, format = "%Y"))
-    year_for_season <- ifelse(month %in% c(1, 2), year - 1, year)
-    
-    # Vector combining season and year
-    season_with_year <- ifelse(month %in% c(12, 1, 2), paste("Winter", year_for_season),
-                               ifelse(month %in% 3:5, paste("Spring", year_for_season),
-                                      ifelse(month %in% 6:8, paste("Summer", year_for_season),
-                                             ifelse(month %in% 9:11, paste("Fall", year_for_season), NA)
-                                      )
-                               )
-    )
-    return(season_with_year)
-  }
   season_with_year <- classify_meteorological_season_with_year(date.series)
   
   ## Factors for dividing data up
