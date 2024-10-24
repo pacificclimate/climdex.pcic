@@ -118,10 +118,10 @@ climdex.pcic.test.filter.by.direction.range.full.na <- function() {
 
 climdex.pcic.test.compute.circular.mean <- function() {
   direction_degrees <- c(350, 10)  # Should average to 0 degrees
-  date.factors <- c(1,1)
+  date.factors <- 1
   format <- "polar"
   result <- compute_circular_mean(direction_degrees, date.factors, format)
-  expected <- c(0)
+  expected <- 0
   
   checkEqualsNumeric(result, expected, tolerance = 1e-6)
   # Single Direction
@@ -133,17 +133,16 @@ climdex.pcic.test.compute.circular.mean <- function() {
 
 climdex.pcic.test.compute.circular.mean.with.na <- function() {
   direction_degrees <- c(350, 10, NA)  # Should average to 0 degrees
-  date.factors <- c(1, 1, 1)
+  date.factors <- 1
   format <- "polar"
   result <- compute_circular_mean(direction_degrees, date.factors, format)
-  
-  expected <- c(0)
+  expected <- 0
   checkEqualsNumeric(result, expected, tolerance = 1e-6)
 }
 
 climdex.pcic.test.compute.circular.sd <- function() {
   direction_degrees <- c(350, 10)
-  date.factors <- c(1)
+  date.factors <- 1
   result <- compute_circular_sd(direction_degrees, date.factors)
   expected <- circular::sd.circular(circular::circular(c(350, 10), units = "degrees", modulo = "2pi")) * 180 / pi
   checkEqualsNumeric(result, expected, tolerance = 1e-4)
@@ -155,10 +154,8 @@ climdex.pcic.test.compute.circular.sd <- function() {
 
 climdex.pcic.test.compute.circular.sd.with.na <- function() {
   direction_degrees <- c(350, 10, NA)
-  date.factors <- c(1, 1, 1)
-  
+  date.factors <- 1
   result <- compute_circular_sd(direction_degrees, date.factors)
-  
   expected_sd <- circular::sd.circular(circular::circular(c(350, 10), units = "degrees", modulo = "2pi")) * 180 / pi
   checkEqualsNumeric(result, expected_sd, tolerance = 1e-4, "Expected circular SD ignoring NA values")
 }

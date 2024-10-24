@@ -1,14 +1,14 @@
 climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() {
   set.seed(123)
-  speed <- runif(365, 0, 20)
-  direction <- runif(365, 0, 360)
-  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 365)
+  speed <- runif(366, 0, 20)
+  direction <- runif(366, 0, 360)
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 366)
   
   # Introduce missing data exceeding monthly and seasonal thresholds
   speed[1:10] <- NA        # First 10 days of January missing
-  speed[60:80] <- NA       # 21 days missing in March
-  speed[200:220] <- NA     # 21 days missing in July
-
+  speed[61:81] <- NA       # 21 days missing in March
+  speed[183:203] <- NA     # 21 days missing in July
+  
   # Define max missing days thresholds
   max_missing_days <- c(annual = 15, monthly = 5, seasonal = 15)
   
@@ -21,7 +21,6 @@ climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pc
     northern.hemisphere = TRUE,
     calendar = "gregorian"
   )
-  
   # Function to calculate number of missing days per period
   calculate_missing_days <- function(data, date.factor) {
     tapply(is.na(data), date.factor, sum)
@@ -38,13 +37,11 @@ climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pc
   
   # Adjust for the extra season (Winter-2019) that is automatically marked as NA
   all_seasons <- levels(vector_obj@date.factors$seasonal)
-  all_seasons
   first_season <- all_seasons[1]
   last_season <- all_seasons[length(all_seasons)]
-  incomplete_seasons <- c(first_season, last_season)
   
   # Combine expected NA seasons from missing data and incomplete seasons
-  total_expected_na_seasons <- unique(c(seasons_expected_na, incomplete_seasons))
+  total_expected_na_seasons <- unique(c(first_season,seasons_expected_na, last_season))
   
   # Check that the total number of NA seasons matches the expected count
   seasonal_namasks_primary <- vector_obj@namasks$seasonal$primary
@@ -52,6 +49,9 @@ climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pc
   
   checkEquals(length(actual_na_seasons), length(total_expected_na_seasons),
               msg = paste("Total number of NA seasons does not match expected (expected ", length(total_expected_na_seasons), ").", sep=""))
+  
+  # Check that actual and expected NA seasons are identical
+  checkTrue(identical(actual_na_seasons,total_expected_na_seasons), msg = "Actual NA seasons do not match expected")
   
   # Check that the specific seasons are marked NA
   checkTrue(all(is.na(seasonal_namasks_primary[total_expected_na_seasons])),
@@ -79,8 +79,8 @@ climdex.pcic.test.scalar.raw.and.csv.construction <- function() {
   set.seed(123)
 
   # Raw
-  data <- runif(365, 0, 20)
-  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 365)
+  data <- runif(366, 0, 20)
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 366)
 
   scalar_obj_raw <- climdexGenericScalar.raw(
     data = data,
@@ -90,7 +90,7 @@ climdex.pcic.test.scalar.raw.and.csv.construction <- function() {
     calendar = "gregorian"
   )
 
-  checkEquals(length(scalar_obj_raw@data), length(scalar_obj_raw@dates), "Raw scalar construction data length mismatch.")
+  checkEquals(length(scalar_obj_raw@data), length(scalar_obj_raw@dates), "Raw scalar construction data length does not match dates.")
 
   # CSV
   csv_data <- data.frame(date = as.character(dates), data = data)
@@ -107,16 +107,17 @@ climdex.pcic.test.scalar.raw.and.csv.construction <- function() {
     calendar = "gregorian"
   )
 
-  checkEquals(length(scalar_obj_csv@data), length(scalar_obj_csv@dates), "CSV scalar construction data length mismatch.")
+  checkEquals(length(scalar_obj_csv@data), length(scalar_obj_csv@dates), "CSV scalar construction data length does not match dates.")
   checkEquals(scalar_obj_raw@dates, scalar_obj_csv@dates, "Date mismatch between raw and CSV scalar objects.")
+  checkTrue(all.equal(scalar_obj_csv, scalar_obj_raw), msg = "Scalar_obj built from csv is not identical to raw")
 }
 
 climdex.pcic.test.calendar.handling <- function() {
   set.seed(123)
   
   # Create data for two different calendar types
-  data_gregorian <- runif(365, 0, 20)
-  dates_gregorian <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 365)
+  data_gregorian <- runif(366, 0, 20)
+  dates_gregorian <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 366)
   
   data_noleap <- runif(365, 0, 20)
   dates_noleap <- seq(as.PCICt("2020-01-01", cal = "noleap"), by = "day", length.out = 365)
@@ -146,6 +147,52 @@ climdex.pcic.test.calendar.handling <- function() {
   # Verify that February 29th is not included in the no-leap dates
   checkTrue(!any(format(scalar_obj_noleap@dates, "%m-%d") == "02-29"), "Leap day present in no-leap calendar dates.")
 }
+
+climdex.pcic.test.vector.raw.and.csv.construction <- function() {
+  set.seed(123)
+  
+  # Raw vector data construction
+  primary <- runif(366, 0, 20) # Primary component (e.g., magnitude)
+  secondary <- runif(366, 0, 360) # Secondary component (e.g., direction)
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "day", length.out = 366)
+  
+  vector_obj_raw <- climdexGenericVector.raw(
+    primary = primary,
+    secondary = secondary,
+    dates = dates,
+    format = "polar",
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  checkEquals(length(vector_obj_raw@primary), length(vector_obj_raw@dates), "Raw vector construction primary data length does not match dates.")
+  checkEquals(length(vector_obj_raw@secondary), length(vector_obj_raw@dates), "Raw vector construction secondary data length does not match dates.")
+  
+  # CSV vector data construction
+  csv_data <- data.frame(date = as.character(dates), primary = primary, secondary = secondary)
+  temp_csv <- tempfile()
+  write.csv(csv_data, temp_csv, row.names = FALSE)
+  
+  vector_obj_csv <- climdexGenericVector.csv(
+    file = temp_csv,
+    primary.column = "primary",
+    secondary.column = "secondary",
+    date.columns = "date",
+    date.format = "%Y-%m-%d",
+    format = "polar",
+    max.missing.days = c(annual = 15, monthly = 31, seasonal = 6),
+    northern.hemisphere = TRUE,
+    calendar = "gregorian"
+  )
+  
+  checkEquals(length(vector_obj_csv@primary), length(vector_obj_csv@dates), "CSV vector construction primary data length does not match dates.")
+  checkEquals(length(vector_obj_csv@secondary), length(vector_obj_csv@dates), "CSV vector construction secondary data length does not match dates.")
+  checkEquals(vector_obj_raw@dates, vector_obj_csv@dates, "Date mismatch between raw and CSV vector objects.")
+  checkTrue(all.equal(vector_obj_csv, vector_obj_raw), msg = "Vector_obj built from csv is not identical to raw")
+}
+
+
 climdex.pcic.test.vector.construction.validity <- function() {
   set.seed(123)
   
@@ -375,5 +422,18 @@ climdex.pcic.test.vector_construction_with_malformed_inputs <- function() {
     ),
     msg = "Error not raised for invalid 'dates' data type."
   )
+  
+  # Test 9: Invalid calendar type
+  checkException(
+    climdexGenericVector.raw(
+      primary = valid_speed,
+      secondary = valid_direction_cardinal,
+      dates = dates,
+      format = "cardinal",
+      calendar = "greg"
+    ),
+    msg = "Error not raised for invalid calendar type."
+  )
+  
 }
 
