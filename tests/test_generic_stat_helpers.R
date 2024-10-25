@@ -22,6 +22,7 @@ climdex.pcic.test.convert.cartesian.to.polar <- function() {
   checkTrue(is.na(result_zero$direction), "Expected direction to be NA when both u and v are 0")
 }
 
+
 climdex.pcic.test.convert.polar.to.cartesian <- function() {
   speed <- sqrt(2)
   direction <- 45
@@ -40,6 +41,7 @@ climdex.pcic.test.convert.polar.to.cartesian <- function() {
   checkEqualsNumeric(result_negative$v, -sin(45 * pi / 180), "Expected correct v for negative speed")
   
 }
+
 
 climdex.pcic.test.convert.degrees.to.cardinal <- function() {
   # Test all 16 cardinal directions and boundary cases
@@ -72,8 +74,8 @@ climdex.pcic.test.convert.cardinal.to.degrees <- function() {
   # Mixed-case input
   mixed_case_result <- convert_cardinal_to_degrees(c('n', 'Ne', 'e', 'SE', 'S', 'sW', 'W', 'nw'))
   checkEqualsNumeric(as.numeric(mixed_case_result), expected)
-  
 }
+
 
 climdex.pcic.test.filter.by.direction.range <- function() {
   primary_data <- 1:10
@@ -101,6 +103,7 @@ climdex.pcic.test.filter.by.direction.range <- function() {
   checkEquals(filtered$degrees, expected_degrees_cross_0, "Expected filtered degrees for range crossing 0 to have NA")
 }
 
+
 climdex.pcic.test.filter.by.direction.range.full.na <- function() {
   primary_data <- 1:10
   degrees <- seq(0, 360, length.out = 10) # 0  40  80 120 160 200 240 280 320 360
@@ -115,6 +118,7 @@ climdex.pcic.test.filter.by.direction.range.full.na <- function() {
   checkEquals(filtered$primary_data, expected_data, "Expected all primary data to be NA")
   checkEquals(filtered$degrees, expected_degrees, "Expected all degrees to be NA")
 }
+
 
 climdex.pcic.test.compute.circular.mean <- function() {
   direction_degrees <- c(350, 10)  # Should average to 0 degrees
@@ -131,6 +135,7 @@ climdex.pcic.test.compute.circular.mean <- function() {
                  msg = "direction_degrees cannot be empty or NULL.")
 }
 
+
 climdex.pcic.test.compute.circular.mean.with.na <- function() {
   direction_degrees <- c(350, 10, NA)  # Should average to 0 degrees
   date.factors <- 1
@@ -139,6 +144,7 @@ climdex.pcic.test.compute.circular.mean.with.na <- function() {
   expected <- 0
   checkEqualsNumeric(result, expected, tolerance = 1e-6)
 }
+
 
 climdex.pcic.test.compute.circular.sd <- function() {
   direction_degrees <- c(350, 10)
@@ -151,6 +157,7 @@ climdex.pcic.test.compute.circular.sd <- function() {
   checkException(compute_circular_sd(c(), c()), 
                  msg = "direction_degrees cannot be empty or NULL.")
 }
+
 
 climdex.pcic.test.compute.circular.sd.with.na <- function() {
   direction_degrees <- c(350, 10, NA)

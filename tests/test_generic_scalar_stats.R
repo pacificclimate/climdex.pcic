@@ -4,7 +4,7 @@ library(RUnit)
 # Setup
 wd <- "./"
 
-# # compute.stat.scalar Tests
+## compute.stat.scalar Tests
 
 climdex.pcic.test.compute.stat.scalar.mean <- function() {
   # Test data and dates
@@ -49,6 +49,7 @@ climdex.pcic.test.compute.stat.scalar.max <- function() {
   checkEqualsNumeric(as.numeric(result[1]), expected_max)
 }
 
+
 climdex.pcic.test.scalar.exact.dates <- function() {
   set.seed(123)
   
@@ -78,6 +79,7 @@ climdex.pcic.test.scalar.exact.dates <- function() {
                           "Expected exact date:", expected_max_date))
 }
 
+
 climdex.pcic.test.compute.stat.scalar.sum <- function() {
   
   data <- c(1, 2, 3, 4, 5) 
@@ -99,6 +101,7 @@ climdex.pcic.test.compute.stat.scalar.sum <- function() {
                      msg = paste("Computed sum:", result[1], "Expected sum:", expected_sum))
 }
 
+
 climdex.pcic.test.compute.stat.scalar.sd <- function() {
 
   data <- c(2, 4, 6, 8, 10) 
@@ -118,6 +121,7 @@ climdex.pcic.test.compute.stat.scalar.sd <- function() {
   checkEqualsNumeric(as.numeric(result[1]), expected_sd, tolerance = 1e-6, 
                      msg = paste("Computed SD:", result[1], "Expected SD:", expected_sd))
 }
+
 
 climdex.pcic.test.compute.stat.scalar.var <- function() {
   # Test data and dates

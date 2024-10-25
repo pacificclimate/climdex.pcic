@@ -4,7 +4,7 @@ library(circular)
 # Setup
 wd <- "./"
 
-# # compute.stat.vector Tests
+## compute.stat.vector Tests
 # Helper function to update primary and secondary values in a vector object. Dates need to be readded to avoid data-date length mismatch.
 update_vector_obj <- function(base_vector_obj, primary, secondary, dates) {
   return(climdexGenericVector.raw(
@@ -82,9 +82,6 @@ climdex.pcic.test.compute.stat.vector.circular.mean <- function() {
   checkEqualsNumeric(as.numeric(result_with_na$direction[1]), 350, tolerance = 1e-6, 
                      msg = paste("Result with NA differs from expected:", result_with_na$direction[1]))
 }
-
-
-
 
 
 climdex.pcic.test.compute.stat.vector.circular.sd <- function() {
@@ -186,6 +183,7 @@ climdex.pcic.test.compute.stat.vector.mean.magnitude <- function() {
                      msg = paste("Result magnitude differs from expected:", result$magnitude))
 }
 
+
 climdex.pcic.test.compute.stat.vector.filtered.direction.range <- function() {
   
   speed <- c(5, 10, 15, 20)
@@ -218,6 +216,7 @@ climdex.pcic.test.compute.stat.vector.filtered.direction.range <- function() {
   checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_max_magnitude)
 }
 
+
 climdex.pcic.test.compute.stat.vector.missing.values <- function() {
   speed <- c(5, 10, NA, 20) # One NA speed
   direction <- c(45, 90, 135, NA)  # One NA direction
@@ -246,6 +245,7 @@ climdex.pcic.test.compute.stat.vector.missing.values <- function() {
   checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_mean_magnitude, 
                      msg = paste("Result magnitude differs from expected. Result:", result$magnitude))
 }
+
 
 climdex.pcic.test.compute.stat.vector.overlapping.years <- function() {
   # Full winter season (Dec-Feb)
@@ -280,6 +280,7 @@ climdex.pcic.test.compute.stat.vector.overlapping.years <- function() {
                                  "Expected seasonal mean:", expected_mean_speed))
 }
 
+
 climdex.pcic.test.compute.stat.vector.filtered.direction.crossing.360 <- function() {
   speed <- c(5, 10, 15, 20)
   direction <- c(350, 10, 135, 180)  # Directions crossing the 360-degree boundary
@@ -309,6 +310,7 @@ climdex.pcic.test.compute.stat.vector.filtered.direction.crossing.360 <- functio
   checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_max_magnitude)
 }
 
+
 climdex.pcic.test.compute.stat.vector.no.data.in.direction.range <- function() {
   speed <- c(5, 10, 15, 20)
   direction <- c(45, 90, 135, 180)
@@ -337,6 +339,7 @@ climdex.pcic.test.compute.stat.vector.no.data.in.direction.range <- function() {
   result$magnitude[1]
   checkTrue(is.na(result$magnitude[1]), "Expected NA result when no data is in the specified direction range.")
 }
+
 
 climdex.pcic.test.compute.stat.vector.cartesian.format <- function() {
   u <- c(5, 10, 15)
@@ -386,6 +389,7 @@ climdex.pcic.test.compute.stat.vector.cartesian.format <- function() {
                                  "Expected circular mean direction:", expected_circular_mean))
 }
 
+
 climdex.pcic.test.compute.stat.vector.cardinal.format <- function() {
   speed <- c(5, 10, 15)
   direction <- c('N', 'E', 'S')  # Cardinal directions
@@ -414,6 +418,7 @@ climdex.pcic.test.compute.stat.vector.cardinal.format <- function() {
   
   checkEqualsNumeric(as.numeric(result$magnitude[1]), expected_mean_speed, tolerance = 1e-6)
 }
+
 
 climdex.pcic.test.compute.stat.vector.inverted.direction.range <- function() {
   speed <- c(5, 10, 15, 20)
