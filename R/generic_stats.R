@@ -22,6 +22,7 @@ library(circular)
 #' If exact dates are requested for statistics that do not support it (e.g., mean, sum, sd, var), the function will print a message
 #' and proceed without exact dates.
 #'
+#' @importFrom stats na.omit
 #' @seealso \code{\link{compute.stat.scalar}}, \code{\link{compute.stat.vector}}
 #'
 #' @note
@@ -37,6 +38,25 @@ compute.gen.stat <- function(gen.var, stat, data, freq = c("monthly", "annual", 
   stopifnot(!is.null(data))
   freq <- match.arg(freq)
   exact_date_stats <- c("max", "min")
+  
+  # Determine if the data is single-value per month
+  actual_month_factor <- factor(format(gen.var@dates, "%Y-%m"))
+  single_value_per_month <- all(tapply(data, actual_month_factor, function(x) length(na.omit(x)) == 1, simplify = TRUE))
+  
+  
+  # Check if the data is single-value per month
+  if (single_value_per_month) {
+    if (freq == "monthly") {
+      # Warn if trying to compute monthly stats with single-value data per month
+      warning("Monthly calculations on single-value-per-month data are not meaningful. Proceeding with the calculation.")
+    }
+    
+    if (include.exact.dates) {
+      # Warn if exact dates are requested on single-value-per-month data
+      warning("Exact dates are not meaningful for single-value-per-month data. Proceeding without exact dates.")
+      include.exact.dates <- FALSE
+    }
+  }
   
   if (include.exact.dates && !(stat %in% exact_date_stats)) {
     message(paste("Warning: Exact dates are not applicable for the", stat, "statistic. Proceeding without exact dates."))
