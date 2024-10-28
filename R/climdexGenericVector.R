@@ -192,6 +192,16 @@ climdexGenericVector.csv <- function(
 #' @param calendar String representing the calendar type, e.g., "gregorian".
 #' 
 #' @return A `ClimdexGenericVector` object containing the processed vector data.
+#'#' 
+#' @seealso [climdexGenericVector.raw()], [climdexSingleMonthlyVector.csv()]
+#' 
+#' @examples
+#' \dontrun{
+#' primary <- runif(12, 0, 20)
+#' secondary <- runif(12, 0, 360)
+#' dates <- as.PCICt(seq(as.Date("2020-01-01"), by = "month", length.out = 12), cal = "gregorian")
+#' vector_obj <- climdexSingleMonthlyVector.raw(primary, secondary, dates, "polar")
+#' }
 #'
 #' @export
 
@@ -253,6 +263,16 @@ climdexSingleMonthlyVector.raw <- function(
 #' @param calendar A string representing the calendar type (e.g., "gregorian").
 #'
 #' @return A `ClimdexGenericVector` object containing the processed vector climate data.
+#'
+#' @seealso [climdexSingleMonthlyVector.raw()]
+#' 
+#' @examples
+#' \dontrun{
+#' csv_file <- "path/to/vector_data.csv"
+#' vector_obj <- climdexSingleMonthlyVector.csv(file = csv_file, primary.column = "primary",
+#'                                              secondary.column = "secondary", date.columns = "date",
+#'                                              date.format = "%Y-%m-%d", format = "polar")
+#' }
 #'
 #' @export
 

@@ -144,6 +144,15 @@ climdexGenericScalar.csv <- function(
 #' @param calendar A string representing the calendar type, e.g., "gregorian".
 #' @return A `ClimdexGenericScalar` object containing the processed data.
 #'
+#' @seealso [climdexGenericScalar.raw()], [climdexSingleMonthlyScalar.csv()]
+#' 
+#' @examples
+#' \dontrun{
+#' data <- runif(12, 0, 20)
+#' dates <- as.PCICt(seq(as.Date("2020-01-01"), by = "month", length.out = 12), cal = "gregorian")
+#' scalar_obj <- climdexSingleMonthlyScalar.raw(data, dates)
+#' }
+#'
 #' @export
 
 climdexSingleMonthlyScalar.raw <- function(
@@ -196,6 +205,15 @@ climdexSingleMonthlyScalar.raw <- function(
 #' @param calendar A string representing the calendar type (e.g., "gregorian").
 #'
 #' @return A `ClimdexGenericScalar` object containing the processed scalar climate data.
+#'
+#' @seealso [climdexSingleMonthlyScalar.raw()]
+#' 
+#' @examples
+#' \dontrun{
+#' csv_file <- "path/to/scalar_data.csv"
+#' scalar_obj <- climdexSingleMonthlyScalar.csv(file = csv_file, data.column = "data",
+#'                                              date.columns = "date", date.format = "%Y-%m-%d")
+#' }
 #'
 #' @export
 
