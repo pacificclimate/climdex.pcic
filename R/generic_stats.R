@@ -33,8 +33,9 @@ library(circular)
 #' # Assuming `scalar_obj` is a valid climdexGenericScalar object:
 #' \dontrun{compute.gen.stat(scalar_obj, "max", scalar_obj@data, "monthly", FALSE)}
 #'
-#'#' @export
-compute.gen.stat <- function(gen.var, stat, data, freq = c("monthly", "annual", "seasonal"), include.exact.dates) {
+#' @export
+#' @keywords internal
+compute.gen.stat <- function(gen.var, stat, data, freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE) {
   stopifnot(!is.null(data))
   freq <- match.arg(freq)
   exact_date_stats <- c("max", "min")
