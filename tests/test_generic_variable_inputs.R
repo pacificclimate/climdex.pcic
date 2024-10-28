@@ -1,4 +1,4 @@
-climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() {
+climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() {
   set.seed(123)
   speed <- runif(366, 0, 20)
   direction <- runif(366, 0, 360)
@@ -74,7 +74,6 @@ climdex.pcic.test.na_masks_with_missing_data_thresholds <- function() climdex.pc
 }
 
 
-
 climdex.pcic.test.scalar.raw.and.csv.construction <- function() {
   set.seed(123)
 
@@ -112,6 +111,7 @@ climdex.pcic.test.scalar.raw.and.csv.construction <- function() {
   checkTrue(all.equal(scalar_obj_csv, scalar_obj_raw), msg = "Scalar_obj built from csv is not identical to raw")
 }
 
+
 climdex.pcic.test.calendar.handling <- function() {
   set.seed(123)
   
@@ -147,6 +147,7 @@ climdex.pcic.test.calendar.handling <- function() {
   # Verify that February 29th is not included in the no-leap dates
   checkTrue(!any(format(scalar_obj_noleap@dates, "%m-%d") == "02-29"), "Leap day present in no-leap calendar dates.")
 }
+
 
 climdex.pcic.test.vector.raw.and.csv.construction <- function() {
   set.seed(123)
@@ -259,6 +260,7 @@ climdex.pcic.test.vector.construction.validity <- function() {
   checkEqualsNumeric(polar_data$direction, expected_polar$direction, tolerance = 1e-6, "Direction conversion from cartesian to polar incorrect.")
 }
 
+
 climdex.pcic.test.scalar_construction_with_malformed_inputs <- function() {
   # Valid data
   data <- c(10.5, 12.3, 11.2)
@@ -311,7 +313,6 @@ climdex.pcic.test.scalar_construction_with_malformed_inputs <- function() {
     msg = "Error not raised for invalid 'dates' data type."
   )
 }
-
 
 
 climdex.pcic.test.vector_construction_with_malformed_inputs <- function() {
@@ -434,6 +435,5 @@ climdex.pcic.test.vector_construction_with_malformed_inputs <- function() {
     ),
     msg = "Error not raised for invalid calendar type."
   )
-  
 }
 
