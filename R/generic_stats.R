@@ -14,19 +14,19 @@ library(circular)
 #' @param include.exact.dates Logical. If `TRUE`, computes and returns the exact dates for max/min statistics.
 #' This is not applicable for other statistics like mean, sum, sd, or var, and will automatically switch to `FALSE`.
 #'
-#' @return A numeric vector of the computed statistic for each date factor, multiplied by the corresponding NA mask.
-#' If `include.exact.dates = TRUE`, it returns a data frame that includes exact dates for max/min statistics.
-#'
 #' @details
 #' The function checks the validity of the provided data and ensures that NA masks are applied to the results.
 #' If exact dates are requested for statistics that do not support it (e.g., mean, sum, sd, var), the function will print a message
 #' and proceed without exact dates.
 #'
-#' @seealso \code{\link{compute.stat.scalar}}, \code{\link{compute.stat.vector}}
+#' @return A numeric vector of the computed statistic for each date factor, multiplied by the corresponding NA mask.
+#' If `include.exact.dates = TRUE`, it returns a data frame that includes exact dates for max/min statistics.
 #'
 #' @note
 #' This function is internal and not intended to be called directly by users. It serves as a shared utility
 #' for computing statistics of generic scalar and vector climate data.
+#' 
+#' @seealso \code{\link{compute.stat.scalar}}, \code{\link{compute.stat.vector}}
 #'
 #' @examples
 #' # Assuming `scalar_obj` is a valid climdexGenericScalar object:
@@ -384,22 +384,22 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
 #' @param direction.range A numeric vector of length 2 specifying the minimum and maximum degrees for filtering based on direction.
 #' Only data with directions within this range will be included in the calculations. If `NULL`, no filtering is applied.
 #'
-#' @return A list containing the computed statistic for magnitude and, if applicable, the computed statistic for direction.
-#' For circular statistics (e.g., `circular_mean`, `circular_sd`), the result is returned for directions in degrees.
-#' If `include.exact.dates = TRUE`, the function returns exact dates for the max/min statistics.
-#'
 #' @details
 #' The function computes the specified statistic for the magnitude (primary component) or direction (secondary component) of the vector data.
 #' It supports additional statistics like `circular_mean` and `circular_sd` for directional data.
 #' If `include.exact.dates = TRUE`, exact dates are returned for max/min statistics.
 #' The function can also filter the data based on a specified degree range of directions (using `direction.range`).
 #'
-#' @seealso \code{\link{compute.stat.scalar}}, \code{\link{compute.gen.stat}}
+#' @return A list containing the computed statistic for magnitude and, if applicable, the computed statistic for direction.
+#' For circular statistics (e.g., `circular_mean`, `circular_sd`), the result is returned for directions in degrees.
+#' If `include.exact.dates = TRUE`, the function returns exact dates for the max/min statistics.
 #'
 #' @note
 #' This function is designed for vector climate data, where the data includes both a magnitude and direction component.
 #' For scalar data, use \code{\link{compute.stat.scalar}} instead.
 #'
+#' @seealso \code{\link{compute.stat.scalar}}, \code{\link{compute.gen.stat}}
+#' 
 #' @examples
 #' \dontrun{
 #' # Assuming `vector_obj` is a valid ClimdexGenericVector object:
