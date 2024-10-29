@@ -10,6 +10,7 @@ Depends:
     PCICt (>= 0.5-4)
 Encoding: UTF-8
 Imports:
+    circular,
     methods,
     Rcpp (>= 0.11.4),
     stats,
@@ -31,7 +32,12 @@ RoxygenNote: 7.3.2
 Collate:
   'input_utils.R'
   'climdexInput_class.R'
+  'GenericVariable_utils.R'
+  'climdexGenericVariable_class.R'
+  'climdexGenericScalar.R'
+  'climdexGenericVector.R'
   'climdex.pcic-package.R'
+  'generic_stats.R'
   'constants.R'
   'date_utils.R'
   'precipitation_indices.R'

@@ -79,3 +79,26 @@ exact.date <- function(stat, data, date.factor, freq, cal, mask) {
   )
   return(df)
 }
+
+# Classify meteorological seasons with associated years. This includes 
+# handling for the winter season, where data in the months of January and 
+# February are assigned to the winter season of the previous year.
+# 
+# Seasons are defined as the meteorological seasons:
+#  - 'Winter': December, January, February
+#  - 'Spring': March, April, May
+#  - 'Summer': June, July, August
+#  - 'Fall': September, October, November
+classify_meteorological_season_with_year <- function(dates) {
+  month <- as.integer(format(dates, "%m"))
+  year <- as.integer(format(dates, "%Y"))
+  year_for_season <- ifelse(month %in% c(1, 2), year - 1, year)
+  
+  season <- ifelse(month %in% c(12, 1, 2), "Winter",
+                   ifelse(month %in% 3:5, "Spring",
+                          ifelse(month %in% 6:8, "Summer",
+                                 ifelse(month %in% 9:11, "Fall", NA))))
+  
+  season_with_year <- paste(season, year_for_season)
+  return(season_with_year)
+}
