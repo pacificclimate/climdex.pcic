@@ -127,7 +127,6 @@ climdexGenericScalar.csv <- function(
   
   return(obj)
 }
-
 #' @title climdexSingleMonthlyScalar.raw
 #'
 #' @description
@@ -135,7 +134,7 @@ climdexGenericScalar.csv <- function(
 #'
 #' @details
 #' This function is a wrapper for creating `ClimdexGenericScalar` objects where temporal resolution is a single value per month.
-#' It automatically sets the `max.missing.days` to `+Inf`. To ensure consistency, each data point must correspond 
+#' It automatically sets the `max.missing.days` to `+Inf`. To ensure consistency, each data point must correspond
 #' to the 1st day of each month. The function will raise an error if there is more than one value per month or if any date is not on the 1st.
 #'
 #' @param data A numeric vector containing the scalar climate data.
@@ -145,7 +144,7 @@ climdexGenericScalar.csv <- function(
 #' @return A `ClimdexGenericScalar` object containing the processed data.
 #'
 #' @seealso [climdexGenericScalar.raw()], [climdexSingleMonthlyScalar.csv()]
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' data <- runif(12, 0, 20)
@@ -159,24 +158,24 @@ climdexSingleMonthlyScalar.raw <- function(
     data,
     dates,
     northern.hemisphere = TRUE,
-    calendar = "gregorian"
-) {
+    calendar = "gregorian") {
   max.missing.days <- c(annual = +Inf, monthly = +Inf, seasonal = +Inf)
   
+  valid_dates <- dates[!is.na(dates)]
   # Check if there is exactly one value per month on the 1st day
-  unique_months <- unique(format(dates, "%Y-%m"))
-  day_of_month <- as.integer(format(dates, "%d"))
-  
+  unique_months <- unique(format(valid_dates, "%Y-%m"))
+  day_of_month <- as.integer(format(valid_dates, "%d"))
+
   # Check that the length of unique months matches the number of dates, ensuring only one value per month
-  if (length(unique_months) != length(dates)) {
+  if (length(unique_months) != length(valid_dates)) {
     stop("Data must have exactly one value per month.")
   }
-  
+
   # Check that all dates correspond to the 1st day of each month
   if (!all(day_of_month == 1)) {
     stop("Data must be on the 1st day of each month.")
   }
-  
+
   obj <- climdexGenericScalar.raw(
     data = data,
     dates = dates,
@@ -193,7 +192,7 @@ climdexSingleMonthlyScalar.raw <- function(
 #' Reads scalar climate data with a single value per month constraint from a CSV file and creates a `ClimdexGenericScalar` object.
 #'
 #' @details
-#' This function reads scalar climate data and validates that there is a single value per month. It automatically sets the `max.missing.days` 
+#' This function reads scalar climate data and validates that there is a single value per month. It automatically sets the `max.missing.days`
 #' to `+Inf` and builds a `ClimdexGenericScalar` object. Each date must correspond to the 1st day of each month.
 #'
 #' @param file The file path to the CSV containing the scalar climate data.
@@ -207,12 +206,14 @@ climdexSingleMonthlyScalar.raw <- function(
 #' @return A `ClimdexGenericScalar` object containing the processed scalar climate data.
 #'
 #' @seealso [climdexSingleMonthlyScalar.raw()]
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' csv_file <- "path/to/scalar_data.csv"
-#' scalar_obj <- climdexSingleMonthlyScalar.csv(file = csv_file, data.column = "data",
-#'                                              date.columns = "date", date.format = "%Y-%m-%d")
+#' scalar_obj <- climdexSingleMonthlyScalar.csv(
+#'   file = csv_file, data.column = "data",
+#'   date.columns = "date", date.format = "%Y-%m-%d"
+#' )
 #' }
 #'
 #' @export
@@ -224,16 +225,15 @@ climdexSingleMonthlyScalar.csv <- function(
     date.format,
     na.strings = NULL,
     northern.hemisphere = TRUE,
-    calendar = "gregorian"
-) {
+    calendar = "gregorian") {
   GS.csv <- read_csv_data(file, data.columns = data.column, date.columns, date.format, na.strings, calendar)
-  
+
   obj <- climdexSingleMonthlyScalar.raw(
     data = GS.csv$data[[1]],
     dates = GS.csv$dates,
     northern.hemisphere = northern.hemisphere,
     calendar = calendar
   )
-  
+
   return(obj)
 }

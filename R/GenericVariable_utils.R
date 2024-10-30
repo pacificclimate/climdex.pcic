@@ -1,6 +1,6 @@
 # Utility function to validate arguments for scalar and vector data.
 check.generic.argument.validity <- function( data, dates, max.missing.days, calendar) {
-  
+
   if (length(max.missing.days) != 3 || !all(c("annual", "monthly", "seasonal") %in% names(max.missing.days))) {
     stop("max.missing.days must be a named vector with 'annual', 'monthly', and 'seasonal' elements.")
   }
@@ -14,18 +14,24 @@ check.generic.argument.validity <- function( data, dates, max.missing.days, cale
   if (missing(dates)) {
     stop("Argument 'dates' is missing.")
   }
-  
+  if (any(is.na(dates))){
+    stop("Argument 'dates' has NA values.")
+  }
   
   if (!is.numeric(data)) {
     stop("Primary Data must be numeric.")
   }
- 
+  if (length(data) == 0 ||  length(dates) == 0) {
+    stop("Primary data and dates must not be empty vectors.")
+  }
   if (length(data) != length(dates)) {
     stop("Primary data and dates must have the same length.")
   }
   
-  if(!is.null(dates) && !inherits(dates, "PCICt"))
-      stop(paste("Dates must be of class PCICt."))
+  if(!is.null(dates) && !inherits(dates, "PCICt")){
+    stop(paste("Dates must be of class PCICt."))
+  }
+      
   
   # Calendar check: verify it matches one of the recognized types
   valid_calendars <- c("360_day", "360", "365_day", "365", "noleap", "gregorian", "proleptic_gregorian")
