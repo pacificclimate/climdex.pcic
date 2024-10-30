@@ -45,7 +45,7 @@ climdexGenericVector.raw <- function(
   if (missing(secondary)) {
     stop("Secondary data argument is missing.")
   }
-  if (length(secondary) == 0 ||  length(dates) == 0) {
+  if (length(secondary) == 0) {
     stop("Secondary must not be an empty vector.")
   }
   # Check that primary, secondary, and dates have the same length

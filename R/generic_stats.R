@@ -42,8 +42,7 @@ compute.gen.stat <- function(gen.var, stat, data, freq = c("monthly", "annual", 
   exact_date_stats <- c("max", "min")
   
   # Determine if the data is single-value per month
-  actual_month_factor <- factor(format(gen.var@dates, "%Y-%m"))
-  single_value_per_month <- all(tapply(data, actual_month_factor, function(x) length(na.omit(x)) == 1, simplify = TRUE))
+  single_value_per_month <- all(tapply(data, gen.var@date.factors$monthly, function(x) length(na.omit(x)) == 1, simplify = TRUE))
   
   
   # Check if the data is single-value per month
