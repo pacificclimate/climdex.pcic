@@ -227,9 +227,8 @@ climdex.pcic.test.SingleMonthlyScalar.raw.non.numeric.data <- function() {
 }
 
 climdex.pcic.test.SingleMonthlyScalar.csv.invalid.date.format <- function() {
-  # Invalid date formats
   data <- runif(12, 0, 20)
-  dates <- format(seq(as.Date("2020-01-01"), by = "month", length.out = 12), "%Y/%m/%d") # Different date format
+  dates <- format(seq(as.Date("2020-01-01"), by = "month", length.out = 12), "%Y/%m/%d") # Invalid date format
   csv_data <- data.frame(date = dates, data = data)
   temp_csv <- tempfile()
   write.csv(csv_data, temp_csv, row.names = FALSE)
@@ -276,7 +275,6 @@ climdex.pcic.test.SingleMonthlyScalar.raw.NA.dates <- function() {
     climdexSingleMonthlyScalar.raw(data, dates, northern.hemisphere = TRUE, calendar = "gregorian"),
     error = function(e) e$message
   )
-  error_message
   # Check error message
   checkTrue(
     grepl("Argument 'dates' has NA values.", error_message),
@@ -335,7 +333,7 @@ climdex.pcic.test.SingleMonthlyVector.raw.missing.secondary <- function() {
     !inherits(result, "try-error"),
     "Function raised an error despite valid monthly data."
   )
-  checkEquals(vector_obj@primary[!is.na(vector_obj@primary)], vector_obj@primary[!is.na(vector_obj@secondary)])
+  checkEquals(vector_obj@primary[!is.na(vector_obj@primary)], vector_obj@primary[!is.na(vector_obj@secondary)], "Vector objects NA values are not in sync beteen primary and secondary data.")
 }
 
 
@@ -390,7 +388,7 @@ climdex.pcic.test.SingleMonthlyScalar.raw.different.calendars <- function() {
     !inherits(result, "try-error"),
     "Function raised an error despite valid monthly data."
   )
-  checkEquals(scalar_obj@dates[!is.na(scalar_obj@data)], dates)
+  checkEquals(scalar_obj@dates[!is.na(scalar_obj@data)], dates, "Scalar object dates for non-NA data does not match input dates.")
 }
 
 climdex.pcic.test.SingleMonthlyScalar.raw.timezones <- function() {
@@ -408,7 +406,7 @@ climdex.pcic.test.SingleMonthlyScalar.raw.timezones <- function() {
     !inherits(result, "try-error"),
     "Function raised an error despite valid monthly data."
   )
-  checkEquals(scalar_obj@dates[!is.na(scalar_obj@data)], dates)
+  checkEquals(scalar_obj@dates[!is.na(scalar_obj@data)], dates, "Scalar object dates for non-NA data does not match input dates.")
 }
 
 climdex.pcic.test.SingleMonthlyScalar.raw.irregular.intervals <- function() {
@@ -426,7 +424,7 @@ climdex.pcic.test.SingleMonthlyScalar.raw.irregular.intervals <- function() {
     !inherits(result, "try-error"),
     "Function raised an error despite valid monthly data."
   )
-  checkEquals(scalar_obj@dates[!is.na(scalar_obj@data)], dates)
+  checkEquals(scalar_obj@dates[!is.na(scalar_obj@data)], dates, "Scalar object dates for non-NA data does not match input dates.")
 }
 
 climdex.pcic.test.SingleMonthlyScalar.raw.negative.values <- function() {
