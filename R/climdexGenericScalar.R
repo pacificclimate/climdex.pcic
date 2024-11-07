@@ -49,13 +49,14 @@ climdexGenericScalar.raw <- function(
   namasks <- generate_namasks(filled.list, date.factors, max.missing.days)
   
   return(new("climdexGenericScalar",
-             data = filled.list[["data"]],
-             dates = date.series,
-             date.factors = date.factors,
-             jdays = jdays,
-             namasks = namasks,
-             northern.hemisphere = northern.hemisphere,
-             max.missing.days = max.missing.days))
+    data = filled.list[["data"]],
+    dates = date.series,
+    date.factors = date.factors,
+    jdays = jdays,
+    namasks = namasks,
+    northern.hemisphere = northern.hemisphere,
+    max.missing.days = max.missing.days
+  ))
 }
 
 #' @title climdexGenericScalar.csv

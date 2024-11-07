@@ -13,6 +13,9 @@ check.generic.argument.validity <- function(
     if (missing(data) || is.null(data)) {
       stop(paste(name, "argument is missing."))
     }
+    if (missing(dates)) {
+      stop("Argument 'dates' is missing.")
+    }
     if (length(data) == 0 || length(dates) == 0) {
       stop(paste(name, "and dates must not be empty vectors."))
     }
