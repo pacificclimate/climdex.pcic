@@ -47,16 +47,15 @@ climdexGenericScalar.raw <- function(
   filled.list <- generate_filled_list(data, dates, date.series)
   names(filled.list) <- "data"
   namasks <- generate_namasks(filled.list, date.factors, max.missing.days)
-  obj <- new("climdexGenericScalar",
-    data = filled.list[["data"]],
-    dates = date.series,
-    date.factors = date.factors,
-    jdays = jdays,
-    namasks = namasks,
-    northern.hemisphere = northern.hemisphere,
-    max.missing.days = max.missing.days)
   
-  return(obj)
+  return(new("climdexGenericScalar",
+             data = filled.list[["data"]],
+             dates = date.series,
+             date.factors = date.factors,
+             jdays = jdays,
+             namasks = namasks,
+             northern.hemisphere = northern.hemisphere,
+             max.missing.days = max.missing.days))
 }
 
 #' @title climdexGenericScalar.csv
@@ -117,15 +116,14 @@ climdexGenericScalar.csv <- function(
 ) {
 
   GS.csv <- read_csv_data(file, data.column, date.columns, date.format,  na.strings, calendar)
-  obj <- climdexGenericScalar.raw(
-    data = GS.csv$data[[1]],
-    dates = GS.csv$dates,
-    northern.hemisphere = northern.hemisphere,
-    max.missing.days = max.missing.days,
-    calendar = calendar
-  )
   
-  return(obj)
+  return(climdexGenericScalar.raw(
+  data = GS.csv$data[[1]],
+  dates = GS.csv$dates,
+  northern.hemisphere = northern.hemisphere,
+  max.missing.days = max.missing.days,
+  calendar = calendar
+))
 }
 #' @title climdexSingleMonthlyScalar.raw
 #'
@@ -161,29 +159,15 @@ climdexSingleMonthlyScalar.raw <- function(
     calendar = "gregorian") {
   max.missing.days <- c(annual = +Inf, monthly = +Inf, seasonal = +Inf)
   
-  valid_dates <- dates[!is.na(dates)]
-  # Check if there is exactly one value per month on the 1st day
-  unique_months <- unique(format(valid_dates, "%Y-%m"))
-  day_of_month <- as.integer(format(valid_dates, "%d"))
-
-  # Check that the length of unique months matches the number of dates, ensuring only one value per month
-  if (length(unique_months) != length(valid_dates)) {
-    stop("Data must have exactly one value per month.")
-  }
-
-  # Check that all dates correspond to the 1st day of each month
-  if (!all(day_of_month == 1)) {
-    stop("Data must be on the 1st day of each month.")
-  }
-
-  obj <- climdexGenericScalar.raw(
-    data = data,
-    dates = dates,
-    max.missing.days = max.missing.days,
-    northern.hemisphere = northern.hemisphere,
-    calendar = calendar
-  )
-  return(obj)
+  check.single.month.dates(dates)
+  
+  return(climdexGenericScalar.raw(
+  data = data,
+  dates = dates,
+  max.missing.days = max.missing.days,
+  northern.hemisphere = northern.hemisphere,
+  calendar = calendar
+))
 }
 
 #' @title climdexSingleMonthlyScalar.csv
@@ -228,12 +212,11 @@ climdexSingleMonthlyScalar.csv <- function(
     calendar = "gregorian") {
   GS.csv <- read_csv_data(file, data.columns = data.column, date.columns, date.format, na.strings, calendar)
 
-  obj <- climdexSingleMonthlyScalar.raw(
-    data = GS.csv$data[[1]],
-    dates = GS.csv$dates,
-    northern.hemisphere = northern.hemisphere,
-    calendar = calendar
-  )
 
-  return(obj)
+  return(climdexSingleMonthlyScalar.raw(
+  data = GS.csv$data[[1]],
+  dates = GS.csv$dates,
+  northern.hemisphere = northern.hemisphere,
+  calendar = calendar
+))
 }

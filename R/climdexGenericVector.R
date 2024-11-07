@@ -41,32 +41,9 @@ climdexGenericVector.raw <- function(
     calendar = "gregorian"
 ) {
   
-  check.generic.argument.validity(primary, dates, max.missing.days, calendar)
-  if (missing(secondary)) {
-    stop("Secondary data argument is missing.")
-  }
-  if (length(secondary) == 0) {
-    stop("Secondary must not be an empty vector.")
-  }
-  # Check that primary, secondary, and dates have the same length
-  if (length(primary) != length(secondary) || length(primary) != length(dates)) {
-    stop("Lengths of 'primary', 'secondary', and 'dates' must be equal.")
-  }
-  # Convert the format to lowercase to allow case-insensitive input
-  format <- tolower(format)
-  
-  # Additional validation for format
-  if (format %in% c("polar", "cartesian")) {
-    if (!is.numeric(secondary)) {
-      stop("For 'polar' or 'cartesian' formats, 'secondary' must be numeric.")
-    }
-  } else if (format == "cardinal") {
-    if (!is.character(secondary)) {
-      stop("For 'cardinal' format, 'secondary' must be character.")
-    }
-  } else {
-    stop("Invalid 'format'. Use 'polar', 'cartesian', or 'cardinal'.")
-  }
+  check.generic.argument.validity(primary, dates, max.missing.days, calendar,
+                                  is.vector = TRUE, secondary, format)
+
   
   date.info <- date_info(dates)
   jdays = date.info$jdays
@@ -79,19 +56,18 @@ climdexGenericVector.raw <- function(
   filled.secondary[is.na(filled.primary)] <- NA
   filled.primary[is.na(filled.secondary)] <- NA
   namasks <- generate_namasks(list(primary = filled.primary, secondary = filled.secondary), date.factors, max.missing.days)
-
-  obj <- new("climdexGenericVector",
-    primary = filled.primary,
-    secondary = filled.secondary,
-    dates = date.series,
-    format = format,
-    date.factors = date.factors,
-    jdays = jdays,
-    namasks = namasks,
-    max.missing.days = max.missing.days,
-    northern.hemisphere = northern.hemisphere)
   
-  return(obj)
+  return(new("climdexGenericVector",
+   primary = filled.primary,
+   secondary = filled.secondary,
+   dates = date.series,
+   format = format,
+   date.factors = date.factors,
+   jdays = jdays,
+   namasks = namasks,
+   max.missing.days = max.missing.days,
+   northern.hemisphere = northern.hemisphere
+ ))
 }
 
 #' @title climdexGenericVector.csv
@@ -163,17 +139,15 @@ climdexGenericVector.csv <- function(
   secondary_values <- GV.csv$data[[2]]
   dates <- GV.csv$dates
   
-  obj <- climdexGenericVector.raw(
-    primary = primary_values,
-    secondary = secondary_values,
-    dates = dates,
-    format = format,
-    max.missing.days = max.missing.days,
-    northern.hemisphere = northern.hemisphere,
-    calendar = calendar
-  )
-  
-  return(obj)
+  return(climdexGenericVector.raw(
+  primary = primary_values,
+  secondary = secondary_values,
+  dates = dates,
+  format = format,
+  max.missing.days = max.missing.days,
+  northern.hemisphere = northern.hemisphere,
+  calendar = calendar
+))
 }
 #' @title climdexSingleMonthlyVector.raw
 #'
@@ -216,22 +190,9 @@ climdexSingleMonthlyVector.raw <- function(
     calendar = "gregorian") {
   max.missing.days <- c(annual = +Inf, monthly = +Inf, seasonal = +Inf)
 
-  valid_dates <- dates[!is.na(dates)]
-  # Check if there is exactly one value per month on the 1st day
-  unique_months <- unique(format(valid_dates, "%Y-%m"))
-  day_of_month <- as.integer(format(valid_dates, "%d"))
+  check.single.month.dates(dates)
 
-  # Check that the length of unique months matches the number of dates, ensuring only one value per month
-  if (length(unique_months) != length(valid_dates)) {
-    stop("Data must have exactly one value per month.")
-  }
-
-  # Check that all dates correspond to the 1st day of each month
-  if (!all(day_of_month == 1)) {
-    stop("Data must be on the 1st day of each month.")
-  }
-
-  obj <- climdexGenericVector.raw(
+  return(climdexGenericVector.raw(
     primary = primary,
     secondary = secondary,
     dates = dates,
@@ -239,9 +200,7 @@ climdexSingleMonthlyVector.raw <- function(
     max.missing.days = max.missing.days,
     northern.hemisphere = northern.hemisphere,
     calendar = calendar
-  )
-
-  return(obj)
+  ))
 }
 
 #' @title climdexSingleMonthlyVector.csv
@@ -292,14 +251,13 @@ climdexSingleMonthlyVector.csv <- function(
     calendar = "gregorian") {
   GV.csv <- read_csv_data(file, data.columns = c(primary.column, secondary.column), date.columns, date.format, na.strings, calendar)
 
-  obj <- climdexSingleMonthlyVector.raw(
-    primary = GV.csv$data[[1]],
-    secondary = GV.csv$data[[2]],
-    dates = GV.csv$dates,
-    format = format,
-    northern.hemisphere = northern.hemisphere,
-    calendar = calendar
-  )
+  return(climdexSingleMonthlyVector.raw(
+  primary = GV.csv$data[[1]],
+  secondary = GV.csv$data[[2]],
+  dates = GV.csv$dates,
+  format = format,
+  northern.hemisphere = northern.hemisphere,
+  calendar = calendar
+))
 
-  return(obj)
 }
