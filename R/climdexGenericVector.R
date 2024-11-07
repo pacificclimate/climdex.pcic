@@ -41,29 +41,9 @@ climdexGenericVector.raw <- function(
     calendar = "gregorian"
 ) {
   
-  check.generic.argument.validity(primary, dates, max.missing.days, calendar)
-  if (missing(secondary)) {
-    stop("Secondary data argument is missing.")
-  }
-  # Check that primary, secondary, and dates have the same length
-  if (length(primary) != length(secondary) || length(primary) != length(dates)) {
-    stop("Lengths of 'primary', 'secondary', and 'dates' must be equal.")
-  }
-  # Convert the format to lowercase to allow case-insensitive input
-  format <- tolower(format)
-  
-  # Additional validation for format
-  if (format %in% c("polar", "cartesian")) {
-    if (!is.numeric(secondary)) {
-      stop("For 'polar' or 'cartesian' formats, 'secondary' must be numeric.")
-    }
-  } else if (format == "cardinal") {
-    if (!is.character(secondary)) {
-      stop("For 'cardinal' format, 'secondary' must be character.")
-    }
-  } else {
-    stop("Invalid 'format'. Use 'polar', 'cartesian', or 'cardinal'.")
-  }
+  check.generic.argument.validity(primary, dates, max.missing.days, calendar,
+                                  is.vector = TRUE, secondary, format)
+
   
   date.info <- date_info(dates)
   jdays = date.info$jdays
@@ -76,19 +56,18 @@ climdexGenericVector.raw <- function(
   filled.secondary[is.na(filled.primary)] <- NA
   filled.primary[is.na(filled.secondary)] <- NA
   namasks <- generate_namasks(list(primary = filled.primary, secondary = filled.secondary), date.factors, max.missing.days)
-
-  obj <- new("climdexGenericVector",
-    primary = filled.primary,
-    secondary = filled.secondary,
-    dates = date.series,
-    format = format,
-    date.factors = date.factors,
-    jdays = jdays,
-    namasks = namasks,
-    max.missing.days = max.missing.days,
-    northern.hemisphere = northern.hemisphere)
   
-  return(obj)
+  return(new("climdexGenericVector",
+   primary = filled.primary,
+   secondary = filled.secondary,
+   dates = date.series,
+   format = format,
+   date.factors = date.factors,
+   jdays = jdays,
+   namasks = namasks,
+   max.missing.days = max.missing.days,
+   northern.hemisphere = northern.hemisphere
+ ))
 }
 
 #' @title climdexGenericVector.csv
@@ -160,15 +139,125 @@ climdexGenericVector.csv <- function(
   secondary_values <- GV.csv$data[[2]]
   dates <- GV.csv$dates
   
-  obj <- climdexGenericVector.raw(
-    primary = primary_values,
-    secondary = secondary_values,
+  return(climdexGenericVector.raw(
+  primary = primary_values,
+  secondary = secondary_values,
+  dates = dates,
+  format = format,
+  max.missing.days = max.missing.days,
+  northern.hemisphere = northern.hemisphere,
+  calendar = calendar
+))
+}
+#' @title climdexSingleMonthlyVector.raw
+#'
+#' @description
+#' Creates a `ClimdexGenericVector` object from raw vector climate data with a single value per month constraint.
+#'
+#' @details
+#' This function processes vector climate data and validates that there is a single value per month.
+#' It automatically sets the `max.missing.days` to `+Inf` and builds a `ClimdexGenericVector` object.
+#' To ensure consistency, each data point must correspond to the 1st day of each month.
+#' The function will raise an error if there is more than one value per month or if any date is not on the 1st.
+#'
+#' @param primary A numeric vector representing the primary data (e.g., wind speed).
+#' @param secondary A numeric or character vector representing the secondary data (e.g., wind direction).
+#' @param dates A `PCICt` vector corresponding to the data dates. Each date must correspond to the 1st day of each month.
+#' @param format A string specifying the format of the vector data ("polar", "cartesian", or "cardinal").
+#' @param northern.hemisphere Logical. Indicates whether this point is in the northern hemisphere.
+#' @param calendar String representing the calendar type, e.g., "gregorian".
+#'
+#' @return A `ClimdexGenericVector` object containing the processed vector data.
+#' #'
+#' @seealso [climdexGenericVector.raw()], [climdexSingleMonthlyVector.csv()]
+#'
+#' @examples
+#' \dontrun{
+#' primary <- runif(12, 0, 20)
+#' secondary <- runif(12, 0, 360)
+#' dates <- as.PCICt(seq(as.Date("2020-01-01"), by = "month", length.out = 12), cal = "gregorian")
+#' vector_obj <- climdexSingleMonthlyVector.raw(primary, secondary, dates, "polar")
+#' }
+#'
+#' @export
+
+climdexSingleMonthlyVector.raw <- function(
+    primary,
+    secondary,
+    dates,
+    format = "polar",
+    northern.hemisphere = TRUE,
+    calendar = "gregorian") {
+  max.missing.days <- c(annual = +Inf, monthly = +Inf, seasonal = +Inf)
+
+  check.single.month.dates(dates)
+
+  return(climdexGenericVector.raw(
+    primary = primary,
+    secondary = secondary,
     dates = dates,
     format = format,
     max.missing.days = max.missing.days,
     northern.hemisphere = northern.hemisphere,
     calendar = calendar
-  )
-  
-  return(obj)
+  ))
+}
+
+#' @title climdexSingleMonthlyVector.csv
+#'
+#' @description
+#' Reads vector climate data with a single value per month constraint from a CSV file and creates a `ClimdexGenericVector` object.
+#'
+#' @details
+#' This function reads vector climate data and validates that there is a single value per month.
+#' It automatically sets the `max.missing.days` to `+Inf` and builds a `ClimdexGenericVector` object.
+#' Each date must correspond to the 1st day of each month.
+#'
+#' @param file The file path to the CSV containing the vector climate data.
+#' @param primary.column The name of the column containing the primary data (e.g., magnitude) in the CSV file.
+#' @param secondary.column The name of the column containing the secondary data (e.g., direction) in the CSV file.
+#' @param date.columns A vector of column names corresponding to the date fields in the CSV file.
+#' @param date.format A string representing the format of the date fields.
+#' @param format A string specifying the format of the vector data. Must be one of `"polar"`, `"cartesian"`, or `"cardinal"`.
+#' @param na.strings A character vector of strings to interpret as `NA`.
+#' @param northern.hemisphere Logical. Indicates whether this point is in the northern hemisphere.
+#' @param calendar A string representing the calendar type (e.g., "gregorian").
+#'
+#' @return A `ClimdexGenericVector` object containing the processed vector climate data.
+#'
+#' @seealso [climdexSingleMonthlyVector.raw()]
+#'
+#' @examples
+#' \dontrun{
+#' csv_file <- "path/to/vector_data.csv"
+#' vector_obj <- climdexSingleMonthlyVector.csv(
+#'   file = csv_file, primary.column = "primary",
+#'   secondary.column = "secondary", date.columns = "date",
+#'   date.format = "%Y-%m-%d", format = "polar"
+#' )
+#' }
+#'
+#' @export
+
+climdexSingleMonthlyVector.csv <- function(
+    file,
+    primary.column,
+    secondary.column,
+    date.columns,
+    date.format,
+    format = "polar",
+    na.strings = NULL,
+    northern.hemisphere = TRUE,
+    calendar = "gregorian") {
+  GV.csv <- read_csv_data(file, data.columns = c(primary.column, secondary.column), date.columns, date.format, na.strings, calendar)
+
+  return(climdexSingleMonthlyVector.raw(
+  primary = GV.csv$data[[1]],
+  secondary = GV.csv$data[[2]],
+  dates = GV.csv$dates,
+  format = format,
+  northern.hemisphere = northern.hemisphere,
+  calendar = calendar
+))
+
 }

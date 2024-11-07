@@ -1,31 +1,73 @@
 # Utility function to validate arguments for scalar and vector data.
-check.generic.argument.validity <- function( data, dates, max.missing.days, calendar) {
+check.generic.argument.validity <- function(
+    data, 
+    dates, 
+    max.missing.days, 
+    calendar,
+    is.vector = FALSE,
+    secondary = NULL,
+    format = NULL
+) {
+  # Internal function to validate data and date arguments
+  validate_data_dates <- function(data, dates, name) {
+    if (missing(data) || is.null(data)) {
+      stop(paste(name, "argument is missing."))
+    }
+    if (missing(dates)) {
+      stop("Argument 'dates' is missing.")
+    }
+    if (length(data) == 0 || length(dates) == 0) {
+      stop(paste(name, "and dates must not be empty vectors."))
+    }
+    if (!is.numeric(data[!is.na(data)]) && (name != "Secondary data")) {
+      stop(paste(name, "must be numeric."))
+    }
+    if (length(data) != length(dates)) {
+      stop(paste(name, "and dates must have the same length."))
+    }
+    if (any(is.na(dates))) {
+      stop(paste("Argument 'dates' has NA values."))
+    }
+  }
   
+  # Check max.missing.days
   if (length(max.missing.days) != 3 || !all(c("annual", "monthly", "seasonal") %in% names(max.missing.days))) {
     stop("max.missing.days must be a named vector with 'annual', 'monthly', and 'seasonal' elements.")
   }
   
+  # Validate primary data and dates
+  validate_data_dates(data, dates, "Primary data")
   
-  # Check that required arguments are provided
-  if (missing(data)) {
-    stop("Primary data argument is missing.")
-  }
-
-  if (missing(dates)) {
-    stop("Argument 'dates' is missing.")
+  # Check if dates are PCICt
+  if (!inherits(dates, "PCICt")) {
+    stop("Dates must be of class PCICt.")
   }
   
-  
-  if (!is.numeric(data)) {
-    stop("Primary Data must be numeric.")
+  # Vector-specific checks
+  if (is.vector) {
+    
+    validate_data_dates(secondary, dates, "Secondary data")
+    # Check that 'format' is provided
+    if (missing(format) || is.null(format)) {
+      stop("Argument 'format' is missing.")
+    }
+    
+    # Convert the format to lowercase to allow case-insensitive input
+    format <- tolower(format)
+    
+    # Additional validation for format
+    if (format %in% c("polar", "cartesian")) {
+      if (!is.numeric(secondary)) {
+        stop("For 'polar' or 'cartesian' formats, 'secondary' must be numeric.")
+      }
+    } else if (format == "cardinal") {
+      if (!is.character(secondary)) {
+        stop("For 'cardinal' format, 'secondary' must be character.")
+      }
+    } else {
+      stop("Invalid 'format'. Use 'polar', 'cartesian', or 'cardinal'.")
+    }
   }
- 
-  if (length(data) != length(dates)) {
-    stop("Primary data and dates must have the same length.")
-  }
-  
-  if(!is.null(dates) && !inherits(dates, "PCICt"))
-      stop(paste("Dates must be of class PCICt."))
   
   # Calendar check: verify it matches one of the recognized types
   valid_calendars <- c("360_day", "360", "365_day", "365", "noleap", "gregorian", "proleptic_gregorian")
@@ -34,6 +76,25 @@ check.generic.argument.validity <- function( data, dates, max.missing.days, cale
                ". Accepted types are '360_day', '360', '365_day', '365', 'noleap', 'gregorian', 'proleptic_gregorian'."))
   }
 }
+
+# For single-value-per-month data. Check one day per month and that the day is always the first.
+check.single.month.dates <- function(dates) {
+  valid_dates <- dates[!is.na(dates)]
+  # Check if there is exactly one value per month on the 1st day
+  unique_months <- unique(format(valid_dates, "%Y-%m"))
+  day_of_month <- as.integer(format(valid_dates, "%d"))
+  
+  # Check that the length of unique months matches the number of dates, ensuring only one value per month
+  if (length(unique_months) != length(valid_dates)) {
+    stop("Data must have exactly one value per month.")
+  }
+  
+  # Check that all dates correspond to the 1st day of each month
+  if (!all(day_of_month == 1)) {
+    stop("Data must be on the 1st day of each month.")
+  }
+}
+
 
 # Utility function to handle date ranges and generate date factors.
 date_info <- function(dates) {

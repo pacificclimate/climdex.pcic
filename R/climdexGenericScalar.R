@@ -47,16 +47,16 @@ climdexGenericScalar.raw <- function(
   filled.list <- generate_filled_list(data, dates, date.series)
   names(filled.list) <- "data"
   namasks <- generate_namasks(filled.list, date.factors, max.missing.days)
-  obj <- new("climdexGenericScalar",
+  
+  return(new("climdexGenericScalar",
     data = filled.list[["data"]],
     dates = date.series,
     date.factors = date.factors,
     jdays = jdays,
     namasks = namasks,
     northern.hemisphere = northern.hemisphere,
-    max.missing.days = max.missing.days)
-  
-  return(obj)
+    max.missing.days = max.missing.days
+  ))
 }
 
 #' @title climdexGenericScalar.csv
@@ -117,13 +117,107 @@ climdexGenericScalar.csv <- function(
 ) {
 
   GS.csv <- read_csv_data(file, data.column, date.columns, date.format,  na.strings, calendar)
-  obj <- climdexGenericScalar.raw(
-    data = GS.csv$data[[1]],
-    dates = GS.csv$dates,
-    northern.hemisphere = northern.hemisphere,
-    max.missing.days = max.missing.days,
-    calendar = calendar
-  )
   
-  return(obj)
+  return(climdexGenericScalar.raw(
+  data = GS.csv$data[[1]],
+  dates = GS.csv$dates,
+  northern.hemisphere = northern.hemisphere,
+  max.missing.days = max.missing.days,
+  calendar = calendar
+))
+}
+#' @title climdexSingleMonthlyScalar.raw
+#'
+#' @description
+#' Creates a `ClimdexGenericScalar` object from raw scalar climate data with a single value per month constraint.
+#'
+#' @details
+#' This function is a wrapper for creating `ClimdexGenericScalar` objects where temporal resolution is a single value per month.
+#' It automatically sets the `max.missing.days` to `+Inf`. To ensure consistency, each data point must correspond
+#' to the 1st day of each month. The function will raise an error if there is more than one value per month or if any date is not on the 1st.
+#'
+#' @param data A numeric vector containing the scalar climate data.
+#' @param dates A `PCICt` vector corresponding to the data dates. Each date must correspond to the 1st day of each month.
+#' @param northern.hemisphere Logical. Indicates whether this point is in the northern hemisphere.
+#' @param calendar A string representing the calendar type, e.g., "gregorian".
+#' @return A `ClimdexGenericScalar` object containing the processed data.
+#'
+#' @seealso [climdexGenericScalar.raw()], [climdexSingleMonthlyScalar.csv()]
+#'
+#' @examples
+#' \dontrun{
+#' data <- runif(12, 0, 20)
+#' dates <- as.PCICt(seq(as.Date("2020-01-01"), by = "month", length.out = 12), cal = "gregorian")
+#' scalar_obj <- climdexSingleMonthlyScalar.raw(data, dates)
+#' }
+#'
+#' @export
+
+climdexSingleMonthlyScalar.raw <- function(
+    data,
+    dates,
+    northern.hemisphere = TRUE,
+    calendar = "gregorian") {
+  max.missing.days <- c(annual = +Inf, monthly = +Inf, seasonal = +Inf)
+  
+  check.single.month.dates(dates)
+  
+  return(climdexGenericScalar.raw(
+  data = data,
+  dates = dates,
+  max.missing.days = max.missing.days,
+  northern.hemisphere = northern.hemisphere,
+  calendar = calendar
+))
+}
+
+#' @title climdexSingleMonthlyScalar.csv
+#'
+#' @description
+#' Reads scalar climate data with a single value per month constraint from a CSV file and creates a `ClimdexGenericScalar` object.
+#'
+#' @details
+#' This function reads scalar climate data and validates that there is a single value per month. It automatically sets the `max.missing.days`
+#' to `+Inf` and builds a `ClimdexGenericScalar` object. Each date must correspond to the 1st day of each month.
+#'
+#' @param file The file path to the CSV containing the scalar climate data.
+#' @param data.column The name of the column containing the scalar data in the CSV file.
+#' @param date.columns A vector of column names corresponding to the date fields in the CSV file.
+#' @param date.format A string representing the format of the date fields.
+#' @param na.strings A character vector of strings to interpret as `NA`.
+#' @param northern.hemisphere Logical. Indicates whether this point is in the northern hemisphere.
+#' @param calendar A string representing the calendar type (e.g., "gregorian").
+#'
+#' @return A `ClimdexGenericScalar` object containing the processed scalar climate data.
+#'
+#' @seealso [climdexSingleMonthlyScalar.raw()]
+#'
+#' @examples
+#' \dontrun{
+#' csv_file <- "path/to/scalar_data.csv"
+#' scalar_obj <- climdexSingleMonthlyScalar.csv(
+#'   file = csv_file, data.column = "data",
+#'   date.columns = "date", date.format = "%Y-%m-%d"
+#' )
+#' }
+#'
+#' @export
+
+climdexSingleMonthlyScalar.csv <- function(
+    file,
+    data.column,
+    date.columns,
+    date.format,
+    na.strings = NULL,
+    northern.hemisphere = TRUE,
+    calendar = "gregorian") {
+  GS.csv <- read_csv_data(file, data.columns = data.column, date.columns, date.format, na.strings, calendar)
+
+
+  return(climdexSingleMonthlyScalar.raw(
+  data = GS.csv$data[[1]],
+  dates = GS.csv$dates,
+  northern.hemisphere = northern.hemisphere,
+  calendar = calendar
+))
 }
