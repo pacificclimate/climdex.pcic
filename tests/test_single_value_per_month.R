@@ -5,12 +5,17 @@ library(RUnit)
 validate_climdex_object <- function(obj_raw, obj_csv, primary_data, dates, expected_levels, slot_name, secondary_data = NULL) {
   # Validate dates for the primary data
   primary_slot <- slot(obj_raw, slot_name)
-  checkEquals(obj_raw@dates[!is.na(primary_slot)], dates, "Raw object dates for non-NA primary data do not match input dates.")
-  checkEquals(primary_slot[!is.na(primary_slot)], primary_data, "Raw object primary data for non-NA data does not match input data.")
+  
   
   # Validate secondary data if applicable
   if (!is.null(secondary_data)) {
-    checkEquals(obj_raw@secondary[!is.na(primary_slot)], secondary_data, "Raw object secondary data for non-NA data does not match input data.")
+    checkEquals(primary_slot[!is.na(primary_slot)], primary_data[!is.na(primary_data) & !is.na(secondary_data)], "Raw object primary data for non-NA data does not match input data.")
+    checkEquals(obj_raw@secondary[!is.na(primary_slot)], secondary_data[!is.na(primary_data) & !is.na(secondary_data)], "Raw object secondary data for non-NA data does not match input data.")
+    checkEquals(obj_raw@dates[!is.na(primary_slot)] , dates[!is.na(primary_data) & !is.na(secondary_data)] , "Raw object dates for non-NA primary data do not match input dates.")
+  }
+  else{
+    checkEquals(primary_slot[!is.na(primary_slot)], primary_data[!is.na(primary_data)], "Raw object primary data for non-NA data does not match input data.")
+    checkEquals(obj_raw@dates[!is.na(primary_slot)] , dates[!is.na(primary_data)], "Raw object dates for non-NA primary data do not match input dates.")
   }
   
   # Validate date factors
@@ -30,8 +35,8 @@ validate_climdex_object <- function(obj_raw, obj_csv, primary_data, dates, expec
 climdex.pcic.test.single.monthly.scalar.raw.and.csv.construction <- function() {
   set.seed(123)
   
-  scalar_data <- runif(5, 0, 20) # One value per month
-  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "month", length.out = 5)
+  scalar_data <- c(runif(11, 0, 20), NA) # One value per month
+  dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "month", length.out = 12)
   
   scalar_obj_raw <- climdexSingleMonthlyScalar.raw(
     data = scalar_data,
@@ -49,6 +54,7 @@ climdex.pcic.test.single.monthly.scalar.raw.and.csv.construction <- function() {
     data.column = "data",
     date.columns = "date",
     date.format = "%Y-%m-%d",
+    na.strings = 'NA',
     northern.hemisphere = TRUE,
     calendar = "gregorian"
   )
@@ -65,8 +71,9 @@ climdex.pcic.test.single.monthly.scalar.raw.and.csv.construction <- function() {
 climdex.pcic.test.single.monthly.vector.raw.and.csv.construction <- function() {
   set.seed(123)
   
-  primary_data <- runif(12, 0, 20) # One value per month
-  secondary_data <- runif(12, 0, 360)
+  primary_data <- c(runif(11, 0, 20), NA) # One value per month
+  
+  secondary_data <- c(NA, runif(11, 0, 360))
   dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "month", length.out = 12)
   
   vector_obj_raw <- climdexSingleMonthlyVector.raw(
@@ -89,10 +96,10 @@ climdex.pcic.test.single.monthly.vector.raw.and.csv.construction <- function() {
     date.columns = "date",
     date.format = "%Y-%m-%d",
     format = "polar",
+    na.strings = 'NA',
     northern.hemisphere = TRUE,
     calendar = "gregorian"
   )
-  
   validate_climdex_object(
     vector_obj_raw, vector_obj_csv, 
     primary_data = primary_data, 

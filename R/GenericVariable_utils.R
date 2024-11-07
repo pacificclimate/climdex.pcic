@@ -19,7 +19,7 @@ check.generic.argument.validity <- function(
     if (length(data) == 0 || length(dates) == 0) {
       stop(paste(name, "and dates must not be empty vectors."))
     }
-    if (!is.numeric(data) && (name != "Secondary data")) {
+    if (!is.numeric(data[!is.na(data)]) && (name != "Secondary data")) {
       stop(paste(name, "must be numeric."))
     }
     if (length(data) != length(dates)) {
