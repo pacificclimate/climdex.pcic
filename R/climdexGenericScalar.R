@@ -1,53 +1,53 @@
 #' @title climdexGenericScalar.raw
-#' 
+#'
 #' @description
 #' Creates a `ClimdexGenericScalar` object from raw scalar climate data.
-#' 
+#'
 #' @details
 #' This function processes scalar climate data (e.g., humidity, snow-depth)
 #' and creates a `ClimdexGenericScalar` object. The function fills missing
 #' values and applies NA masks based on the `max.missing.days` argument.
 #' The `ClimdexGenericScalar` class is used to compute
 #' basic climate indices from scalar data.
-#' 
+#'
 #' @param data A numeric vector containing the scalar climate data.
 #' @param dates A `PCICt` vector corresponding to the data dates.
 #' @param max.missing.days A named vector indicating the maximum allowed missing days for `annual`, `monthly`, and `seasonal` time periods.
 #' @param northern.hemisphere Whether this point is in the northern hemisphere.
 #' @param calendar String representing the calendar type, e.g., "gregorian".
 #' @return A `ClimdexGenericScalar` object containing the processed data.
-#' 
+#'
 #' @seealso \code{\link{climdexGenericVector.raw}}, \code{\link{climdexGenericScalar.csv}}
-#' 
+#'
 #' @examples
 #' data <- c(10.5, 12.3, 11.2)
 #' dates <- as.PCICt(c("2024-01-01", "2024-01-02", "2024-01-03"),
-#'                   format = "%Y-%m-%d", cal = "gregorian")
-#' climdexGenericScalar.raw(data, 
-#'                          dates,
-#'                          max.missing.days = c(annual = 15, monthly = 3, seasonal = 6))
-#' 
+#'   format = "%Y-%m-%d", cal = "gregorian"
+#' )
+#' climdexGenericScalar.raw(data,
+#'   dates,
+#'   max.missing.days = c(annual = 15, monthly = 3, seasonal = 6)
+#' )
+#'
 #' @export
 
 climdexGenericScalar.raw <- function(
-  data,
-  dates,
-  max.missing.days = c(annual = 15, monthly = 3, seasonal = 6),
-  northern.hemisphere = TRUE,
-  calendar = "gregorian"
-) {
-  
-  check.generic.argument.validity(data,dates,max.missing.days,calendar)
+    data,
+    dates,
+    max.missing.days = c(annual = 15, monthly = 3, seasonal = 6),
+    northern.hemisphere = TRUE,
+    calendar = "gregorian") {
+  check.generic.argument.validity(data, dates, max.missing.days, calendar)
 
   date.info <- date_info(dates)
-  jdays = date.info$jdays
-  date.series = date.info$date.series
-  date.factors = date.info$date.factors
+  jdays <- date.info$jdays
+  date.series <- date.info$date.series
+  date.factors <- date.info$date.factors
 
   filled.list <- generate_filled_list(data, dates, date.series)
   names(filled.list) <- "data"
   namasks <- generate_namasks(filled.list, date.factors, max.missing.days)
-  
+
   return(new("climdexGenericScalar",
     data = filled.list[["data"]],
     dates = date.series,
@@ -96,12 +96,14 @@ climdexGenericScalar.raw <- function(
 #'
 #' # Write the CSV to a temporary file
 #' temp_file <- tempfile(fileext = ".csv")
-#' writeLines(csv_data, temp_file)  
+#' writeLines(csv_data, temp_file)
 #'
 #' # Call the climdexGenericScalar.csv function
-#' climdexGenericScalar.csv(temp_file, data.column = "humidity",
-#'                          date.columns = c("year", "month", "day"),
-#'                          date.format = "%Y %m %d", calendar = "gregorian")
+#' climdexGenericScalar.csv(temp_file,
+#'   data.column = "humidity",
+#'   date.columns = c("year", "month", "day"),
+#'   date.format = "%Y %m %d", calendar = "gregorian"
+#' )
 
 #' @export
 
@@ -113,18 +115,16 @@ climdexGenericScalar.csv <- function(
     na.strings = NULL,
     northern.hemisphere = TRUE,
     max.missing.days = c(annual = 15, monthly = 3, seasonal = 6),
-    calendar = "gregorian"
-) {
+    calendar = "gregorian") {
+  GS.csv <- read_csv_data(file, data.column, date.columns, date.format, na.strings, calendar)
 
-  GS.csv <- read_csv_data(file, data.column, date.columns, date.format,  na.strings, calendar)
-  
   return(climdexGenericScalar.raw(
-  data = GS.csv$data[[1]],
-  dates = GS.csv$dates,
-  northern.hemisphere = northern.hemisphere,
-  max.missing.days = max.missing.days,
-  calendar = calendar
-))
+    data = GS.csv$data[[1]],
+    dates = GS.csv$dates,
+    northern.hemisphere = northern.hemisphere,
+    max.missing.days = max.missing.days,
+    calendar = calendar
+  ))
 }
 #' @title climdexSingleMonthlyScalar.raw
 #'
@@ -159,16 +159,16 @@ climdexSingleMonthlyScalar.raw <- function(
     northern.hemisphere = TRUE,
     calendar = "gregorian") {
   max.missing.days <- c(annual = +Inf, monthly = +Inf, seasonal = +Inf)
-  
+
   check.single.month.dates(dates)
-  
+
   return(climdexGenericScalar.raw(
-  data = data,
-  dates = dates,
-  max.missing.days = max.missing.days,
-  northern.hemisphere = northern.hemisphere,
-  calendar = calendar
-))
+    data = data,
+    dates = dates,
+    max.missing.days = max.missing.days,
+    northern.hemisphere = northern.hemisphere,
+    calendar = calendar
+  ))
 }
 
 #' @title climdexSingleMonthlyScalar.csv
@@ -215,9 +215,9 @@ climdexSingleMonthlyScalar.csv <- function(
 
 
   return(climdexSingleMonthlyScalar.raw(
-  data = GS.csv$data[[1]],
-  dates = GS.csv$dates,
-  northern.hemisphere = northern.hemisphere,
-  calendar = calendar
-))
+    data = GS.csv$data[[1]],
+    dates = GS.csv$dates,
+    northern.hemisphere = northern.hemisphere,
+    calendar = calendar
+  ))
 }

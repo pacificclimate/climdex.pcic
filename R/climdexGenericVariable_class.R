@@ -1,10 +1,10 @@
 #' Class definition for climdexGenericVariable
 #' @title climdexGenericVariable
-#' 
+#'
 #' @description
 #' This class represents the base for handling both scalar and vector generic climate data.
 #' It is used internally to construct single-variable, climdexInput-like objects for caclulating basic climate indices.
-#' 
+#'
 #' @section Slots:
 #' \describe{
 #'   \item{dates}{A `PCICt` type vector of dates.}
@@ -15,7 +15,7 @@
 #'   \item{max.missing.days}{A named vector specifying the maximum number of missing days of data for annual, seasonal
 #' and monthly data.}
 #' }
-#' 
+#'
 #' @keywords internal
 
 setClass(
@@ -23,7 +23,7 @@ setClass(
   slots = list(
     dates = "PCICt",
     date.factors = "list",
-    jdays="numeric",
+    jdays = "numeric",
     namasks = "list",
     northern.hemisphere = "logical",
     max.missing.days = "numeric"
@@ -32,7 +32,7 @@ setClass(
 
 ## Class definition for climdexGenericScalar
 #' @title climdexGenericScalar
-#' 
+#'
 #' @description
 #' The `climdexGenericScalar` class contains scalar climate data (e.g., humidity, snow-depth
 #' ) and other data required for days for calculating basic climate indices.
@@ -48,7 +48,7 @@ setClass(
 #'   \item{max.missing.days}{A named vector specifying the maximum number of missing days of data for annual, seasonal
 #' and monthly data.}
 #' }
-#' 
+#'
 #' @name climdexGenericScalar
 #' @aliases climdexGenericScalar-class
 #' @exportClass climdexGenericScalar
@@ -63,14 +63,14 @@ setClass(
 
 ## Class definition for climdexGenericVector
 #' @title climdexGenericVector
-#' 
+#'
 #' @description
 #' The `climdexGenericVector` class contains vector climate data (e.g., wind speed and direction), consisting of
 #' both primary and secondary components, and other data required for days for calculating basic climate indices.
 #'
 #' @details
 #' The `primary` slot contains the main numeric climate data, such as wind speed or another magnitude-based variable.
-#' The `secondary` slot provides complementary information, such as direction, and its type and meaning depend on the 
+#' The `secondary` slot provides complementary information, such as direction, and its type and meaning depend on the
 #' `format`:
 #' \itemize{
 #'   \item \strong{polar}: When the format is `"polar"`, the `primary` slot represents magnitude (e.g., wind speed),
@@ -95,7 +95,7 @@ setClass(
 #'   \item{max.missing.days}{A named vector specifying the maximum number of missing days of data for annual, seasonal
 #'    and monthly data.}
 #' }
-#' 
+#'
 #' @name climdexGenericVector
 #' @aliases climdexGenericVector-class
 #' @exportClass climdexGenericVector
@@ -105,7 +105,7 @@ setClass(
   contains = "climdexGenericVariable",
   slots = list(
     primary = "numeric",
-    secondary = "ANY",  # Could be numeric or character, depending on format.
-    format = "character"  # 'polar', 'cartesian', or 'cardinal'
+    secondary = "ANY", # Could be numeric or character, depending on format.
+    format = "character" # 'polar', 'cartesian', or 'cardinal'
   )
 )

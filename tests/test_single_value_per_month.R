@@ -5,26 +5,25 @@ library(RUnit)
 validate_climdex_object <- function(obj_raw, obj_csv, primary_data, dates, expected_levels, slot_name, secondary_data = NULL) {
   # Validate dates for the primary data
   primary_slot <- slot(obj_raw, slot_name)
-  
-  
+
+
   # Validate secondary data if applicable
   if (!is.null(secondary_data)) {
     checkEquals(primary_slot[!is.na(primary_slot)], primary_data[!is.na(primary_data) & !is.na(secondary_data)], "Raw object primary data for non-NA data does not match input data.")
     checkEquals(obj_raw@secondary[!is.na(primary_slot)], secondary_data[!is.na(primary_data) & !is.na(secondary_data)], "Raw object secondary data for non-NA data does not match input data.")
-    checkEquals(obj_raw@dates[!is.na(primary_slot)] , dates[!is.na(primary_data) & !is.na(secondary_data)] , "Raw object dates for non-NA primary data do not match input dates.")
-  }
-  else{
+    checkEquals(obj_raw@dates[!is.na(primary_slot)], dates[!is.na(primary_data) & !is.na(secondary_data)], "Raw object dates for non-NA primary data do not match input dates.")
+  } else {
     checkEquals(primary_slot[!is.na(primary_slot)], primary_data[!is.na(primary_data)], "Raw object primary data for non-NA data does not match input data.")
-    checkEquals(obj_raw@dates[!is.na(primary_slot)] , dates[!is.na(primary_data)], "Raw object dates for non-NA primary data do not match input dates.")
+    checkEquals(obj_raw@dates[!is.na(primary_slot)], dates[!is.na(primary_data)], "Raw object dates for non-NA primary data do not match input dates.")
   }
-  
+
   # Validate date factors
   levels_count <- sapply(obj_raw@date.factors, function(factor_obj) length(levels(factor_obj)))
   checkEquals(levels_count, expected_levels, msg = "Date factors (annual, monthly, seasonal) do not have the expected number of levels.")
-  
+
   # Validate jdays
   checkEquals(length(obj_raw@jdays), 366, "Raw object jdays for filled leap-year do not match expected.")
-  
+
   # Validate CSV object against raw object
   checkEquals(obj_raw@dates, obj_csv@dates, "Date mismatch between raw and CSV objects.")
   checkTrue(all.equal(obj_csv, obj_raw), msg = "Object built from CSV is not identical to raw.")
@@ -34,48 +33,48 @@ validate_climdex_object <- function(obj_raw, obj_csv, primary_data, dates, expec
 
 climdex.pcic.test.single.monthly.scalar.raw.and.csv.construction <- function() {
   set.seed(123)
-  
+
   scalar_data <- c(runif(11, 0, 20), NA) # One value per month
   dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "month", length.out = 12)
-  
+
   scalar_obj_raw <- climdexSingleMonthlyScalar.raw(
     data = scalar_data,
     dates = dates,
     northern.hemisphere = TRUE,
     calendar = "gregorian"
   )
-  
+
   csv_data <- data.frame(date = as.character(dates), data = scalar_data)
   temp_csv <- tempfile()
   write.csv(csv_data, temp_csv, row.names = FALSE)
-  
+
   scalar_obj_csv <- climdexSingleMonthlyScalar.csv(
     file = temp_csv,
     data.column = "data",
     date.columns = "date",
     date.format = "%Y-%m-%d",
-    na.strings = 'NA',
+    na.strings = "NA",
     northern.hemisphere = TRUE,
     calendar = "gregorian"
   )
-  
+
   validate_climdex_object(
-    scalar_obj_raw, scalar_obj_csv, 
-    primary_data = scalar_data, 
-    dates = dates, 
-    expected_levels = c(annual = 1, monthly = 12, seasonal = 5), 
+    scalar_obj_raw, scalar_obj_csv,
+    primary_data = scalar_data,
+    dates = dates,
+    expected_levels = c(annual = 1, monthly = 12, seasonal = 5),
     slot_name = "data"
   )
 }
 
 climdex.pcic.test.single.monthly.vector.raw.and.csv.construction <- function() {
   set.seed(123)
-  
+
   primary_data <- c(runif(11, 0, 20), NA) # One value per month
-  
+
   secondary_data <- c(NA, runif(11, 0, 360))
   dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "month", length.out = 12)
-  
+
   vector_obj_raw <- climdexSingleMonthlyVector.raw(
     primary = primary_data,
     secondary = secondary_data,
@@ -84,11 +83,11 @@ climdex.pcic.test.single.monthly.vector.raw.and.csv.construction <- function() {
     northern.hemisphere = TRUE,
     calendar = "gregorian"
   )
-  
+
   csv_data <- data.frame(date = as.character(dates), primary = primary_data, secondary = secondary_data)
   temp_csv <- tempfile()
   write.csv(csv_data, temp_csv, row.names = FALSE)
-  
+
   vector_obj_csv <- climdexSingleMonthlyVector.csv(
     file = temp_csv,
     primary.column = "primary",
@@ -96,15 +95,15 @@ climdex.pcic.test.single.monthly.vector.raw.and.csv.construction <- function() {
     date.columns = "date",
     date.format = "%Y-%m-%d",
     format = "polar",
-    na.strings = 'NA',
+    na.strings = "NA",
     northern.hemisphere = TRUE,
     calendar = "gregorian"
   )
   validate_climdex_object(
-    vector_obj_raw, vector_obj_csv, 
-    primary_data = primary_data, 
-    dates = dates, 
-    expected_levels = c(annual = 1, monthly = 12, seasonal = 5), 
+    vector_obj_raw, vector_obj_csv,
+    primary_data = primary_data,
+    dates = dates,
+    expected_levels = c(annual = 1, monthly = 12, seasonal = 5),
     slot_name = "primary",
     secondary_data = secondary_data
   )
@@ -134,17 +133,17 @@ climdex.pcic.test.SingleMonthlyScalar.raw.missing <- function() {
 
 climdex.pcic.test.SingleMonthlyScalar.sub.annual <- function() {
   set.seed(123)
-  
+
   # Single monthly value data with an NA value
   data <- c(1:5)
   dates <- seq(as.PCICt("2020-01-01", cal = "gregorian"), by = "month", length.out = 5)
-  
+
   # Create the climdexSingleMonthlyScalar object and expect it to pass without failure
   result <- try(
     scalar_obj <- climdexSingleMonthlyScalar.raw(data, dates, northern.hemisphere = TRUE, calendar = "gregorian"),
     silent = TRUE
   )
-  
+
   checkTrue(
     !inherits(result, "try-error"),
     "Function raised an error despite valid monthly data."

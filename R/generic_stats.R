@@ -25,12 +25,14 @@ library(circular)
 #' @note
 #' This function is internal and not intended to be called directly by users. It serves as a shared utility
 #' for computing statistics of generic scalar and vector climate data.
-#' 
+#'
 #' @seealso \code{\link{compute.stat.scalar}}, \code{\link{compute.stat.vector}}
 #'
 #' @examples
 #' # Assuming `scalar_obj` is a valid climdexGenericScalar object:
-#' \dontrun{compute.gen.stat(scalar_obj, "max", scalar_obj@data, "monthly", FALSE)}
+#' \dontrun{
+#' compute.gen.stat(scalar_obj, "max", scalar_obj@data, "monthly", FALSE)
+#' }
 #'
 #' @importFrom stats na.omit
 #'
@@ -40,30 +42,30 @@ compute.gen.stat <- function(gen.var, stat, data, freq = c("monthly", "annual", 
   stopifnot(!is.null(data))
   freq <- match.arg(freq)
   exact_date_stats <- c("max", "min")
-  
+
   # Determine if the data is single-value per month
   single_value_per_month <- all(tapply(data, gen.var@date.factors$monthly, function(x) length(na.omit(x)) == 1, simplify = TRUE))
-  
-  
+
+
   # Check if the data is single-value per month
   if (single_value_per_month) {
     if (freq == "monthly") {
       # Warn if trying to compute monthly stats with single-value data per month
       warning("Monthly calculations on single-value-per-month data are not meaningful. Proceeding with the calculation.")
     }
-    
+
     if (include.exact.dates) {
       # Warn if exact dates are requested on single-value-per-month data
       warning("Exact dates are not meaningful for single-value-per-month data. Proceeding without exact dates.")
       include.exact.dates <- FALSE
     }
   }
-  
+
   if (include.exact.dates && !(stat %in% exact_date_stats)) {
     message(paste("Warning: Exact dates are not applicable for the", stat, "statistic. Proceeding without exact dates."))
     include.exact.dates <- FALSE
   }
-  
+
   date.factors <- gen.var@date.factors[[freq]]
   mask <- gen.var@namasks[[freq]][[1]]
   cal <- attr(gen.var@dates, "cal")
@@ -96,15 +98,16 @@ compute.gen.stat <- function(gen.var, stat, data, freq = c("monthly", "annual", 
 #'
 #' @examples
 #' # Example usage for scalar data:
-#' \dontrun{compute.stat.scalar(scalar_obj, "max", "monthly", TRUE)}
+#' \dontrun{
+#' compute.stat.scalar(scalar_obj, "max", "monthly", TRUE)
+#' }
 #'
 #' @export
-compute.stat.scalar <- function(scalar_obj, 
+compute.stat.scalar <- function(scalar_obj,
                                 stat = c("max", "min", "mean", "sum", "sd", "var"),
-                                freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE
-) {
+                                freq = c("monthly", "annual", "seasonal"), include.exact.dates = FALSE) {
   stat <- match.arg(stat)
-  stopifnot(!is.null(scalar_obj@data))  # Ensure the data key exists
+  stopifnot(!is.null(scalar_obj@data)) # Ensure the data key exists
   return(compute.gen.stat(scalar_obj, stat, scalar_obj@data, freq, include.exact.dates))
 }
 
@@ -115,7 +118,7 @@ compute.stat.scalar <- function(scalar_obj,
 #' The formulas used for the conversion are as follows:
 #' - **Speed** (magnitude): \eqn{\text{speed} = \sqrt{u^2 + v^2}}
 #' - **Direction** (angle in degrees): \eqn{\text{direction} = \left( \frac{\text{atan2}(v, u) \times 180}{\pi} + 360 \right) \mod 360}
-#' 
+#'
 #' The function ensures the direction is normalized to the range [0, 360) degrees.
 #'
 #' @param u A numeric value representing the x-component (u) of the Cartesian coordinate.
@@ -131,18 +134,18 @@ convert_cartesian_to_polar <- function(u, v) {
 
   speed <- sqrt(u^2 + v^2)
   direction <- ifelse(speed == 0, NA, (atan2(v, u) * 180 / pi + 360) %% 360)
-  
+
   return(list(speed = speed, direction = direction))
 }
 
 #' @title Convert Polar to Cartesian Coordinates
 #' @description Converts polar coordinates (speed, direction) to Cartesian coordinates (u, v).
 #'
-#' @details 
+#' @details
 #' The formulas used for the conversion are as follows:
 #' - **x-component (u)**: \eqn{u = \text{speed} \times \cos(\text{direction} \times \frac{\pi}{180})}
 #' - **y-component (v)**: \eqn{v = \text{speed} \times \sin(\text{direction} \times \frac{\pi}{180})}
-#' 
+#'
 #' The direction is in degrees and is converted to radians for the trigonometric calculations.
 #'
 #' @param speed A numeric value representing the magnitude of the vector.
@@ -177,27 +180,28 @@ convert_polar_to_cartesian <- function(speed, direction) {
 #' @return A character vector of cardinal directions corresponding to the degree values.
 #' @export
 convert_degrees_to_cardinal <- function(degrees) {
-
   if (!is.numeric(degrees)) {
     stop("degrees must be a numeric vector.")
   }
-  
+
   # Normalize degrees to [0, 360)
   degrees_normalized <- (degrees + 360) %% 360
-  
-  directions <- c('N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 
-                  'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW', 'N')
+
+  directions <- c(
+    "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE",
+    "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW", "N"
+  )
   index <- round(degrees_normalized / 22.5) %% 16 + 1
   return(directions[index])
 }
 
 #' @title Compute Directions and Magnitudes Based on Format
-#' @description Internal helper function that computes directions and magnitudes for 
+#' @description Internal helper function that computes directions and magnitudes for
 #' climate data, depending on the specified format ("cartesian", "polar", or "cardinal").
-#' @param format A character string specifying the format of the input data. 
+#' @param format A character string specifying the format of the input data.
 #' Must be one of "cartesian", "polar", or "cardinal".
 #' @param primary A numeric vector representing the primary data (e.g., speed for polar format).
-#' @param secondary A numeric or character vector representing the secondary data 
+#' @param secondary A numeric or character vector representing the secondary data
 #' (e.g., direction in degrees for polar, or cardinal direction for cardinal format).
 #' @return A list with two elements:
 #'   \item{magnitude}{A numeric vector representing the magnitude of the data.}
@@ -209,9 +213,8 @@ compute_directions_and_magnitudes <- function(format, primary, secondary) {
   valid_idx <- !is.na(secondary)
   direction_degrees <- rep(NA, length(secondary))
   magnitude <- rep(NA, length(primary))
-  
-  switch(
-    format,
+
+  switch(format,
     "cartesian" = {
       valid_idx <- valid_idx & !is.na(primary)
       polar_data <- convert_cartesian_to_polar(primary[valid_idx], secondary[valid_idx])
@@ -228,7 +231,7 @@ compute_directions_and_magnitudes <- function(format, primary, secondary) {
       magnitude <- primary
     }
   )
-  
+
   return(list(magnitude = magnitude, direction_degrees = direction_degrees))
 }
 
@@ -246,11 +249,13 @@ compute_directions_and_magnitudes <- function(format, primary, secondary) {
 #' @return A numeric vector of degrees corresponding to the cardinal directions.
 #' @export
 convert_cardinal_to_degrees <- function(direction) {
-  cardinal_map <- c(N = 0, NNE = 22.5, NE = 45, ENE = 67.5, E = 90,
-                    ESE = 112.5, SE = 135, SSE = 157.5, S = 180,
-                    SSW = 202.5, SW = 225, WSW = 247.5, W = 270,
-                    WNW = 292.5, NW = 315, NNW = 337.5)
-  
+  cardinal_map <- c(
+    N = 0, NNE = 22.5, NE = 45, ENE = 67.5, E = 90,
+    ESE = 112.5, SE = 135, SSE = 157.5, S = 180,
+    SSW = 202.5, SW = 225, WSW = 247.5, W = 270,
+    WNW = 292.5, NW = 315, NNW = 337.5
+  )
+
   direction <- toupper(direction)
   if (any(!direction %in% names(cardinal_map))) {
     stop("Invalid cardinal direction provided.")
@@ -273,27 +278,27 @@ filter_by_direction_range <- function(primary_data, degrees, date_factors, direc
   if (!is.numeric(direction.range) || length(direction.range) != 2) {
     stop("direction.range must be a numeric vector of length 2 specifying min and max degrees.")
   }
-  
+
   # Normalize degrees to [0, 360)
   degrees_normalized <- (degrees + 360) %% 360
   min_dir <- direction.range[1] %% 360
   max_dir <- direction.range[2] %% 360
-  
+
   # Handle ranges that cross the 0-degree line
   if (min_dir > max_dir) {
     within_range <- degrees_normalized >= min_dir | degrees_normalized <= max_dir
   } else {
     within_range <- degrees_normalized >= min_dir & degrees_normalized <= max_dir
   }
-  
+
   # Apply the filter and set values outside the range to NA
   primary_data_filtered <- ifelse(within_range, primary_data, NA)
   degrees_filtered <- ifelse(within_range, degrees, NA)
-  
+
   return(list(
     primary_data = primary_data_filtered,
     degrees = degrees_filtered,
-    date_factors = date_factors  # Date factors are not filtered, so remain intact
+    date_factors = date_factors # Date factors are not filtered, so remain intact
   ))
 }
 
@@ -307,7 +312,6 @@ filter_by_direction_range <- function(primary_data, degrees, date_factors, direc
 #' @importFrom circular circular mean.circular sd.circular
 #' @export
 compute_circular_mean <- function(direction_degrees, date.factors, format) {
-  
   # Check for empty or NULL inputs
   if (is.null(direction_degrees) || length(direction_degrees) == 0) {
     stop("direction_degrees cannot be empty or NULL.")
@@ -315,29 +319,29 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
   if (is.null(date.factors) || length(date.factors) == 0) {
     stop("date.factors cannot be empty or NULL.")
   }
-  
+
   # Check if inputs are numeric
   if (!is.numeric(direction_degrees)) {
     stop("direction_degrees must be a numeric vector.")
   }
-  
-  
+
+
   # Convert directions to 'circular' objects
   directions_circular <- circular::circular(direction_degrees, units = "degrees", modulo = "2pi")
-  
+
   # Compute circular mean
   circular_mean <- tapply(directions_circular, date.factors, function(x) {
     if (all(is.na(x))) {
-      return(NA)  # Return NA if the entire group is NA
+      return(NA) # Return NA if the entire group is NA
     } else {
       return(circular::mean.circular(x, na.rm = TRUE))
     }
   })
-  
-  
+
+
   # Convert back to degrees
   circular_mean_degrees <- as.numeric(circular_mean)
-  circular_mean_degrees <- (circular_mean_degrees + 360) %% 360  # Normalize to [0, 360)
+  circular_mean_degrees <- (circular_mean_degrees + 360) %% 360 # Normalize to [0, 360)
   circular_mean_degrees[is.nan(circular_mean_degrees)] <- NA
   # Convert to cardinal if format is 'cardinal'
   if (format == "cardinal") {
@@ -356,7 +360,6 @@ compute_circular_mean <- function(direction_degrees, date.factors, format) {
 #' @return A numeric vector of circular standard deviations for each date factor group, in degrees.
 #' @export
 compute_circular_sd <- function(direction_degrees, date.factors) {
-
   # Check for empty or NULL inputs
   if (is.null(direction_degrees) || length(direction_degrees) == 0) {
     stop("direction_degrees cannot be empty or NULL.")
@@ -364,25 +367,25 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
   if (is.null(date.factors) || length(date.factors) == 0) {
     stop("date.factors cannot be empty or NULL.")
   }
-  
+
   # Check if inputs are numeric
   if (!is.numeric(direction_degrees)) {
     stop("direction_degrees must be a numeric vector.")
   }
-  
+
   # Convert directions to 'circular' objects
   directions_circular <- circular::circular(direction_degrees, units = "degrees", modulo = "2pi")
-  
+
   # Compute circular standard deviation
   circular_sd <- tapply(directions_circular, date.factors, function(x) {
     if (all(is.na(x))) {
-      return(NA)  # Return NA if the entire group is NA
+      return(NA) # Return NA if the entire group is NA
     } else {
       return(circular::sd.circular(x, na.rm = TRUE))
     }
   })
-  
-  circular_sd_degrees <- as.numeric(circular_sd) * (180 / pi)  # Convert from radians to degrees
+
+  circular_sd_degrees <- as.numeric(circular_sd) * (180 / pi) # Convert from radians to degrees
   circular_sd_degrees[is.nan(circular_sd_degrees)] <- NA
   names(circular_sd_degrees) <- levels(date.factors)
   return(circular_sd_degrees)
@@ -419,12 +422,12 @@ compute_circular_sd <- function(direction_degrees, date.factors) {
 #' For scalar data, use \code{\link{compute.stat.scalar}} instead.
 #'
 #' @seealso \code{\link{compute.stat.scalar}}, \code{\link{compute.gen.stat}}
-#' 
+#'
 #' @examples
 #' \dontrun{
 #' # Assuming `vector_obj` is a valid ClimdexGenericVector object:
 #' compute.stat.vector(vector_obj, "circular_mean", "monthly", format = "polar")
-#'}
+#' }
 #'
 #' @export
 compute.stat.vector <- function(
@@ -433,24 +436,23 @@ compute.stat.vector <- function(
     freq = c("monthly", "annual", "seasonal"),
     format = c("polar", "cartesian", "cardinal"),
     include.exact.dates = FALSE,
-    direction.range = NULL
-) {
+    direction.range = NULL) {
   stat <- match.arg(stat)
   freq <- match.arg(freq)
   format <- match.arg(format)
-  
+
   date.factors <- climate_obj@date.factors[[freq]]
-  
+
   # Convert all data to polar coordinates (magnitude and direction in degrees)
   directions_magnitudes <- compute_directions_and_magnitudes(
-    format, 
-    climate_obj@primary, 
+    format,
+    climate_obj@primary,
     climate_obj@secondary
   )
   magnitude <- directions_magnitudes$magnitude
   direction_degrees <- directions_magnitudes$direction_degrees
-  
-  
+
+
   # Filter data based on direction range if provided
   if (!is.null(direction.range)) {
     filtered <- filter_by_direction_range(magnitude, direction_degrees, date.factors, direction.range)
@@ -459,8 +461,7 @@ compute.stat.vector <- function(
     date.factors <- filtered$date_factors
   }
 
-  result <- switch(
-    stat,
+  result <- switch(stat,
     "circular_mean" = {
       direction_result <- compute_circular_mean(direction_degrees, date.factors, format)
       dir_mask <- climate_obj@namasks[[freq]][["secondary"]]
@@ -469,25 +470,23 @@ compute.stat.vector <- function(
     "circular_sd" = {
       circular_sd_degrees <- compute_circular_sd(direction_degrees, date.factors)
       dir_mask <- climate_obj@namasks[[freq]][["secondary"]]
-      
+
       list(circular_sd = circular_sd_degrees * dir_mask)
     },
     {
       # For other statistics, compute on magnitude
       magnitude_stat <- compute.gen.stat(
-        gen.var = climate_obj, 
-        stat = stat, 
-        data = magnitude, 
-        freq = freq, 
+        gen.var = climate_obj,
+        stat = stat,
+        data = magnitude,
+        freq = freq,
         include.exact.dates = include.exact.dates
       )
-      
-      
+
+
       list(magnitude = magnitude_stat)
     }
   )
-  
+
   return(result)
 }
-
-

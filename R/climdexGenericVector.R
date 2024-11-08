@@ -1,15 +1,15 @@
 #' @title climdexGenericVector.raw
-#' 
+#'
 #' @description
 #' Creates a `ClimdexGenericVector` object from raw vector climate data, including
 #' both a primary (e.g., magnitude) and secondary (e.g., direction) component.
-#' 
+#'
 #' @details
 #' This function processes vector climate data and creates a `ClimdexGenericVector`
 #' object. The function generates NA masks based on the provided `max.missing.days`
 #' and validates the `primary` and `secondary` components based on the specified
 #' format (`polar`, `cartesian`, or `cardinal`).
-#' 
+#'
 #' @param primary A numeric vector representing the primary data (e.g., wind speed).
 #' @param secondary A numeric or character vector representing the secondary data (e.g., wind direction).
 #' @param dates A `PCICt` vector corresponding to the data dates.
@@ -17,18 +17,20 @@
 #' @param max.missing.days A named vector indicating the maximum allowed missing days for `annual`, `monthly`, and `seasonal` time periods.
 #' @param northern.hemisphere Whether this point is in the northern hemisphere.
 #' @param calendar String representing the calendar type, e.g., "gregorian".
-#' 
+#'
 #' @return A `ClimdexGenericVector` object containing the processed vector data.
-#' 
+#'
 #' @seealso \code{\link{climdexGenericScalar.raw}}, \code{\link{climdexGenericVector.csv}}
-#' 
+#'
 #' @examples
-#' 
-#' \dontrun{primary <- c(5.5, 6.2, 4.8)
+#' \dontrun{
+#' primary <- c(5.5, 6.2, 4.8)
 #' secondary <- c("N", "NE", "E")
 #' dates <- as.PCICt(c("2000-01-01", "2000-01-02", "2000-01-03"),
-#'                  format = "%Y-%m-%d", cal = "gregorian")
-#' climdexGenericVector.raw(primary, secondary, dates, format = "cardinal")}
+#'   format = "%Y-%m-%d", cal = "gregorian"
+#' )
+#' climdexGenericVector.raw(primary, secondary, dates, format = "cardinal")
+#' }
 #' @export
 
 climdexGenericVector.raw <- function(
@@ -38,17 +40,16 @@ climdexGenericVector.raw <- function(
     format = "polar",
     max.missing.days = c(annual = 15, monthly = 3, seasonal = 6),
     northern.hemisphere = TRUE,
-    calendar = "gregorian"
-) {
-  
+    calendar = "gregorian") {
   check.generic.argument.validity(primary, dates, max.missing.days, calendar,
-                                  is.vector = TRUE, secondary, format)
+    is.vector = TRUE, secondary, format
+  )
 
-  
+
   date.info <- date_info(dates)
-  jdays = date.info$jdays
-  date.series = date.info$date.series
-  date.factors = date.info$date.factors
+  jdays <- date.info$jdays
+  date.series <- date.info$date.series
+  date.factors <- date.info$date.factors
 
 
   filled.primary <- generate_filled_list(primary, dates, date.series)[[1]]
@@ -56,18 +57,18 @@ climdexGenericVector.raw <- function(
   filled.secondary[is.na(filled.primary)] <- NA
   filled.primary[is.na(filled.secondary)] <- NA
   namasks <- generate_namasks(list(primary = filled.primary, secondary = filled.secondary), date.factors, max.missing.days)
-  
+
   return(new("climdexGenericVector",
-   primary = filled.primary,
-   secondary = filled.secondary,
-   dates = date.series,
-   format = format,
-   date.factors = date.factors,
-   jdays = jdays,
-   namasks = namasks,
-   max.missing.days = max.missing.days,
-   northern.hemisphere = northern.hemisphere
- ))
+    primary = filled.primary,
+    secondary = filled.secondary,
+    dates = date.series,
+    format = format,
+    date.factors = date.factors,
+    jdays = jdays,
+    namasks = namasks,
+    max.missing.days = max.missing.days,
+    northern.hemisphere = northern.hemisphere
+  ))
 }
 
 #' @title climdexGenericVector.csv
@@ -98,7 +99,7 @@ climdexGenericVector.raw <- function(
 #'
 #' @examples
 #' # Example usage for vector data (e.g., wind speed and direction):
-#'\dontrun{
+#' \dontrun{
 #' csv_data <- "
 #' year,month,day,wind_speed,wind_direction
 #' 2024,01,01,10,N
@@ -108,14 +109,16 @@ climdexGenericVector.raw <- function(
 #'
 #' # Write the CSV to a temporary file
 #' temp_file <- tempfile(fileext = ".csv")
-#' writeLines(csv_data, temp_file) 
+#' writeLines(csv_data, temp_file)
 #'
 #' # Call the climdexGenericVector.csv function
-#' climdexGenericVector.csv(temp_file, primary.column = "wind_speed",
-#'                          secondary.column = "wind_direction",
-#'                          date.columns = c("year", "month", "day"),
-#'                          date.format = "%Y %m %d", format = "cardinal",
-#'                          calendar = "gregorian")
+#' climdexGenericVector.csv(temp_file,
+#'   primary.column = "wind_speed",
+#'   secondary.column = "wind_direction",
+#'   date.columns = c("year", "month", "day"),
+#'   date.format = "%Y %m %d", format = "cardinal",
+#'   calendar = "gregorian"
+#' )
 #' }
 
 #' @export
@@ -130,24 +133,22 @@ climdexGenericVector.csv <- function(
     na.strings = NULL,
     max.missing.days = c(annual = 15, monthly = 3, seasonal = 6),
     northern.hemisphere = TRUE,
-    calendar = "gregorian"
-) {
-
+    calendar = "gregorian") {
   GV.csv <- read_csv_data(file, data.columns = c(primary.column, secondary.column), date.columns, date.format, na.strings, calendar)
-  
+
   primary_values <- GV.csv$data[[1]]
   secondary_values <- GV.csv$data[[2]]
   dates <- GV.csv$dates
-  
+
   return(climdexGenericVector.raw(
-  primary = primary_values,
-  secondary = secondary_values,
-  dates = dates,
-  format = format,
-  max.missing.days = max.missing.days,
-  northern.hemisphere = northern.hemisphere,
-  calendar = calendar
-))
+    primary = primary_values,
+    secondary = secondary_values,
+    dates = dates,
+    format = format,
+    max.missing.days = max.missing.days,
+    northern.hemisphere = northern.hemisphere,
+    calendar = calendar
+  ))
 }
 #' @title climdexSingleMonthlyVector.raw
 #'
@@ -252,12 +253,11 @@ climdexSingleMonthlyVector.csv <- function(
   GV.csv <- read_csv_data(file, data.columns = c(primary.column, secondary.column), date.columns, date.format, na.strings, calendar)
 
   return(climdexSingleMonthlyVector.raw(
-  primary = GV.csv$data[[1]],
-  secondary = GV.csv$data[[2]],
-  dates = GV.csv$dates,
-  format = format,
-  northern.hemisphere = northern.hemisphere,
-  calendar = calendar
-))
-
+    primary = GV.csv$data[[1]],
+    secondary = GV.csv$data[[2]],
+    dates = GV.csv$dates,
+    format = format,
+    northern.hemisphere = northern.hemisphere,
+    calendar = calendar
+  ))
 }
