@@ -17,9 +17,9 @@ jobs:
       fail-fast: false
       matrix:
         config:
-          - {os: ubuntu-latest,   r: 'devel', http-user-agent: 'release'}
-          - {os: ubuntu-latest,   r: 'release'}
-          - {os: ubuntu-latest,   r: 'oldrel-1'}
+          - {os: ubuntu-24.04,   r: 'devel', http-user-agent: 'release'}
+          - {os: ubuntu-24.04,   r: 'release'}
+          - {os: ubuntu-24.04,   r: 'oldrel-1'}
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -40,7 +40,7 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@6f6e5bc62fba3a704f74e7ad7ef7676c5c6a2590 # v2
         with:
-          extra-packages: any::rcmdcheck, any::roxygen2, any::lifecycle 
+          extra-packages: any::rcmdcheck, any::roxygen2, any::lifecycle github::pacificclimate/PCICt
           needs: check
           
       - name: Document
