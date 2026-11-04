@@ -1,6 +1,11 @@
 #' @param ci Object of type climdexInput.
 #' @param spells.can.span.years Whether to allow spells of dry/wet days to span
 #' years.
+#' @param bootstrap Whether to use the Zhang et al. (2005) bootstrap
+#' thresholds for years inside the base period, as is done for TX90p, TN10p
+#' and the other percentile indices. Defaults to TRUE. Set to FALSE to
+#' reproduce the earlier behaviour, in which out-of-base thresholds were used
+#' for all years.
 #' @return A vector containing the value of the index for each year.
 #' @note These functions may calculate slightly different results than
 #' fclimdex.
