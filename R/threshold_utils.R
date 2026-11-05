@@ -168,7 +168,26 @@ percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold
 #' @param min.length The minimum spell length to be considered.
 #' @param spells.can.span.years Whether spells can span years.
 #' @param max.missing.days Maximum number of NA values per time period.
-#' @return A timeseries of maximum spell lengths for each period.
+#' @param dates Dates (type PCICt) corresponding to \code{daily.temp}. Only
+#' needed when \code{base.thresholds} is supplied.
+#' @param base.thresholds Optional in-base bootstrap thresholds, as found in
+#' the 'inbase' member of a climdexInput object's quantiles (an array of
+#' dimension days of year x base years x (base years - 1)). If supplied
+#' together with \code{dates} and \code{base.range}, the index for each
+#' period inside the base period is computed once with each set of bootstrap
+#' thresholds for that year and the results are averaged, following Zhang et
+#' al. (2005). This removes the artificial jump at the edges of the base
+#' period, in the same way as for \code{\link{percent.days.op.threshold}}.
+#' If NULL (the default), the out-of-base thresholds are used for all days.
+#' @param base.range Date range (type PCICt) of the baseline period. Only
+#' needed when \code{base.thresholds} is supplied.
+#' @return A timeseries of maximum spell lengths for each period. Values for
+#' periods inside the base period may be non-integer when
+#' \code{base.thresholds} is supplied, since they are averages over the
+#' bootstrap samples.
+#' @references Zhang, X., G. Hegerl, F. W. Zwiers, and J. Kenyon (2005).
+#' Avoiding inhomogeneity in percentile-based indices of temperature extremes.
+#' J. Climate, 18, 1641-1651.
 #' @seealso \code{\link{climdex.wsdi}}.
 #' @keywords ts climate
 #' @examples
@@ -185,20 +204,48 @@ percent.days.op.threshold <- function(temp, dates, jdays, date.factor, threshold
 #' rep(1:5, 2), rep(1, 5), ">=", 2, FALSE, 1)
 #' 
 #' @export
-threshold.exceedance.duration.index <- function(daily.temp, date.factor, jdays, thresholds, op=">", min.length=6, spells.can.span.years=TRUE, max.missing.days) {
+threshold.exceedance.duration.index <- function(daily.temp, date.factor, jdays, thresholds, op=">", min.length=6, spells.can.span.years=TRUE, max.missing.days, dates=NULL, base.thresholds=NULL, base.range=NULL) {
   stopifnot(is.numeric(c(daily.temp, thresholds, min.length)), is.factor(date.factor),
             is.function(match.fun(op)),
             min.length > 0)
   f <- match.fun(op)
   na.mask <- get.na.mask(is.na(daily.temp + thresholds[jdays]), date.factor, max.missing.days)
-  
-  if(spells.can.span.years) {
-    periods <- select.blocks.gt.length(f(daily.temp, thresholds[jdays]), min.length - 1)
-    return(tapply.fast(periods, date.factor, sum) * na.mask)
-  } else {
-    ## fclimdex behaviour...
-    return(tapply.fast(1:length(daily.temp), date.factor, function(idx) { sum(select.blocks.gt.length(f(daily.temp[idx], thresholds[jdays[idx]]), min.length - 1)) } ) * na.mask)
+
+  ## Sum of spell lengths per period, given a daily series of exceedances.
+  spell.days <- function(exceed) {
+    if(spells.can.span.years) {
+      return(tapply.fast(select.blocks.gt.length(exceed, min.length - 1), date.factor, sum))
+    } else {
+      ## fclimdex behaviour...
+      return(tapply.fast(1:length(exceed), date.factor, function(idx) { sum(select.blocks.gt.length(exceed[idx], min.length - 1)) } ))
+    }
   }
+
+  exceed <- f(daily.temp, thresholds[jdays])
+  result <- spell.days(exceed)
+
+  ## Zhang et al. (2005) bootstrap for periods inside the base period, as in
+  ## percent.days.op.threshold. For each base year, the index is computed
+  ## with each of the (n - 1) sets of thresholds estimated with that year
+  ## replaced by another base year, and the results are averaged.
+  if(!is.null(base.thresholds) && !is.null(dates) && !is.null(base.range)) {
+    inset <- dates >= base.range[1] & dates <= base.range[2]
+    ## Don't use in-base thresholds with data shorter than two years; no years to replace with.
+    if(sum(inset) > 0 && length(dates) >= 360 * 2) {
+      bdim <- dim(base.thresholds)
+      jdays.base <- jdays[inset]
+      byr.indices <- get.years(dates[inset]) - get.years(base.range)[1] + 1
+      bs.results <- sapply(1:bdim[3], function(k) {
+        exceed.k <- exceed
+        exceed.k[inset] <- f(daily.temp[inset], base.thresholds[cbind(jdays.base, byr.indices, k)])
+        spell.days(exceed.k)
+      })
+      bs.results <- matrix(bs.results, ncol=bdim[3])
+      base.periods <- names(result) %in% unique(as.character(date.factor[inset]))
+      result[base.periods] <- rowMeans(bs.results[base.periods, , drop=FALSE])
+    }
+  }
+  return(result * na.mask)
 }
 
 #' @title Number of days (less than, greater than, etc) a threshold

@@ -181,7 +181,7 @@ climdex.gsl <- function(ci, gsl.mode = c("GSL", "GSL_first", "GSL_max", "GSL_sum
 #' @template get_generic_example
 #' 
 #' @export
-climdex.wsdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(threshold.exceedance.duration.index(ci@data$tmax, ci@date.factors$annual, ci@jdays, ci@quantiles$tmax$outbase$q90, ">", spells.can.span.years=spells.can.span.years, max.missing.days=ci@max.missing.days['annual']) * ci@namasks$annual$tmax) }
+climdex.wsdi <- function(ci, spells.can.span.years=FALSE, bootstrap=TRUE) { stopifnot(!is.null(ci@data$tmax) && !is.null(ci@quantiles$tmax)); return(threshold.exceedance.duration.index(ci@data$tmax, ci@date.factors$annual, ci@jdays, ci@quantiles$tmax$outbase$q90, ">", spells.can.span.years=spells.can.span.years, max.missing.days=ci@max.missing.days['annual'], dates=ci@dates, base.thresholds=if(bootstrap) ci@quantiles$tmax$inbase$q90 else NULL, base.range=ci@base.range) * ci@namasks$annual$tmax) }
 
 #' @title Cold Spell Duration Index
 #' 
@@ -207,7 +207,7 @@ climdex.wsdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(c
 #' @template get_generic_example
 #' 
 #' @export
-climdex.csdi <- function(ci, spells.can.span.years=FALSE) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(threshold.exceedance.duration.index(ci@data$tmin, ci@date.factors$annual, ci@jdays, ci@quantiles$tmin$outbase$q10, "<", spells.can.span.years=spells.can.span.years, max.missing.days=ci@max.missing.days['annual']) * ci@namasks$annual$tmin) }
+climdex.csdi <- function(ci, spells.can.span.years=FALSE, bootstrap=TRUE) { stopifnot(!is.null(ci@data$tmin) && !is.null(ci@quantiles$tmin)); return(threshold.exceedance.duration.index(ci@data$tmin, ci@date.factors$annual, ci@jdays, ci@quantiles$tmin$outbase$q10, "<", spells.can.span.years=spells.can.span.years, max.missing.days=ci@max.missing.days['annual'], dates=ci@dates, base.thresholds=if(bootstrap) ci@quantiles$tmin$inbase$q10 else NULL, base.range=ci@base.range) * ci@namasks$annual$tmin) }
 
 
 #' @title Flexible GSL function
