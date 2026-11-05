@@ -39,7 +39,11 @@ jobs:
 
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          extra-packages: any::rcmdcheck, any::roxygen2, any::lifecycle 
+          extra-packages: |
+            any::rcmdcheck
+            any::roxygen2
+            any::lifecycle
+            PCICt=local::.github/vendor/PCICt_0.5-5.0.tar.gz
           needs: check
           
       - name: Document
